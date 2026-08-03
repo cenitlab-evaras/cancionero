@@ -11,6 +11,10 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
+    // Los scripts de supabase/seed/ corren con el type-stripping de Node, que
+    // exige la extensión .ts en los imports. Así quedan type-chequeados por el
+    // mismo build en vez de excluidos del chequeo.
+    "allowImportingTsExtensions": true,
     "jsx": "react-jsx",
     "incremental": true,
     "plugins": [

@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Cantoral
 
-## Getting Started
+El repertorio de un coro católico, en el teléfono. Especificación completa en
+[`../docs/PRD.md`](../docs/PRD.md).
 
-First, run the development server:
+Next.js 16 · Supabase · esquema dedicado `cantoral` · despliegue previsto en Vercel.
+
+## Levantarlo
+
+Necesitás Docker corriendo (para Supabase local) y Node 22+.
 
 ```bash
+cp .env.example .env.local     # completar con lo que imprime `supabase status`
+npm install
+supabase start                 # Postgres + Auth + Studio en tu máquina
+supabase db reset              # aplica las migraciones
+npm run db:seed                # siembra 12 cantos y 5 usuarios de prueba
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Comandos
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Comando | Qué hace |
+| --- | --- |
+| `npm run dev` | levanta la app |
+| `npm test` | motores puros y matriz de permisos |
+| `npm run build` | compila y type-chequea |
+| `npm run db:reset` | reaplica las migraciones (borra los datos) |
+| `npm run db:seed` | siembra el repertorio y los usuarios de prueba |
+| `npm run db:borrar-semilla` | deja el esquema como estaba |
+| `npm run verificar:rls` | prueba la RLS con **sesiones reales** de cada rol |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Usuarios de prueba
 
-## Learn More
+Todos con la contraseña de `SEED_PASSWORD` (no está en el repo).
 
-To learn more about Next.js, take a look at the following resources:
+| Usuario | Rol | Coro | Para qué |
+| --- | --- | --- | --- |
+| `admin@cantoral.local` | admin | — | aprobar perfiles (H7) |
+| `director@cantoral.local` | miembro · director | Misión País | editar repertorio (H8) |
+| `musico@cantoral.local` | miembro · músico | Misión País | leer y tocar |
+| `pendiente@cantoral.local` | miembro, **sin aprobar** | — | probar el portón |
+| `ajeno@cantoral.local` | miembro · músico | San Ejemplo | probar el aislamiento entre coros |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Lo que no se toca
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Son cimientos del producto, no preferencias (PRD §8 y §16):
 
-## Deploy on Vercel
+1. **RLS activa en la misma migración que crea la tabla.** Esquema `cantoral`, nunca `public`.
+2. **La RLS es la seguridad; `lib/permisos.ts` es la interfaz.** Si discrepan, manda la RLS y la
+   discrepancia es un bug — no se afloja la política para que la pantalla ande.
+3. **Los motores son puros y testeados.** `lib/motores/`: sin base, sin red, sin reloj.
+4. **Cero valores derivados persistidos.** Lo que se calcula, se calcula al leer.
+5. **`aprobado` es el portón.** Toda decisión de acceso pasa por el sujeto completo.
+6. **La clave de servicio solo del lado del servidor**, sin prefijo `NEXT_PUBLIC_`, fuera del repo.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Estado
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**H1 a H4 hechos y verificados: el corte mínimo del PRD está alcanzado.** Un coro puede entrar,
+ver su repertorio por momento litúrgico, leer un canto con los acordes sobre la letra, transponerlo
+a su tonalidad y tocarlo con la pantalla desplazándose sola.
+
+El detalle de cada hito y lo que quedó pendiente está en el PRD, §17 y §17.1. El siguiente es
+**H5: diagramas de acorde**.

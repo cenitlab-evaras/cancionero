@@ -1,26 +1,94 @@
 @import "tailwindcss";
 
+/*
+ * Sistema visual de Cantoral — ver DESIGN.md en la raíz del proyecto.
+ * NINGÚN color escrito a mano fuera de este bloque.
+ *
+ * Tema oscuro único, sin conmutador (PRD decisión 8): la escena es una iglesia
+ * a las ocho de la tarde, con el músico de pie y la guitarra puesta.
+ *
+ * Los valores están en OKLCH para poder derivar estados sin que el matiz derive;
+ * el hex de origen del PRD §11 va como referencia al lado.
+ */
+@theme {
+  --color-fondo: oklch(0.176 0 0); /* #0F0F0F */
+  --color-superficie: oklch(0.243 0 0); /* #1A1A1A */
+  --color-superficie-alta: oklch(0.296 0 0); /* #242424 */
+  --color-borde: oklch(0.325 0 0); /* #2A2A2A */
+  /* Borde de control interactivo. WCAG 1.4.11 pide 3:1 contra el fondo para
+     que el control se distinga como tal; con el gris del PRD daba 1.97:1. */
+  --color-borde-fuerte: oklch(0.53 0 0);
+  --color-texto: oklch(0.925 0 0); /* #E8E8E8 */
+  --color-texto-tenue: oklch(0.687 0 0); /* #9A9A9A */
+  --color-acorde: oklch(0.72 0.14 62); /* #E08A3C · 8.1:1 */
+  --color-acento: oklch(0.62 0.17 258); /* #3B82F6 */
+  --color-peligro: oklch(0.58 0.21 27); /* #DC2626 */
+  --color-exito: oklch(0.6 0.16 149); /* #16A34A */
+
+  --font-interfaz: var(--fuente-interfaz), system-ui, sans-serif;
+  --font-cifrado: var(--fuente-cifrado), ui-monospace, monospace;
+
+  /* Escala de z-index semántica. Nunca 999. */
+  --z-barra: 10;
+  --z-cabecera: 20;
+  --z-modal: 40;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  color-scheme: dark;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Motion de producto: comunica estado, no decora (DESIGN.md · Motion). */
+  --transicion: 160ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-fondo);
+  color: var(--color-texto);
+  font-family: var(--font-interfaz);
+  font-feature-settings: "tnum" 1; /* números tabulares: los contadores no bailan */
+}
+
+/* -------------------------------------------------------------------------
+ * Foco visible en todo lo interactivo. Un anillo separado del control, para
+ * que se vea también sobre superficies claras y sobre el propio acento.
+ * ------------------------------------------------------------------------- */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-acento);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* -------------------------------------------------------------------------
+ * El cifrado. Monoespaciado e interlineado 1.9: la línea de acordes tiene que
+ * respirar sobre la de letra (PRD §11.1).
+ * ------------------------------------------------------------------------- */
+.cifrado {
+  font-family: var(--font-cifrado);
+  line-height: 1.9;
+  white-space: pre-wrap;
+  font-variant-ligatures: none; /* una ligadura desalinea la columna */
+}
+
+/* Objetivo táctil mínimo: se usa con la guitarra puesta (PRD §11.2). */
+.tactil {
+  min-height: 44px;
+  transition:
+    background-color var(--transicion),
+    border-color var(--transicion),
+    color var(--transicion),
+    opacity var(--transicion);
+}
+
+/* -------------------------------------------------------------------------
+ * Reduced motion. El auto scroll NO entra acá: no es decoración, es la función
+ * que el usuario pidió explícitamente con un botón (DESIGN.md · Motion).
+ * ------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
