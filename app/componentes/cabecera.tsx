@@ -22,6 +22,16 @@ export default function Cabecera({ sesion }: { sesion: SesionCantoral }) {
         </Link>
 
         <div className="flex shrink-0 items-center gap-1">
+          {/* Las dos superficies del producto: el repertorio y las misas. Solo
+              aparece con un coro activo; sin él no hay nada que listar. */}
+          {sesion.coroActivo && (
+            <Link
+              href="/celebraciones"
+              className="rounded px-2 text-xs text-texto-tenue transition-colors hover:text-texto"
+            >
+              Misas
+            </Link>
+          )}
           {sesion.coros.length > 1 && (
             <SelectorCoro coros={sesion.coros} activoId={sesion.coroActivo?.id ?? ''} />
           )}

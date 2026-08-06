@@ -164,6 +164,97 @@ async function main() {
   // Se deja como estaba.
   await musico.from('preferencias_lectura').delete().eq('canto_id', idAjeno!)
 
+  // --- H6 · Celebraciones ----------------------------------------------------
+  // Solo corren si hay una celebración armada; la semilla no crea ninguna.
+  const { data: celebracion } = await director
+    .from('celebraciones')
+    .select('id, coro_id, nombre')
+    .limit(1)
+    .maybeSingle()
+
+  if (!celebracion) {
+    console.log('\n· sin celebraciones armadas: se omiten las comprobaciones de H6')
+  } else {
+    const { data: veMusico } = await musico.from('celebraciones').select('id').eq('id', celebracion.id)
+    comprobar(
+      'musico@ ve la celebración de su coro',
+      (veMusico?.length ?? 0) === 1,
+      `${veMusico?.length ?? 0} filas`
+    )
+
+    const { data: veAjeno } = await ajeno.from('celebraciones').select('id').eq('id', celebracion.id)
+    comprobar(
+      'ajeno@ pidiendo la celebración por id recibe CERO filas',
+      (veAjeno?.length ?? 0) === 0,
+      `${veAjeno?.length ?? 0} filas`
+    )
+
+    const { data: vePendiente } = await pendiente.from('celebraciones').select('id')
+    comprobar(
+      'pendiente@ (no aprobado) no obtiene ninguna celebración',
+      (vePendiente?.length ?? 0) === 0,
+      `${vePendiente?.length ?? 0} filas`
+    )
+
+    const { error: errCrear } = await musico
+      .from('celebraciones')
+      .insert({ coro_id: celebracion.coro_id, nombre: 'intento de un músico' })
+    comprobar(
+      'musico@ no puede crear una celebración (la RLS lo frena)',
+      !!errCrear,
+      errCrear ? 'la RLS rechazó el insert' : 'SE ESCRIBIÓ: la política está mal'
+    )
+
+    const { data: unMomento } = await musico.from('momentos_liturgicos').select('id').limit(1).single()
+    const { error: errAgregar } = await musico.from('celebracion_cantos').insert({
+      celebracion_id: celebracion.id,
+      canto_id: idAjeno!,
+      momento_id: unMomento!.id,
+      orden: 999,
+      coro_id: celebracion.coro_id,
+    })
+    comprobar(
+      'musico@ no puede agregar un canto a la misa',
+      !!errAgregar,
+      errAgregar ? 'la RLS rechazó el insert' : 'SE ESCRIBIÓ: la política está mal'
+    )
+
+    const { data: antes } = await musico
+      .from('celebracion_cantos')
+      .select('id, orden')
+      .eq('celebracion_id', celebracion.id)
+      .order('orden')
+    await musico.from('celebracion_cantos').delete().eq('id', antes![0]!.id)
+    const { data: despues } = await musico
+      .from('celebracion_cantos')
+      .select('id')
+      .eq('celebracion_id', celebracion.id)
+    comprobar(
+      'musico@ no puede quitar un canto de la misa',
+      (despues?.length ?? 0) === (antes?.length ?? 0),
+      `${antes?.length ?? 0} antes, ${despues?.length ?? 0} después`
+    )
+
+    const { data: escrituraDirector } = await director
+      .from('celebraciones')
+      .update({ nombre: celebracion.nombre })
+      .eq('id', celebracion.id)
+      .select('id')
+    comprobar(
+      'director@ sí puede editar la celebración de su coro',
+      (escrituraDirector?.length ?? 0) === 1,
+      `${escrituraDirector?.length ?? 0} filas afectadas`
+    )
+
+    // El "listo cuando" de H6: el orden que se ve es el que se guardó.
+    const ordenes = (antes ?? []).map((f: { orden: number }) => f.orden)
+    comprobar(
+      'el orden guardado es consecutivo desde 0, sin huecos ni repetidos',
+      JSON.stringify(ordenes) === JSON.stringify(ordenes.map((_, i) => i)),
+      JSON.stringify(ordenes)
+    )
+  }
+
   const fallidos = resultados.filter((r) => !r.ok)
   console.log(`\n${resultados.length - fallidos.length}/${resultados.length} comprobaciones en verde`)
   if (fallidos.length > 0) process.exit(1)
