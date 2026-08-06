@@ -3,9 +3,19 @@ import { redirect } from 'next/navigation'
 import { obtenerSesion } from '@/lib/sesion'
 import { obtenerCanto, obtenerPreferencia } from '@/lib/datos/repertorio'
 import { transponer, transponerAcorde } from '@/lib/motores/transponer'
+import { acordesDeCanto } from '@/lib/motores/acordes-de-canto'
+import { buscarDigitacion } from '@/lib/motores/buscar-digitacion'
+import { DIGITACIONES } from '@/lib/motores/digitaciones'
 import Cabecera from '@/app/componentes/cabecera'
 import Cifrado from '@/app/componentes/cifrado'
+import CartaAcorde from '@/app/componentes/carta-acorde'
 import Controles from './controles'
+import {
+  CascaronCarta,
+  HojaDiagramas,
+  ProveedorDiagramas,
+  ZonaAcordes,
+} from './diagramas'
 
 export const metadata = { title: 'Canto · Cantoral' }
 
@@ -59,10 +69,23 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
     ? transponerAcorde(canto.tonalidadOriginal, preferencia.transposicion)
     : null
 
+  // LOS DIAGRAMAS SE CALCULAN SOBRE EL CIFRADO YA TRANSPUESTO (PRD §9).
+  // Si acá dijera `canto.cifrado`, con +2 la pantalla mostraría F# y el
+  // diagrama dibujaría E. De acá para abajo `canto.cifrado` no se vuelve a
+  // nombrar: hay una sola fuente de la lista de acordes.
+  const acordes = acordesDeCanto(cifradoEnPantalla)
+  const diagramas = acordes.map((nombre) => ({
+    nombre,
+    digitacion: buscarDigitacion(nombre, DIGITACIONES),
+  }))
+
   return (
     <>
       <Cabecera sesion={sesion} />
 
+      {/* El proveedor no emite DOM, así que <main> sigue siendo hijo flex
+          directo del <body> y conserva su `flex-1`. */}
+      <ProveedorDiagramas acordes={acordes}>
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 pb-8">
         <div className="flex items-baseline gap-3 pt-4">
           <Link
@@ -88,8 +111,16 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
 
         {/* A sangre: el fondo es el papel. */}
         <div className="mt-6">
-          <Cifrado cifrado={cifradoEnPantalla} tamano={preferencia.tamanoLetra} />
+          <ZonaAcordes>
+            <Cifrado cifrado={cifradoEnPantalla} tamano={preferencia.tamanoLetra} />
+          </ZonaAcordes>
         </div>
+
+        {acordes.length === 0 && (
+          // §14: no es un fallo del motor ni una pantalla vacía. Se dice el
+          // motivo y se sigue mostrando la letra.
+          <p className="mt-6 text-xs text-texto-tenue">Este canto no tiene acordes escritos.</p>
+        )}
 
         {canto.fuenteTitulo && (
           <p className="mt-10 border-t border-borde pt-4 text-[0.6875rem] leading-relaxed text-texto-tenue">
@@ -101,13 +132,30 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
         )}
       </main>
 
-      <Controles
-        cantoId={canto.id}
-        coroId={sesion.coroActivo!.id}
-        transposicion={preferencia.transposicion}
-        tamanoLetra={preferencia.tamanoLetra}
-        tonalidadActual={tonalidadActual}
-      />
+      {/* La pila inferior: la hoja de diagramas se apila ENCIMA de los
+          controles, que siguen accesibles — hay que poder transponer con la
+          hoja abierta. El `sticky` vive acá, no dentro de <Controles>. */}
+      <div className="relative sticky bottom-0 z-(--z-barra)">
+        {acordes.length > 0 && (
+          <HojaDiagramas>
+            {diagramas.map((d, i) => (
+              <CascaronCarta key={i} indice={i}>
+                {/* El SVG se dibuja en el SERVIDOR y baja pintado. */}
+                <CartaAcorde nombre={d.nombre} digitacion={d.digitacion} />
+              </CascaronCarta>
+            ))}
+          </HojaDiagramas>
+        )}
+
+        <Controles
+          cantoId={canto.id}
+          coroId={sesion.coroActivo!.id}
+          transposicion={preferencia.transposicion}
+          tamanoLetra={preferencia.tamanoLetra}
+          tonalidadActual={tonalidadActual}
+        />
+      </div>
+      </ProveedorDiagramas>
     </>
   )
 }

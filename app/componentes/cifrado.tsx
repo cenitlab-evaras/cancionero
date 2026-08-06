@@ -67,16 +67,32 @@ export default function Cifrado({ cifrado, tamano = 16 }: { cifrado: string; tam
           )
         }
 
-        // La línea de acordes se arma con espacios hasta cada columnaPintada.
-        let lineaAcordes = ''
-        for (const a of linea.acordes) {
-          lineaAcordes = lineaAcordes.padEnd(a.columnaPintada, ' ') + a.acorde
-        }
+        // La línea de acordes: relleno de espacios hasta cada columnaPintada, y
+        // el acorde dentro de un <button> para poder tocarlo (H5).
+        //
+        // El relleno sigue siendo espacios literales bajo `white-space: pre`,
+        // exactamente como el `padEnd` que había antes: la columna la sigue
+        // decidiendo `columnaPintada`, que ya está probada. El botón no puede
+        // cambiar la métrica — de eso se ocupa `.acorde-tocable` en globals.css.
+        let cursor = 0
 
         return (
           <div key={i}>
             {linea.acordes.length > 0 && (
-              <div className="whitespace-pre font-semibold text-acorde">{lineaAcordes}</div>
+              <div className="whitespace-pre font-semibold text-acorde">
+                {linea.acordes.map((a, j) => {
+                  const relleno = ' '.repeat(Math.max(0, a.columnaPintada - cursor))
+                  cursor = a.columnaPintada + a.acorde.length
+                  return (
+                    <span key={j}>
+                      {relleno}
+                      <button type="button" data-acorde={a.acorde} className="acorde-tocable">
+                        {a.acorde}
+                      </button>
+                    </span>
+                  )
+                })}
+              </div>
             )}
             <div className="whitespace-pre text-texto">{linea.texto || ' '}</div>
           </div>

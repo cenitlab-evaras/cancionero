@@ -69,7 +69,9 @@ export default function Controles({
     optimista.transposicion > 0 ? `+${optimista.transposicion}` : `${optimista.transposicion}`
 
   return (
-    <div className="sticky bottom-0 z-(--z-barra) border-t border-borde bg-fondo/95 backdrop-blur">
+    // El `sticky` ya no vive acá: lo pone la pila inferior de `page.tsx`, para
+    // que la hoja de diagramas (H5) pueda apilarse encima de esta barra.
+    <div className="border-t border-borde bg-fondo/95 backdrop-blur">
       <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-2 px-3 py-2">
         {/* Transponer: el bloque más importante, y por eso el del centro visual */}
         <div className="flex shrink-0 items-center gap-1">
