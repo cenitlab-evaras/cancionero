@@ -179,3 +179,61 @@ export async function obtenerCanto(cantoId: string): Promise<CantoCompleto | nul
     fuentePagina: fila.fuente_pagina,
   }
 }
+
+/**
+ * El catálogo de momentos y los autores que ya existen (H8).
+ *
+ * Los momentos alimentan el selector del formulario; los autores, la sugerencia
+ * del campo de autor — para no ensuciar el catálogo global con variantes del
+ * mismo nombre («Gabaráin» y «Cesáreo Gabaráin» serían dos).
+ */
+export async function catalogosParaEditar(): Promise<{
+  momentos: { id: string; nombre: string; orden: number }[]
+  autores: string[]
+}> {
+  const supabase = await createClient()
+
+  const [{ data: momentos, error: e1 }, { data: autores, error: e2 }] = await Promise.all([
+    supabase.from('momentos_liturgicos').select('id, nombre, orden').order('orden'),
+    supabase.from('autores').select('nombre').order('nombre'),
+  ])
+
+  if (e1) throw e1
+  if (e2) throw e2
+
+  return {
+    momentos: momentos ?? [],
+    autores: (autores ?? []).map((a) => a.nombre as string),
+  }
+}
+
+/** Un canto con lo que hace falta para volver a editarlo. */
+export async function cantoParaEditar(cantoId: string) {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('cantos')
+    .select(
+      'id, titulo, cifrado, tonalidad_original, fuente_titulo, fuente_numero, fuente_pagina, autores(nombre), canto_momentos(momento_id)'
+    )
+    .eq('id', cantoId)
+    .maybeSingle()
+
+  if (error) throw error
+  if (!data) return null
+
+  const autor = data.autores as unknown as { nombre: string } | null
+  const momentos = (data.canto_momentos ?? []) as unknown as { momento_id: string }[]
+
+  return {
+    id: data.id,
+    titulo: data.titulo,
+    autorNombre: autor?.nombre ?? '',
+    cifrado: data.cifrado,
+    tonalidadOriginal: data.tonalidad_original ?? '',
+    momentoIds: momentos.map((m) => m.momento_id),
+    fuenteTitulo: data.fuente_titulo ?? '',
+    fuenteNumero: data.fuente_numero ? String(data.fuente_numero) : '',
+    fuentePagina: data.fuente_pagina ? String(data.fuente_pagina) : '',
+  }
+}

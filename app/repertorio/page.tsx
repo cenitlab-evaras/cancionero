@@ -27,7 +27,7 @@ export default async function RepertorioPage({
           <h1 className="text-lg font-semibold">Todavía no perteneces a ningún coro</h1>
           <p className="mt-2 max-w-prose text-sm text-texto-tenue">
             {sesion.sujeto.rol === 'admin'
-              ? 'Como administrador puedes ver los coros de la instalación, pero para leer un repertorio tienes que ser miembro de uno. Asignar miembros llega en el hito 7.'
+              ? 'Como administrador puedes ver los coros de la instalación, pero para leer un repertorio tienes que ser miembro de uno. Puedes asignarte desde la pantalla de miembros del coro.'
               : 'Pídele a tu director que te agregue. Cuando lo haga, acá vas a ver su repertorio.'}
           </p>
         </main>
@@ -44,8 +44,19 @@ export default async function RepertorioPage({
       <Cabecera sesion={sesion} />
 
       <main className="mx-auto w-full max-w-2xl px-4 pb-16">
-        <div className="sticky top-14 z-(--z-barra) -mx-4 bg-fondo/95 px-4 pt-3 pb-3 backdrop-blur">
-          <Buscador valorInicial={q} />
+        <div className="sticky top-14 z-(--z-barra) -mx-4 flex items-center gap-2 bg-fondo/95 px-4 pt-3 pb-3 backdrop-blur">
+          <div className="min-w-0 flex-1">
+            <Buscador valorInicial={q} />
+          </div>
+          {puede(sesion.sujeto, 'editar_canto') && (
+            <Link
+              href="/repertorio/nuevo"
+              aria-label="Cargar un canto nuevo"
+              className="tactil flex w-11 shrink-0 items-center justify-center rounded-lg border border-borde-fuerte text-lg text-acento"
+            >
+              +
+            </Link>
+          )}
         </div>
 
         {total === 0 && q !== '' && (
@@ -61,9 +72,17 @@ export default async function RepertorioPage({
           <div className="py-10">
             <p className="text-sm">Este coro todavía no tiene repertorio.</p>
             <p className="mt-2 max-w-prose text-sm text-texto-tenue">
-              {puede(sesion.sujeto, 'editar_canto')
-                ? 'Como director vas a poder cargar cantos en el hito 8.'
-                : 'Cuando el director cargue cantos, vas a verlos acá.'}
+              {puede(sesion.sujeto, 'editar_canto') ? (
+                <>
+                  Como director puedes{' '}
+                  <Link href="/repertorio/nuevo" className="text-acento underline underline-offset-2">
+                    cargar el primero
+                  </Link>
+                  .
+                </>
+              ) : (
+                'Cuando el director cargue cantos, vas a verlos acá.'
+              )}
             </p>
           </div>
         )}

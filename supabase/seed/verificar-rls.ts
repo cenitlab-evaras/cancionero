@@ -44,10 +44,14 @@ async function main() {
 
   // --- Acto 1: el músico ve el repertorio de su coro -------------------------
   const { data: cantosMusico } = await musico.from('cantos').select('id, titulo')
+  const { data: cantosDirector } = await director.from('cantos').select('id')
+  // Contra lo que ve el DIRECTOR del mismo coro, no contra un número fijo:
+  // desde H8 el repertorio crece por la app y un literal se rompe solo.
   comprobar(
-    'musico@ ve los 12 cantos de Misión País',
-    cantosMusico?.length === 12,
-    `${cantosMusico?.length ?? 0} cantos`
+    'musico@ ve el mismo repertorio que el director de su coro',
+    (cantosMusico?.length ?? 0) === (cantosDirector?.length ?? -1) &&
+      (cantosMusico?.length ?? 0) >= 12,
+    `${cantosMusico?.length ?? 0} cantos, el director ve ${cantosDirector?.length ?? 0}`
   )
 
   // --- Acto 2: el ajeno ve solo el suyo (lado negativo) ----------------------
@@ -330,15 +334,63 @@ async function main() {
   // El recién llegado ve el repertorio en su siguiente entrada.
   const recienLlegado = await sesion('pendiente@cantoral.local')
   const { data: veRepertorio } = await recienLlegado.from('cantos').select('id')
+  const { data: veDirector } = await director.from('cantos').select('id')
   comprobar(
-    'el recién admitido ve el repertorio del coro',
-    (veRepertorio?.length ?? 0) === 12,
+    'el recién admitido ve el mismo repertorio que el director',
+    (veRepertorio?.length ?? 0) === (veDirector?.length ?? -1),
     `${veRepertorio?.length ?? 0} cantos`
   )
 
   // Se deja como estaba: la semilla vuelve a tener a pendiente@ sin aprobar.
   await director.from('coro_acceso').delete().eq('perfil_id', idPendiente)
   await admin.from('perfiles').update({ aprobado: false }).eq('id', idPendiente)
+
+  // --- H8 · Editar el repertorio ---------------------------------------------
+  const { data: coroDelMusico } = await musico.from('coro_acceso').select('coro_id').limit(1).single()
+
+  const { error: errCrearCanto } = await musico.from('cantos').insert({
+    coro_id: coroDelMusico!.coro_id,
+    titulo: 'Canto del músico',
+    cifrado: '[C]No debería existir',
+  })
+  comprobar(
+    'musico@ no puede crear un canto por acción directa',
+    !!errCrearCanto,
+    errCrearCanto ? 'la RLS rechazó el insert' : 'SE ESCRIBIÓ: la política está mal'
+  )
+
+  // El director puede dar de alta un autor (H8), pero no renombrar el catálogo.
+  const nombreNuevo = `Autor de prueba ${resultados.length}`
+  const { data: autorNuevo, error: errAutor } = await director
+    .from('autores')
+    .insert({ nombre: nombreNuevo })
+    .select('id')
+  comprobar(
+    'director@ sí puede dar de alta un autor (H8)',
+    (autorNuevo?.length ?? 0) === 1,
+    errAutor ? `error: ${errAutor.message}` : '1 fila'
+  )
+
+  const { data: renombrado } = await director
+    .from('autores')
+    .update({ nombre: 'Renombrado por el director' })
+    .eq('id', autorNuevo![0].id)
+    .select('id')
+  comprobar(
+    'director@ NO puede renombrar un autor: el catálogo es de la instalación',
+    (renombrado?.length ?? 0) === 0,
+    `${renombrado?.length ?? 0} filas afectadas`
+  )
+
+  const { error: errAutorMusico } = await musico.from('autores').insert({ nombre: 'Autor del músico' })
+  comprobar(
+    'musico@ no puede dar de alta un autor',
+    !!errAutorMusico,
+    errAutorMusico ? 'la RLS rechazó el insert' : 'SE ESCRIBIÓ: la política está mal'
+  )
+
+  // Se deja como estaba.
+  await admin.from('autores').delete().eq('id', autorNuevo![0].id)
 
   const fallidos = resultados.filter((r) => !r.ok)
   console.log(`\n${resultados.length - fallidos.length}/${resultados.length} comprobaciones en verde`)

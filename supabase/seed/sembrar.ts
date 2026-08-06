@@ -104,12 +104,15 @@ async function upsertAutor(nombre: string): Promise<string> {
 async function upsertCanto(canto: CantoSemilla, coroId: string, momentos: Map<string, string>) {
   const autorId = canto.autor ? await upsertAutor(canto.autor) : null
 
-  const { data: existente } = await db
-    .from('cantos')
-    .select('id')
-    .eq('coro_id', coroId)
-    .eq('titulo', canto.titulo)
-    .maybeSingle()
+  // La clave natural es (coro_id, titulo, autor_id) desde H8: el índice único
+  // se alineó con RN-03 para admitir dos versiones del mismo título de autores
+  // distintos. Buscar solo por título volvería a traer más de una fila y
+  // `maybeSingle()` reventaría con dos «Santo» sembrados.
+  const consulta = db.from('cantos').select('id').eq('coro_id', coroId).eq('titulo', canto.titulo)
+  const { data: existente } = await (autorId === null
+    ? consulta.is('autor_id', null)
+    : consulta.eq('autor_id', autorId)
+  ).maybeSingle()
 
   const fila = {
     coro_id: coroId,

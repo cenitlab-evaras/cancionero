@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { obtenerSesion } from '@/lib/sesion'
+import { puede } from '@/lib/permisos'
 import { obtenerCanto, obtenerPreferencia } from '@/lib/datos/repertorio'
 import { transponer, transponerAcorde } from '@/lib/motores/transponer'
 import { acordesDeCanto } from '@/lib/motores/acordes-de-canto'
@@ -101,6 +102,16 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
           <h1 className="min-w-0 text-[1.375rem] leading-tight font-semibold text-balance">
             {canto.titulo}
           </h1>
+          {/* Corregir un acorde a oído es trabajo esperable (§17.1): el acceso
+              vive donde se descubre el error, no en un menú aparte. */}
+          {puede(sesion.sujeto, 'editar_canto') && (
+            <Link
+              href={`/repertorio/${canto.id}/editar`}
+              className="ml-auto shrink-0 rounded px-1 text-xs text-texto-tenue transition-colors hover:text-texto"
+            >
+              Editar
+            </Link>
+          )}
         </div>
 
         <p className="mt-1.5 pl-7 text-xs text-texto-tenue">
