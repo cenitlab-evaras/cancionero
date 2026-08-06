@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import type { SesionCantoral } from '@/lib/sesion'
+import { puede } from '@/lib/permisos'
 import BotonSalir from './boton-salir'
 import SelectorCoro from './selector-coro'
 
@@ -30,6 +31,26 @@ export default function Cabecera({ sesion }: { sesion: SesionCantoral }) {
               className="rounded px-2 text-xs text-texto-tenue transition-colors hover:text-texto"
             >
               Misas
+            </Link>
+          )}
+
+          {/* Gobierno (H7). Cada enlace se muestra solo a quien la matriz deja
+              usarlo: ofrecer una pantalla que va a rechazarlo es mala interfaz.
+              La seguridad no la decide esto, la deciden la RLS y la action. */}
+          {sesion.coroActivo && puede(sesion.sujeto, 'administrar_miembros') && (
+            <Link
+              href="/coro/miembros"
+              className="rounded px-2 text-xs text-texto-tenue transition-colors hover:text-texto"
+            >
+              Miembros
+            </Link>
+          )}
+          {puede(sesion.sujeto, 'aprobar_perfil') && (
+            <Link
+              href="/admin/perfiles"
+              className="rounded px-2 text-xs text-texto-tenue transition-colors hover:text-texto"
+            >
+              Admin
             </Link>
           )}
           {sesion.coros.length > 1 && (

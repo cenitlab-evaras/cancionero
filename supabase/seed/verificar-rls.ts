@@ -255,6 +255,91 @@ async function main() {
     )
   }
 
+  // --- H7 · Gobernar el coro -------------------------------------------------
+  const admin = await sesion('admin@cantoral.local')
+
+  const { data: coroMusico2 } = await musico.from('coro_acceso').select('coro_id').limit(1).single()
+  const coroId = coroMusico2!.coro_id
+  const idPendiente = (
+    await admin.from('perfiles').select('id').eq('email', 'pendiente@cantoral.local').single()
+  ).data!.id
+
+  // El músico no gobierna: ni admite gente ni cambia roles.
+  const { error: errAdmitir } = await musico
+    .from('coro_acceso')
+    .insert({ perfil_id: idPendiente, coro_id: coroId, rol_local: 'musico' })
+  comprobar(
+    'musico@ no puede admitir a nadie al coro (la RLS lo frena)',
+    !!errAdmitir,
+    errAdmitir ? 'la RLS rechazó el insert' : 'SE ESCRIBIÓ: la política está mal'
+  )
+
+  const { error: errAprobar } = await musico
+    .from('perfiles')
+    .update({ aprobado: true })
+    .eq('id', idPendiente)
+  const { data: sigueSinAprobar } = await admin
+    .from('perfiles')
+    .select('aprobado')
+    .eq('id', idPendiente)
+    .single()
+  comprobar(
+    'musico@ no puede aprobar un perfil',
+    sigueSinAprobar?.aprobado === false,
+    errAprobar ? `error: ${errAprobar.message}` : 'cero filas afectadas, sigue sin aprobar'
+  )
+
+  const { error: errCoro } = await musico.from('coros').insert({ nombre: 'Coro del músico' })
+  comprobar(
+    'musico@ no puede crear un coro',
+    !!errCoro,
+    errCoro ? 'la RLS rechazó el insert' : 'SE ESCRIBIÓ: la política está mal'
+  )
+
+  // EL ORDEN DE §8.4: primero aprobar, después vincular. El director NO puede
+  // saltárselo, ni siquiera por acción directa.
+  const { error: errAntesDeAprobar } = await director
+    .from('coro_acceso')
+    .insert({ perfil_id: idPendiente, coro_id: coroId, rol_local: 'musico' })
+  comprobar(
+    'director@ NO puede vincular a un perfil sin aprobar (§8.4, el orden del alta)',
+    !!errAntesDeAprobar,
+    errAntesDeAprobar ? 'la RLS rechazó el insert' : 'SE VINCULÓ: la política está mal'
+  )
+
+  // El admin aprueba…
+  await admin.from('perfiles').update({ aprobado: true }).eq('id', idPendiente)
+  const { data: yaAprobado } = await admin
+    .from('perfiles')
+    .select('aprobado')
+    .eq('id', idPendiente)
+    .single()
+  comprobar('admin@ sí puede aprobar un perfil', yaAprobado?.aprobado === true, 'aprobado')
+
+  // …y recién ahí el director puede vincularlo.
+  const { data: vinculado, error: errVincular } = await director
+    .from('coro_acceso')
+    .insert({ perfil_id: idPendiente, coro_id: coroId, rol_local: 'musico' })
+    .select('id')
+  comprobar(
+    'director@ sí puede vincular al perfil YA aprobado',
+    (vinculado?.length ?? 0) === 1,
+    errVincular ? `error: ${errVincular.message}` : '1 fila'
+  )
+
+  // El recién llegado ve el repertorio en su siguiente entrada.
+  const recienLlegado = await sesion('pendiente@cantoral.local')
+  const { data: veRepertorio } = await recienLlegado.from('cantos').select('id')
+  comprobar(
+    'el recién admitido ve el repertorio del coro',
+    (veRepertorio?.length ?? 0) === 12,
+    `${veRepertorio?.length ?? 0} cantos`
+  )
+
+  // Se deja como estaba: la semilla vuelve a tener a pendiente@ sin aprobar.
+  await director.from('coro_acceso').delete().eq('perfil_id', idPendiente)
+  await admin.from('perfiles').update({ aprobado: false }).eq('id', idPendiente)
+
   const fallidos = resultados.filter((r) => !r.ok)
   console.log(`\n${resultados.length - fallidos.length}/${resultados.length} comprobaciones en verde`)
   if (fallidos.length > 0) process.exit(1)
