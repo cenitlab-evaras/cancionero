@@ -3,6 +3,8 @@
 import { useMemo, useState, useTransition } from 'react'
 import { renderizarCifrado } from '@/lib/motores/renderizar-cifrado'
 import { validarCanto, type Campo } from '@/lib/motores/validar-canto'
+import { desdeElCancionero, pareceAcordesSobreLetra } from '@/lib/motores/acordes-sobre-letra'
+import { esNotacionLatina } from '@/lib/motores/notacion-latina'
 import { crearCanto, editarCanto } from './acciones'
 
 /**
@@ -63,6 +65,45 @@ export default function FormularioCanto({
       return []
     }
   }, [v.cifrado])
+
+  /**
+   * ¿Lo que hay escrito viene del cancionero y todavía no se convirtió?
+   *
+   * Se OFRECE la conversión, no se impone: convertir a la fuerza lo que alguien
+   * escribió a propósito sería peor que no convertir. Pero callarse tampoco
+   * sirve — la primera carga real de un canto se guardó sin un solo acorde
+   * reconocible, y nada avisó.
+   */
+  const diagnostico = useMemo(() => {
+    if (v.cifrado.trim() === '') return null
+
+    const sobreLetra = pareceAcordesSobreLetra(v.cifrado)
+    const lineasLatinas = v.cifrado.split('\n').filter((l) => esNotacionLatina(l)).length
+    const tieneCorchetes = v.cifrado.includes('[')
+    const acordesReconocidos = previa.reduce((n, l) => n + (l.acordes?.length ?? 0), 0)
+
+    if (sobreLetra || lineasLatinas > 0) {
+      return {
+        tipo: 'convertible' as const,
+        texto:
+          sobreLetra && lineasLatinas > 0
+            ? 'Está en el formato del cancionero y en notación latina.'
+            : sobreLetra
+              ? 'Los acordes están en una línea aparte, como en el cancionero.'
+              : 'Los acordes están en notación latina (RE, MIm7).',
+      }
+    }
+
+    // Ni corchetes ni acordes: se guardaría como texto plano y nadie lo sabría.
+    if (!tieneCorchetes && acordesReconocidos === 0) {
+      return {
+        tipo: 'sin-acordes' as const,
+        texto: 'No reconocí ningún acorde. Si el canto es solo letra, está bien así.',
+      }
+    }
+
+    return null
+  }, [v.cifrado, previa])
 
   function guardar(e: React.FormEvent) {
     e.preventDefault()
@@ -199,9 +240,40 @@ export default function FormularioCanto({
         />
         <Error campo="cifrado" />
         <span className="text-[0.6875rem] text-texto-tenue">
-          El acorde entre corchetes, pegado a la sílaba donde cae.
+          El acorde entre corchetes, pegado a la sílaba donde cae. También puedes pegarlo tal como
+          está en el cancionero.
         </span>
       </label>
+
+      {/* El aviso que faltaba: sin esto, un cifrado del cancionero se guarda
+          como texto plano —sin acordes, sin diagramas, sin transposición— y
+          nada lo dice. */}
+      {diagnostico && (
+        <div
+          className={`flex flex-col gap-2 rounded-lg border px-3 py-2.5 ${
+            diagnostico.tipo === 'convertible' ? 'border-acento/40 bg-superficie' : 'border-borde'
+          }`}
+        >
+          <span className="text-xs text-texto-tenue">{diagnostico.texto}</span>
+
+          {diagnostico.tipo === 'convertible' ? (
+            <button
+              type="button"
+              onClick={() => set('cifrado', desdeElCancionero(v.cifrado))}
+              className="tactil self-start rounded-lg border border-acento px-3 text-sm text-acento"
+            >
+              Convertir del cancionero
+            </button>
+          ) : (
+            <span className="text-[0.6875rem] leading-relaxed text-texto-tenue">
+              Si tiene acordes, van entre corchetes y en notación americana:{' '}
+              <span className="font-cifrado text-texto">[D]Esta ma[Em7]ñana</span>
+              <br />
+              DO=C · RE=D · MI=E · FA=F · SOL=G · LA=A · SI=B
+            </span>
+          )}
+        </div>
+      )}
 
       {/* La previa: el mismo motor que la vista de lectura, en vivo. */}
       <div className="flex flex-col gap-1.5">
