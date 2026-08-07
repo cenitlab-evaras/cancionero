@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { obtenerSesion } from '@/lib/sesion'
 import { puede } from '@/lib/permisos'
 import { obtenerCanto, obtenerPreferencia, mostrarAcordesDelPerfil } from '@/lib/datos/repertorio'
+import { historialDelCanto, hoyISO } from '@/lib/datos/historial'
 import { transponer, transponerAcorde } from '@/lib/motores/transponer'
 import { acordesDeCanto } from '@/lib/motores/acordes-de-canto'
 import { buscarDigitacion } from '@/lib/motores/buscar-digitacion'
@@ -13,6 +14,7 @@ import Cifrado from '@/app/componentes/cifrado'
 import CartaAcorde from '@/app/componentes/carta-acorde'
 import Controles from './controles'
 import SoloLetra from './solo-letra'
+import HistorialDelCanto from './historial-canto'
 import {
   CascaronCarta,
   HojaDiagramas,
@@ -39,11 +41,13 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
   if (!sesion.sujeto.aprobado) redirect('/esperando-aprobacion')
 
   const { cantoId } = await params
-  const [canto, preferencia, mostrarAcordes] = await Promise.all([
+  const [canto, preferencia, mostrarAcordes, historial] = await Promise.all([
     obtenerCanto(cantoId),
     obtenerPreferencia(cantoId),
     // H11 · Es de la PERSONA, no del canto: por eso no lleva `cantoId`.
     mostrarAcordesDelPerfil(),
+    // H13 · Cero tablas nuevas: esto lee las celebraciones que armó H6.
+    historialDelCanto(sesion.coroActivo?.id ?? '', cantoId),
   ])
 
   if (!canto) {
@@ -144,6 +148,10 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
             {canto.tonalidadOriginal && <> · original en {canto.tonalidadOriginal}</>}
           </span>
         </p>
+
+        {/* H13 · Lo que el director necesita saber ANTES de volver a meterlo:
+            cuánto hace que se cantó y cada cuánto vuelve. */}
+        <HistorialDelCanto historial={historial} anioActual={hoyISO().slice(0, 4)} />
 
         {/* A sangre: el fondo es el papel. */}
         <div className="mt-6">

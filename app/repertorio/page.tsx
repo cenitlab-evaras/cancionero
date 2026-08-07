@@ -159,6 +159,14 @@ export default async function RepertorioPage({
             {/* El resumen de H10. La cuenta es de cantos distintos, no de filas:
                 el listado repite un canto en cada momento que tenga. */}
             {enEnsayo > 0 && ` · ${enEnsayo} en ensayo`}
+            {' · '}
+            {/* H13 · El acceso al historial vive acá y no en la cabecera: esa
+                barra es para moverse MIENTRAS se toca, y a 360 px un director
+                ya tiene Misas, Miembros y Salir. El historial se consulta al
+                planificar la misa, y se planifica mirando el repertorio. */}
+            <Link href="/historial" className="text-acento underline underline-offset-2">
+              ver historial
+            </Link>
           </p>
         )}
       </main>
