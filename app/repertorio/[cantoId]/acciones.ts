@@ -62,3 +62,41 @@ export async function guardarPreferencia(raw: unknown): Promise<ResultadoPrefere
   revalidatePath(`/repertorio/${datos.cantoId}`)
   return { ok: true }
 }
+
+/**
+ * Guarda si esta PERSONA quiere ver los acordes (H11).
+ *
+ * No lleva `cantoId` en la entrada porque la preferencia no es de un canto: es
+ * de quien lee, y vale en todo el repertorio. Por eso tampoco lleva `coroId`:
+ * la fila no cuelga de ningún coro y no hay alcance que comprobar.
+ *
+ * Se revalida el layout entero —no una ruta— porque el cambio afecta cualquier
+ * canto que se abra después, no solo el que estaba en pantalla.
+ */
+export async function guardarMostrarAcordes(valor: unknown): Promise<ResultadoPreferencia> {
+  const mostrar = z.boolean().parse(valor)
+
+  const sesion = await obtenerSesion()
+  if (!sesion) return { ok: false, error: 'Sesión expirada. Volvé a entrar.' }
+
+  if (!puede(sesion.sujeto, 'guardar_preferencia_propia')) {
+    return { ok: false, error: 'Tu cuenta todavía no está habilitada.' }
+  }
+
+  const supabase = await createClient()
+
+  // `perfil_id` sale de la sesión, nunca del cliente (igual que en H3).
+  const { error } = await supabase.from('preferencias_perfil').upsert(
+    {
+      perfil_id: sesion.usuarioId,
+      mostrar_acordes: mostrar,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'perfil_id' }
+  )
+
+  if (error) return { ok: false, error: 'No pudimos guardar tu preferencia.' }
+
+  revalidatePath('/repertorio', 'layout')
+  return { ok: true }
+}

@@ -63,6 +63,9 @@ export default async function NuevoCantoPage() {
             cifrado: '',
             tonalidadOriginal: '',
             momentoIds: [],
+            // Un canto nuevo nace `listo`, igual que el default de la columna:
+            // lo más común es cargar el que el coro ya canta (H10).
+            estado: 'listo',
             fuenteTitulo: '',
             fuenteNumero: '',
             fuentePagina: '',

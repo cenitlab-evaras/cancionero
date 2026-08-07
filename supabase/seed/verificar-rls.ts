@@ -392,6 +392,101 @@ async function main() {
   // Se deja como estaba.
   await admin.from('autores').delete().eq('id', autorNuevo![0].id)
 
+  // --- H10 · Estado del canto -------------------------------------------------
+  // El estado es del CANTO, no de quien lo mira: lo mueve el director y lo ve
+  // todo el coro. No hay política nueva —cae dentro de `cantos_write`— así que
+  // lo que hay que comprobar es justamente eso: que la política vieja alcanza.
+  const { data: estadoAntes } = await director
+    .from('cantos')
+    .select('estado')
+    .eq('id', idAjeno!)
+    .single()
+
+  const { error: errEstadoMusico } = await musico
+    .from('cantos')
+    .update({ estado: 'en_ensayo' })
+    .eq('id', idAjeno!)
+  const { data: trasIntento } = await musico.from('cantos').select('estado').eq('id', idAjeno!).single()
+  comprobar(
+    'musico@ no puede cambiar el estado de un canto (la RLS lo frena)',
+    trasIntento?.estado === estadoAntes?.estado,
+    errEstadoMusico
+      ? `error: ${errEstadoMusico.message}`
+      : `cero filas afectadas, sigue en «${trasIntento?.estado}»`
+  )
+
+  const { data: estadoDirector } = await director
+    .from('cantos')
+    .update({ estado: 'en_ensayo' })
+    .eq('id', idAjeno!)
+    .select('estado')
+  comprobar(
+    'director@ sí puede poner un canto de su coro en ensayo',
+    estadoDirector?.[0]?.estado === 'en_ensayo',
+    `${estadoDirector?.length ?? 0} filas afectadas`
+  )
+
+  // El `check` de la migración es la última línea: ni el director escribe un
+  // estado que no existe. `archivado` está fuera a propósito (§17).
+  const { error: errEstadoInvalido } = await director
+    .from('cantos')
+    .update({ estado: 'archivado' })
+    .eq('id', idAjeno!)
+  comprobar(
+    'ni el director puede escribir un estado inexistente: el check lo rechaza',
+    !!errEstadoInvalido,
+    errEstadoInvalido ? 'la base rechazó «archivado»' : 'SE ESCRIBIÓ: falta el check'
+  )
+
+  // Se deja como estaba.
+  await director.from('cantos').update({ estado: estadoAntes?.estado ?? 'listo' }).eq('id', idAjeno!)
+
+  // --- H11 · La preferencia de perfil es privada ------------------------------
+  // Tabla nueva, política nueva: hay que comprobarla, no suponer que se hereda
+  // de `preferencias_lectura` porque "se le parece".
+  const { error: errPrefPerfilPropia } = await musico
+    .from('preferencias_perfil')
+    .upsert({ perfil_id: idMusico, mostrar_acordes: false }, { onConflict: 'perfil_id' })
+  const { data: prefPropia } = await musico.from('preferencias_perfil').select('mostrar_acordes')
+  comprobar(
+    'musico@ guarda y ve su propia preferencia de perfil (H11)',
+    prefPropia?.[0]?.mostrar_acordes === false,
+    errPrefPerfilPropia ? `error: ${errPrefPerfilPropia.message}` : 'mostrar_acordes = false'
+  )
+
+  const { data: prefAjenaDirector } = await director
+    .from('preferencias_perfil')
+    .select('perfil_id')
+    .eq('perfil_id', idMusico)
+  comprobar(
+    'director@ NO ve la preferencia de perfil del músico',
+    (prefAjenaDirector?.length ?? 0) === 0,
+    `${prefAjenaDirector?.length ?? 0} filas`
+  )
+
+  const { data: prefAjenaAdmin } = await admin
+    .from('preferencias_perfil')
+    .select('perfil_id')
+    .eq('perfil_id', idMusico)
+  comprobar(
+    'admin@ tampoco la ve: no hay excepción para el administrador',
+    (prefAjenaAdmin?.length ?? 0) === 0,
+    `${prefAjenaAdmin?.length ?? 0} filas`
+  )
+
+  const { error: errEscribirAjena } = await musico
+    .from('preferencias_perfil')
+    .upsert({ perfil_id: idDirector, mostrar_acordes: false }, { onConflict: 'perfil_id' })
+  comprobar(
+    'musico@ no puede apagarle los acordes a otra persona',
+    !!errEscribirAjena,
+    errEscribirAjena ? 'la RLS rechazó el upsert' : 'SE ESCRIBIÓ: la política está mal'
+  )
+
+  // Se deja como estaba: sin fila, que es el estado por defecto (acordes a la
+  // vista) y el que la app trata como "todavía nadie eligió".
+  await musico.from('preferencias_perfil').delete().eq('perfil_id', idMusico)
+
   const fallidos = resultados.filter((r) => !r.ok)
   console.log(`\n${resultados.length - fallidos.length}/${resultados.length} comprobaciones en verde`)
   if (fallidos.length > 0) process.exit(1)

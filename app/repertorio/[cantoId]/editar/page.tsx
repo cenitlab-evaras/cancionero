@@ -92,6 +92,7 @@ export default async function EditarCantoPage({
             cifrado: canto.cifrado,
             tonalidadOriginal: canto.tonalidadOriginal,
             momentoIds: canto.momentoIds,
+            estado: canto.estado,
             fuenteTitulo: canto.fuenteTitulo,
             fuenteNumero: canto.fuenteNumero,
             fuentePagina: canto.fuentePagina,

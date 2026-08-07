@@ -33,12 +33,21 @@ export default function Controles({
   transposicion,
   tamanoLetra,
   tonalidadActual,
+  mostrarAcordes = true,
 }: {
   cantoId: string
   coroId: string
   transposicion: number
   tamanoLetra: number
   tonalidadActual: string | null
+  /**
+   * H11 · Con los acordes apagados, transponer no cambia un solo píxel de la
+   * pantalla: el bloque entero se retira. Un control sin efecto visible es peor
+   * que ningún control — se toca, no pasa nada, y se pierde la confianza en la
+   * barra completa. La preferencia guardada NO se toca: al volver a encender
+   * los acordes, la transposición sigue donde estaba.
+   */
+  mostrarAcordes?: boolean
 }) {
   const router = useRouter()
   const [, iniciarTransicion] = useTransition()
@@ -73,7 +82,9 @@ export default function Controles({
     // que la hoja de diagramas (H5) pueda apilarse encima de esta barra.
     <div className="border-t border-borde bg-fondo/95 backdrop-blur">
       <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-2 px-3 py-2">
-        {/* Transponer: el bloque más importante, y por eso el del centro visual */}
+        {/* Transponer: el bloque más importante, y por eso el del centro visual.
+            Desaparece entero en modo solo letra (H11). */}
+        {mostrarAcordes && (
         <div className="flex shrink-0 items-center gap-1">
           <button onClick={() => transponer(-1)} aria-label="Bajar un semitono" className={BOTON}>
             <span className="text-lg leading-none">−</span>
@@ -99,6 +110,7 @@ export default function Controles({
             <span className="text-lg leading-none">+</span>
           </button>
         </div>
+        )}
 
         <AutoScroll />
 

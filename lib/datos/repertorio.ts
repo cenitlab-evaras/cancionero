@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { coincideBusqueda } from '@/lib/motores/busqueda'
+import { normalizarEstado, type EstadoCanto } from '@/lib/motores/estado-canto'
 
 /**
  * Consultas del repertorio.
@@ -17,6 +18,8 @@ export type CantoDeLista = {
   tonalidadOriginal: string | null
   /** Número en el cancionero impreso: es como el coro los busca de memoria. */
   fuenteNumero: number | null
+  /** H10. Se normaliza al leer: la pantalla nunca ve un valor crudo de la base. */
+  estado: EstadoCanto
 }
 
 export type GrupoDeMomento = {
@@ -31,6 +34,7 @@ type FilaCanto = {
   titulo: string
   tonalidad_original: string | null
   fuente_numero: number | null
+  estado: string
   autores: { nombre: string } | null
   canto_momentos: { momentos_liturgicos: { codigo: string; nombre: string; orden: number } | null }[]
 }
@@ -51,7 +55,7 @@ export async function repertorioPorMomento(
   const { data, error } = await supabase
     .from('cantos')
     .select(
-      'id, titulo, tonalidad_original, fuente_numero, autores(nombre), canto_momentos(momentos_liturgicos(codigo, nombre, orden))'
+      'id, titulo, tonalidad_original, fuente_numero, estado, autores(nombre), canto_momentos(momentos_liturgicos(codigo, nombre, orden))'
     )
     .eq('coro_id', coroId)
     .order('titulo', { ascending: true })
@@ -70,6 +74,7 @@ export async function repertorioPorMomento(
       autor,
       tonalidadOriginal: fila.tonalidad_original,
       fuenteNumero: fila.fuente_numero,
+      estado: normalizarEstado(fila.estado),
     }
 
     for (const vinculo of fila.canto_momentos) {
@@ -89,6 +94,25 @@ export async function repertorioPorMomento(
   return [...grupos.values()].sort((a, b) => a.orden - b.orden)
 }
 
+/**
+ * ¿Esta persona quiere ver los acordes? (H11)
+ *
+ * Sin fila devuelve `true`, que es el default de la columna y la lectura normal
+ * del producto: un cancionero con acordes. Ese vacío es legítimo —es el caso de
+ * todo el mundo hasta que alguien los apaga— y no se confunde con falta de
+ * acceso: la política es `perfil_id = auth.uid()`, así que nadie ve la de otro.
+ */
+export async function mostrarAcordesDelPerfil(): Promise<boolean> {
+  const supabase = await createClient()
+
+  const { data } = await supabase
+    .from('preferencias_perfil')
+    .select('mostrar_acordes')
+    .maybeSingle()
+
+  return data?.mostrar_acordes ?? true
+}
+
 export type CantoCompleto = {
   id: string
   titulo: string
@@ -96,6 +120,8 @@ export type CantoCompleto = {
   cifrado: string
   tonalidadOriginal: string | null
   momentos: string[]
+  /** H10. El músico lo ve para saber que el canto todavía se está sacando. */
+  estado: EstadoCanto
   fuenteTitulo: string | null
   /** Número en el cancionero impreso: es como el coro los busca de memoria. */
   fuenteNumero: number | null
@@ -141,7 +167,7 @@ export async function obtenerCanto(cantoId: string): Promise<CantoCompleto | nul
   const { data, error } = await supabase
     .from('cantos')
     .select(
-      'id, titulo, cifrado, tonalidad_original, fuente_titulo, fuente_numero, fuente_pagina, autores(nombre), canto_momentos(momentos_liturgicos(nombre, orden))'
+      'id, titulo, cifrado, tonalidad_original, estado, fuente_titulo, fuente_numero, fuente_pagina, autores(nombre), canto_momentos(momentos_liturgicos(nombre, orden))'
     )
     .eq('id', cantoId)
     .maybeSingle()
@@ -154,6 +180,7 @@ export async function obtenerCanto(cantoId: string): Promise<CantoCompleto | nul
     titulo: string
     cifrado: string
     tonalidad_original: string | null
+    estado: string
     fuente_titulo: string | null
     fuente_numero: number | null
     fuente_pagina: number | null
@@ -169,6 +196,7 @@ export async function obtenerCanto(cantoId: string): Promise<CantoCompleto | nul
     autor: fila.autores?.nombre ?? null,
     cifrado: fila.cifrado,
     tonalidadOriginal: fila.tonalidad_original,
+    estado: normalizarEstado(fila.estado),
     momentos: fila.canto_momentos
       .map((v) => v.momentos_liturgicos)
       .filter((m): m is { nombre: string; orden: number } => m !== null)
@@ -214,7 +242,7 @@ export async function cantoParaEditar(cantoId: string) {
   const { data, error } = await supabase
     .from('cantos')
     .select(
-      'id, titulo, cifrado, tonalidad_original, fuente_titulo, fuente_numero, fuente_pagina, autores(nombre), canto_momentos(momento_id)'
+      'id, titulo, cifrado, tonalidad_original, estado, fuente_titulo, fuente_numero, fuente_pagina, autores(nombre), canto_momentos(momento_id)'
     )
     .eq('id', cantoId)
     .maybeSingle()
@@ -231,6 +259,7 @@ export async function cantoParaEditar(cantoId: string) {
     autorNombre: autor?.nombre ?? '',
     cifrado: data.cifrado,
     tonalidadOriginal: data.tonalidad_original ?? '',
+    estado: normalizarEstado(data.estado),
     momentoIds: momentos.map((m) => m.momento_id),
     fuenteTitulo: data.fuente_titulo ?? '',
     fuenteNumero: data.fuente_numero ? String(data.fuente_numero) : '',

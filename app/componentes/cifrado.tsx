@@ -40,9 +40,18 @@ function columnasPara(tamano: number): number {
  */
 const ANCHO_CARACTER = 0.615
 
-export default function Cifrado({ cifrado, tamano = 16 }: { cifrado: string; tamano?: number }) {
+export default function Cifrado({
+  cifrado,
+  tamano = 16,
+  mostrarAcordes = true,
+}: {
+  cifrado: string
+  tamano?: number
+  /** H11 · en `false` el motor devuelve la letra sola: no hay acordes que pintar. */
+  mostrarAcordes?: boolean
+}) {
   const columnas = columnasPara(tamano)
-  const { lineas } = renderizarCifrado(cifrado, { ancho: columnas })
+  const { lineas } = renderizarCifrado(cifrado, { ancho: columnas, mostrarAcordes })
 
   // El `container-type` va en el PADRE, no en el mismo elemento que usa `cqi`:
   // un contenedor no puede consultar su propio tamaño (sería un ciclo), y las

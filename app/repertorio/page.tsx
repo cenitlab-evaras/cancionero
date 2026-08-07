@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { obtenerSesion } from '@/lib/sesion'
 import { puede } from '@/lib/permisos'
 import { repertorioPorMomento } from '@/lib/datos/repertorio'
+import { contarEnEnsayo, etiquetaEstado } from '@/lib/motores/estado-canto'
 import Cabecera from '@/app/componentes/cabecera'
 import Buscador from './buscador'
 
@@ -38,6 +39,9 @@ export default async function RepertorioPage({
   const { q = '' } = await searchParams
   const grupos = await repertorioPorMomento(sesion.coroActivo.id, q)
   const total = grupos.reduce((n, g) => n + g.cantos.length, 0)
+  // Se calcula al leer, nunca se guarda (innegociable 4). El motor cuenta por
+  // id: un canto asignado a tres momentos aparece tres veces en `grupos`.
+  const enEnsayo = contarEnEnsayo(grupos.flatMap((g) => g.cantos))
 
   return (
     <>
@@ -100,34 +104,51 @@ export default async function RepertorioPage({
             </h2>
 
             <ul className="mt-1">
-              {grupo.cantos.map((canto) => (
-                <li key={canto.id} className="border-b border-borde/70 last:border-b-0">
-                  <Link
-                    href={`/repertorio/${canto.id}`}
-                    className="tactil group -mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5 hover:bg-superficie"
-                  >
-                    <span
-                      className="w-7 shrink-0 text-right font-cifrado text-xs text-texto-tenue"
-                      aria-hidden
+              {grupo.cantos.map((canto) => {
+                // H10 · La marca solo aparece cuando dice algo: `listo` es el
+                // caso normal y etiquetar cada fila no informaría nada.
+                const marca = etiquetaEstado(canto.estado)
+                return (
+                  <li key={canto.id} className="border-b border-borde/70 last:border-b-0">
+                    <Link
+                      href={`/repertorio/${canto.id}`}
+                      className="tactil group -mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5 hover:bg-superficie"
                     >
-                      {canto.fuenteNumero ?? '·'}
-                    </span>
-
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate">{canto.titulo}</span>
-                      {canto.autor && (
-                        <span className="block truncate text-xs text-texto-tenue">{canto.autor}</span>
-                      )}
-                    </span>
-
-                    {canto.tonalidadOriginal && (
-                      <span className="shrink-0 font-cifrado text-sm text-acorde">
-                        {canto.tonalidadOriginal}
+                      <span
+                        className="w-7 shrink-0 text-right font-cifrado text-xs text-texto-tenue"
+                        aria-hidden
+                      >
+                        {canto.fuenteNumero ?? '·'}
                       </span>
-                    )}
-                  </Link>
-                </li>
-              ))}
+
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate">{canto.titulo}</span>
+                        {/* El canto NO cambia de grupo ni de lugar: la marca va
+                            en la línea secundaria, donde ya vive el autor, para
+                            que la lista se siga leyendo de un tirón. */}
+                        {(marca || canto.autor) && (
+                          <span className="flex min-w-0 items-center gap-2">
+                            {marca && (
+                              <span className="shrink-0 rounded border border-borde-fuerte px-1 py-px text-[0.625rem] tracking-[0.08em] text-texto-tenue uppercase">
+                                {marca}
+                              </span>
+                            )}
+                            {canto.autor && (
+                              <span className="truncate text-xs text-texto-tenue">{canto.autor}</span>
+                            )}
+                          </span>
+                        )}
+                      </span>
+
+                      {canto.tonalidadOriginal && (
+                        <span className="shrink-0 font-cifrado text-sm text-acorde">
+                          {canto.tonalidadOriginal}
+                        </span>
+                      )}
+                    </Link>
+                  </li>
+                )
+              })}
             </ul>
           </section>
         ))}
@@ -135,7 +156,9 @@ export default async function RepertorioPage({
         {total > 0 && (
           <p className="pt-8 text-xs text-texto-tenue">
             {total} {total === 1 ? 'canto' : 'cantos'} en {sesion.coroActivo.nombre}
-            {puede(sesion.sujeto, 'editar_canto') && ' · como director vas a poder agregarlos en el hito 8'}
+            {/* El resumen de H10. La cuenta es de cantos distintos, no de filas:
+                el listado repite un canto en cada momento que tenga. */}
+            {enEnsayo > 0 && ` · ${enEnsayo} en ensayo`}
           </p>
         )}
       </main>

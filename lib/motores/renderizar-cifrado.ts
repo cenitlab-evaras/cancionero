@@ -121,11 +121,21 @@ function partirAlAncho(linea: LineaCifrado, ancho: number): LineaCifrado[] {
   })
 }
 
+/**
+ * @param opciones.mostrarAcordes  H11 · en `false` devuelve la letra sola.
+ *
+ * Los acordes se omiten ACÁ y no con CSS a propósito: escondidos con una clase
+ * seguirían en el HTML, y quien lee con lector de pantalla —el mismo piso de
+ * accesibilidad que pide la letra grande— los seguiría oyendo entre verso y
+ * verso. Lo que no se muestra, no se manda.
+ */
 export function renderizarCifrado(
   cifrado: string,
-  opciones: { ancho?: number } = {}
+  opciones: { ancho?: number; mostrarAcordes?: boolean } = {}
 ): CifradoRenderizado {
   if (cifrado.trim() === '') return { lineas: [], totalAcordes: 0 }
+
+  const mostrarAcordes = opciones.mostrarAcordes ?? true
 
   const lineas: LineaCifrado[] = []
 
@@ -144,9 +154,17 @@ export function renderizarCifrado(
     }
 
     const { texto, acordes } = separarAcordes(cruda)
+
+    // Una línea de solo acordes —la intro `[G][D]`, el puente— sin acordes no
+    // dice nada. Se omite entera en vez de dejar un renglón vacío que abriría
+    // un hueco en medio de la estrofa.
+    if (!mostrarAcordes && texto.trim() === '' && acordes.length > 0) continue
+
     const linea: LineaCifrado = {
       texto,
-      acordes,
+      acordes: mostrarAcordes ? acordes : [],
+      // El separador se decide con los acordes ORIGINALES: una línea en blanco
+      // del cifrado separa estrofas en los dos modos.
       esSeparador: texto.trim() === '' && acordes.length === 0,
       esComentario: false,
     }

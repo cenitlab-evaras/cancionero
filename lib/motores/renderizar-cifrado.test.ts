@@ -149,3 +149,54 @@ describe('entradas degeneradas: no revientan', () => {
     expect(lineas[1].acordes).toEqual([])
   })
 })
+
+describe('modo solo letra (H11)', () => {
+  const CANTO = '[C]Una línea\n[G][D]\n\n{comment: Estribillo}\n[Am]Otra línea'
+
+  test('sin la opción, todo sigue como en H2: los acordes están', () => {
+    // La red que protege a los ocho hitos anteriores: el default no cambia.
+    const r = renderizarCifrado(CANTO)
+    expect(r.totalAcordes).toBe(4)
+  })
+
+  test('con `mostrarAcordes: false` no queda ni un acorde', () => {
+    const r = renderizarCifrado(CANTO, { mostrarAcordes: false })
+    expect(r.totalAcordes).toBe(0)
+    expect(r.lineas.every((l) => l.acordes.length === 0)).toBe(true)
+  })
+
+  test('la letra queda intacta, carácter por carácter', () => {
+    // Apagar los acordes no puede mover una sola letra: es la MISMA lectura,
+    // sin el andamiaje de arriba.
+    const con = renderizarCifrado(CANTO)
+    const sin = renderizarCifrado(CANTO, { mostrarAcordes: false })
+    const letra = (r: ReturnType<typeof renderizarCifrado>) =>
+      r.lineas.filter((l) => !l.esSeparador && l.texto.trim() !== '').map((l) => l.texto)
+    expect(letra(sin)).toEqual(letra(con))
+  })
+
+  test('una línea que era SOLO acordes desaparece, no deja un hueco', () => {
+    // `[G][D]` es una intro sin letra. Sin acordes no le queda nada que decir:
+    // dejarla como línea vacía abriría un agujero en medio de la estrofa.
+    const sin = renderizarCifrado('[C]Una línea\n[G][D]\n[Am]Otra línea', {
+      mostrarAcordes: false,
+    })
+    expect(sin.lineas.map((l) => l.texto)).toEqual(['Una línea', 'Otra línea'])
+  })
+
+  test('los separadores de estrofa y los comentarios se conservan', () => {
+    // La estructura del canto no es andamiaje: separa estrofa de estribillo y
+    // es lo que hace legible la letra sola.
+    const sin = renderizarCifrado(CANTO, { mostrarAcordes: false })
+    expect(sin.lineas.filter((l) => l.esSeparador)).toHaveLength(1)
+    expect(sin.lineas.filter((l) => l.esComentario).map((l) => l.texto)).toEqual(['Estribillo'])
+  })
+
+  test('el ajuste al ancho sigue funcionando sin acordes', () => {
+    const largo = 'Vamos por ahí cantando la buena nueva que nos trae la vida'
+    const sin = renderizarCifrado(`[C]${largo}`, { ancho: 20, mostrarAcordes: false })
+    expect(sin.lineas.length).toBeGreaterThan(1)
+    expect(sin.lineas.every((l) => l.texto.length <= 20)).toBe(true)
+    expect(sin.totalAcordes).toBe(0)
+  })
+})

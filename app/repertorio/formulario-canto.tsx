@@ -5,6 +5,7 @@ import { renderizarCifrado } from '@/lib/motores/renderizar-cifrado'
 import { validarCanto, type Campo } from '@/lib/motores/validar-canto'
 import { desdeElCancionero, pareceAcordesSobreLetra } from '@/lib/motores/acordes-sobre-letra'
 import { esNotacionLatina } from '@/lib/motores/notacion-latina'
+import { ESTADOS, nombreEstado, type EstadoCanto } from '@/lib/motores/estado-canto'
 import { crearCanto, editarCanto } from './acciones'
 
 /**
@@ -28,6 +29,7 @@ export type ValoresCanto = {
   cifrado: string
   tonalidadOriginal: string
   momentoIds: string[]
+  estado: EstadoCanto
   fuenteTitulo: string
   fuenteNumero: string
   fuentePagina: string
@@ -133,6 +135,7 @@ export default function FormularioCanto({
       autorNombre: v.autorNombre,
       tonalidadOriginal: v.tonalidadOriginal,
       momentoIds: v.momentoIds,
+      estado: v.estado,
       fuenteTitulo: v.fuenteTitulo,
       fuenteNumero: v.fuenteNumero ? Number(v.fuenteNumero) : null,
       fuentePagina: v.fuentePagina ? Number(v.fuentePagina) : null,
@@ -212,6 +215,37 @@ export default function FormularioCanto({
         </div>
         <span className="text-[0.6875rem] text-texto-tenue">
           Un canto puede servir para más de uno.
+        </span>
+      </fieldset>
+
+      {/* H10 · El estado es del CANTO, no de quien lo mira: lo mueve el director
+          y lo ve todo el coro. Por eso está acá, en la edición del canto, y no
+          en la vista de lectura junto a la transposición —que sí es privada. */}
+      <fieldset className="flex flex-col gap-1.5">
+        <legend className="text-xs text-texto-tenue">Estado</legend>
+        <div className="flex flex-wrap gap-1.5">
+          {ESTADOS.map((e) => {
+            const elegido = v.estado === e
+            return (
+              <button
+                key={e}
+                type="button"
+                onClick={() => set('estado', e)}
+                aria-pressed={elegido}
+                className={`rounded-lg border px-3 py-1.5 text-sm transition-colors ${
+                  elegido
+                    ? 'border-acento bg-superficie-alta text-texto'
+                    : 'border-borde text-texto-tenue hover:border-borde-fuerte'
+                }`}
+              >
+                {nombreEstado(e)}
+              </button>
+            )
+          })}
+        </div>
+        <span className="text-[0.6875rem] text-texto-tenue">
+          «En ensayo» marca el canto en el repertorio para que el coro sepa que todavía se está
+          sacando. No lo esconde ni impide agregarlo a una misa.
         </span>
       </fieldset>
 

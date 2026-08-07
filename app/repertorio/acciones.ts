@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server'
 import { obtenerSesion } from '@/lib/sesion'
 import { puede } from '@/lib/permisos'
 import { validarCanto, type Campo } from '@/lib/motores/validar-canto'
+import { ESTADOS, normalizarEstado } from '@/lib/motores/estado-canto'
 
 /**
  * Alta y edición del repertorio (H8).
@@ -27,6 +28,9 @@ const Entrada = z.object({
   autorNombre: z.string().optional(),
   tonalidadOriginal: z.string().optional(),
   momentoIds: z.array(z.string().uuid()).min(1, 'Elige al menos un momento.'),
+  // H10. Opcional para que un cliente viejo —o un POST armado a mano— no rompa
+  // el alta: sin estado, la columna aplica su default (`listo`).
+  estado: z.enum(ESTADOS).optional(),
   fuenteTitulo: z.string().optional(),
   fuenteNumero: z.number().int().nullable().optional(),
   fuentePagina: z.number().int().nullable().optional(),
@@ -90,6 +94,10 @@ async function guardar(raw: unknown, cantoId: string | null): Promise<ResultadoC
     cifrado: validacion.limpio.cifrado,
     autor_id: autorId,
     tonalidad_original: validacion.limpio.tonalidadOriginal,
+    // H10. Si no vino, se OMITE la clave en vez de mandar el default: en un
+    // update, escribir 'listo' porque el formulario no lo trajo sacaría de
+    // ensayo un canto que nadie tocó.
+    ...(datos.estado ? { estado: normalizarEstado(datos.estado) } : {}),
     fuente_titulo: datos.fuenteTitulo?.trim() || null,
     fuente_numero: datos.fuenteNumero ?? null,
     fuente_pagina: datos.fuentePagina ?? null,
