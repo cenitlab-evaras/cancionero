@@ -1,7 +1,7 @@
 /**
  * Semilla de cantos — docs/PRD.md §13.2
  *
- * FUENTE ÚNICA: docs/cancioneros catolicos/Cancionero Catolico.pdf
+ * FUENTE PRINCIPAL: docs/cancioneros catolicos/Cancionero Catolico.pdf
  *   (título real: "Cancionero Misionero — Coro Misión País 2025", 99 pág, 91 cantos)
  * Cada canto declara su número y la PÁGINA DEL PDF donde está.
  *
@@ -346,6 +346,61 @@ nuestra Misión
 [G]que viva a[Bm]bierta a entre[C]gar[A7]
 [Em]tu palabra donde [Bm]haya sole[A7]dad
 [C]donde hijos y [G]padres se vuelvan [E7]a encon[A7]trar.`,
+  },
+
+  /**
+   * ESTE NO SALE DEL CANCIONERO, y por eso va con `fuenteNumero: 0` — que es
+   * como `sembrar.ts` marca "sin procedencia" y deja las tres columnas `fuente_*`
+   * en null. El PDF no lo tiene: lo cargó una persona del coro por la app, y fue
+   * el canto que volvió real a H9 (§17: estaba guardado como texto plano, sin un
+   * solo acorde reconocido, hasta que la conversión lo arregló).
+   *
+   * Está acá porque el 2026-08-07 un `db reset` de OTRO producto —que compartía
+   * la instancia local de Supabase— borró la base entera, y este canto era el
+   * único dato que no venía de esta semilla. Se reconstruyó desde los snapshots
+   * de la verificación de H10 y se validó dos veces contra ellos: la letra
+   * coincide verso por verso y los acordes de cada línea también, 121 en total,
+   * el mismo número que §17 dejó registrado.
+   *
+   * Sembrarlo es lo que evita que la próxima pérdida se lo vuelva a llevar.
+   */
+  {
+    titulo: 'Escojo la vida',
+    autor: null,
+    momento: 'entrada',
+    // El original no declaraba tonalidad: la pantalla no mostraba "original en".
+    tonalidadOriginal: '',
+    fuenteNumero: 0,
+    fuentePagina: 0,
+    cifrado: `[D] E[Em7]sta m[D]aña[Em7]na, [D]ende[A]rezo mi es[D]palda,
+[F#m]abro mi [G]rostro, [Em]respiro la au[A]rora
+[G] [A]escojo la [D]vid[Em7]a.[D][Em7]
+
+[D]Est[Em7]a mañ[D]ana[Em7], [D] ac[A]ojo mis [D]golpes,
+[F#m]acallo mis [G]límites, [Em]disuelvo mis [A]miedos,
+[G] [A]escojo la [D]vid[Em7]a.[D][Em7]
+
+[C]Esta ma[D]ñan[Bm]a [Em]miro a los [A]ojos,
+[G]abrazo una es[D]palda, doy mi pa[C]lab[A]ra,
+[G] [A]escojo la [D]vid[Em7]a.[D][Em7]
+
+[D]Est[Em7]a mañ[D]ana[Em7] [D]rem[Em7]anso la [D]paz[Em7]
+[A]alimento el [G]futuro, [A]comparto a[G]legrías
+[A]escojo [G]la vi[D]da.[Em7][D][Em7]
+
+[D]Est[Em7]a mañ[D]ana [A]te busco en la [G]muerte,
+[A]te alzo [G]del fango, [A]te cargo [G]tan frá[A]gil
+escojo la [D]vid[Em7]a.[D][Em7]
+
+[C]Esta ma[D]ñan[Bm]a [Em]miro a los [A]ojos,
+[G]abrazo una es[D]palda, doy mi pa[C]lab[A]ra,
+escojo la [D]vid[Em7]a, [D] es[Em7]cojo la [D]vid[Em7]a,
+[D] es[Em7]cojo la [D]vid[Em7]a.[D]
+
+[A]Esta [G]mañana,[A] te escucho en[G] silencio,
+[A]te dejo [G]llenarme, [A]te sigo [G]de cerc[A]a,
+escojo la [D]vid[Em7]a.[D][Em7]
+[D] [Em7]escojo la [D]vid[Em7]a.[D][Em7][D]`,
   },
 ]
 

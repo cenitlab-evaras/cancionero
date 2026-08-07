@@ -119,7 +119,10 @@ async function upsertCanto(canto: CantoSemilla, coroId: string, momentos: Map<st
     titulo: canto.titulo,
     autor_id: autorId,
     cifrado: canto.cifrado,
-    tonalidad_original: canto.tonalidadOriginal,
+    // Vacío es NULL, no cadena vacía: un canto puede no declarar tonalidad
+    // —el que cargó una persona por la app no la tenía— y guardarlo como ''
+    // haría que la pantalla intentara transponer una tonalidad que no existe.
+    tonalidad_original: canto.tonalidadOriginal || null,
     fuente_titulo: canto.fuenteNumero > 0 ? FUENTE : null,
     fuente_numero: canto.fuenteNumero > 0 ? canto.fuenteNumero : null,
     fuente_pagina: canto.fuentePagina > 0 ? canto.fuentePagina : null,
