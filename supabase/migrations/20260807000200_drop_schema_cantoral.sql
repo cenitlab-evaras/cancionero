@@ -1,0 +1,21 @@
+-- =============================================================================
+-- 08 · Baja del esquema `cantoral`
+-- =============================================================================
+-- El producto nació sobre un esquema dedicado (`cantoral`) y se migró a `public`
+-- el 2026-08-07. La razón está en PRD §18-18: un esquema propio no lo expone la
+-- Data API por defecto, así que PostgREST respondía
+-- `PGRST106 · Only the following schemas are exposed` y había que habilitarlo a
+-- mano en cada entorno — un paso invisible en el repo.
+--
+-- Las ocho migraciones anteriores ya crean todo en `public`. Esto sólo saca de
+-- en medio el esquema viejo.
+--
+-- `cascade` se lleva las tablas, políticas y funciones que hayan quedado dentro.
+-- Es seguro porque nada en `public` depende de `cantoral`: la migración a
+-- `public` recreó los objetos, no los movió.
+--
+-- Idempotente: `if exists` la vuelve un no-op donde el esquema ya no está
+-- (por ejemplo en una base local recién reseteada).
+-- =============================================================================
+
+drop schema if exists cantoral cascade;

@@ -15,7 +15,6 @@
  */
 import { createClient } from '@supabase/supabase-js'
 import { CANTOS, CANTO_CONTROL, FUENTE, MOMENTOS, type CantoSemilla } from './cantos.ts'
-import { CELEBRACIONES, type CelebracionSemilla } from './celebraciones.ts'
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SECRET = process.env.SUPABASE_SECRET_KEY
@@ -29,6 +28,7 @@ if (!PASSWORD) {
 }
 
 const db = createClient(URL, SECRET, {
+  db: { schema: 'cantoral' },
   auth: { autoRefreshToken: false, persistSession: false },
 })
 const auth = createClient(URL, SECRET, {
@@ -119,10 +119,7 @@ async function upsertCanto(canto: CantoSemilla, coroId: string, momentos: Map<st
     titulo: canto.titulo,
     autor_id: autorId,
     cifrado: canto.cifrado,
-    // Vacío es NULL, no cadena vacía: un canto puede no declarar tonalidad
-    // —el que cargó una persona por la app no la tenía— y guardarlo como ''
-    // haría que la pantalla intentara transponer una tonalidad que no existe.
-    tonalidad_original: canto.tonalidadOriginal || null,
+    tonalidad_original: canto.tonalidadOriginal,
     fuente_titulo: canto.fuenteNumero > 0 ? FUENTE : null,
     fuente_numero: canto.fuenteNumero > 0 ? canto.fuenteNumero : null,
     fuente_pagina: canto.fuentePagina > 0 ? canto.fuentePagina : null,
@@ -150,75 +147,6 @@ async function upsertCanto(canto: CantoSemilla, coroId: string, momentos: Map<st
       { onConflict: 'canto_id,momento_id' }
     )
   if (errVinculo) throw errVinculo
-}
-
-/**
- * Una misa de ejemplo con sus cantos (H13).
- *
- * La clave natural es (coro_id, nombre, fecha): con ella, dos corridas seguidas
- * no dejan ocho misas. `fecha` es nullable, así que el "sin fecha" se busca con
- * `is` y no con `eq` — en Postgres `= null` no encuentra nada, y sin esto el
- * ensayo se duplicaría en cada siembra.
- *
- * `orden` es la posición dentro de la misa y se escribe según el orden en que
- * vienen los cantos, que en `celebraciones.ts` ya es el litúrgico. Va desde 0 y
- * sin huecos, que es lo que H6 dejó verificado.
- */
-async function upsertCelebracion(
-  cel: CelebracionSemilla,
-  coroId: string,
-  momentos: Map<string, string>
-) {
-  const consulta = db
-    .from('celebraciones')
-    .select('id')
-    .eq('coro_id', coroId)
-    .eq('nombre', cel.nombre)
-  const { data: existente } = await (cel.fecha === null
-    ? consulta.is('fecha', null)
-    : consulta.eq('fecha', cel.fecha)
-  ).maybeSingle()
-
-  let celebracionId: string
-  if (existente) {
-    celebracionId = existente.id
-  } else {
-    const { data, error } = await db
-      .from('celebraciones')
-      .insert({ coro_id: coroId, nombre: cel.nombre, fecha: cel.fecha })
-      .select('id')
-      .single()
-    if (error) throw error
-    celebracionId = data.id
-  }
-
-  // Los cantos se reescriben enteros: son pocos y así la semilla no tiene que
-  // calcular qué cambió. Igual que hace la server action de H8 con los momentos.
-  await db.from('celebracion_cantos').delete().eq('celebracion_id', celebracionId)
-
-  let orden = 0
-  for (const entrada of cel.cantos) {
-    const momentoId = momentos.get(entrada.momento)
-    afirmar(!!momentoId, `El momento "${entrada.momento}" de "${cel.nombre}" no existe.`)
-
-    const { data: canto } = await db
-      .from('cantos')
-      .select('id')
-      .eq('coro_id', coroId)
-      .eq('titulo', entrada.titulo)
-      .maybeSingle()
-    afirmar(!!canto, `El canto "${entrada.titulo}" de "${cel.nombre}" no está sembrado.`)
-
-    const { error } = await db.from('celebracion_cantos').insert({
-      celebracion_id: celebracionId,
-      canto_id: canto!.id,
-      momento_id: momentoId!,
-      orden: orden++,
-      // coro_id DENORMALIZADO: cuelga a dos saltos del raíz (§7).
-      coro_id: coroId,
-    })
-    if (error) throw error
-  }
 }
 
 async function main() {
@@ -267,10 +195,7 @@ async function main() {
   for (const canto of CANTOS) await upsertCanto(canto, coroPrincipal, momentos)
   await upsertCanto(CANTO_CONTROL, coroControl, momentos)
 
-  // 5 · Misas de ejemplo (H13). Sin historial no hay hito que verificar.
-  for (const cel of CELEBRACIONES) await upsertCelebracion(cel, coroPrincipal, momentos)
-
-  // 6 · ASSERTS — fallan, no avisan (PRD §13.4)
+  // 5 · ASSERTS — fallan, no avisan (PRD §13.4)
   const cuenta = async (tabla: string, filtro?: { col: string; val: string }) => {
     let q = db.from(tabla).select('*', { count: 'exact', head: true })
     if (filtro) q = q.eq(filtro.col, filtro.val)
@@ -292,25 +217,8 @@ async function main() {
   const sinCifrado = CANTOS.filter((c) => !/\[[A-G]/.test(c.cifrado))
   afirmar(sinCifrado.length === 0, `Hay cantos sin ningún acorde: ${sinCifrado.map((c) => c.titulo).join(', ')}`)
 
-  // H13 · el historial tiene que quedar en pie después de sembrar dos veces.
-  const nCelebraciones = await cuenta('celebraciones')
-  const nCelebracionCantos = await cuenta('celebracion_cantos')
-  const filasEsperadas = CELEBRACIONES.reduce((n, c) => n + c.cantos.length, 0)
-  afirmar(
-    nCelebraciones === CELEBRACIONES.length,
-    `Se esperaban ${CELEBRACIONES.length} celebraciones y hay ${nCelebraciones}: la semilla dejó de ser idempotente.`
-  )
-  afirmar(
-    nCelebracionCantos === filasEsperadas,
-    `Se esperaban ${filasEsperadas} cantos en celebraciones y hay ${nCelebracionCantos}.`
-  )
-
-  const pasadas = CELEBRACIONES.filter((c) => c.fecha !== null && c.fecha <= '2026-08-07').length
   console.log(`✓ ${nMomentos} momentos · ${nPrincipal} cantos en ${CORO_PRINCIPAL} · ${nControl} en ${CORO_CONTROL}`)
   console.log(`✓ ${USUARIOS.length} usuarios de prueba (contraseña en SEED_PASSWORD)`)
-  console.log(
-    `✓ ${nCelebraciones} celebraciones de ejemplo · ${pasadas} ya ocurridas (las otras no cuentan como cantadas)`
-  )
 }
 
 main().catch((e) => {

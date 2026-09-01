@@ -20,7 +20,6 @@ if (!URL || !SECRET) {
 }
 
 const db = createClient(URL, SECRET, {
-  db: { schema: 'cantoral' },
   auth: { autoRefreshToken: false, persistSession: false },
 })
 const auth = createClient(URL, SECRET, {

@@ -3,7 +3,7 @@
 El repertorio de un coro católico, en el teléfono. Especificación completa en
 [`../docs/PRD.md`](../docs/PRD.md).
 
-Next.js 16 · Supabase · esquema dedicado `cantoral` · despliegue previsto en Vercel.
+Next.js 16 · Supabase · esquema `public` · despliegue previsto en Vercel.
 
 ## Levantarlo
 
@@ -46,7 +46,7 @@ Todos con la contraseña de `SEED_PASSWORD` (no está en el repo).
 
 Son cimientos del producto, no preferencias (PRD §8 y §16):
 
-1. **RLS activa en la misma migración que crea la tabla.** Esquema `cantoral`, nunca `public`.
+1. **RLS activa en la misma migración que crea la tabla.** Esquema `public`, expuesto por defecto en la Data API.
 2. **La RLS es la seguridad; `lib/permisos.ts` es la interfaz.** Si discrepan, manda la RLS y la
    discrepancia es un bug — no se afloja la política para que la pantalla ande.
 3. **Los motores son puros y testeados.** `lib/motores/`: sin base, sin red, sin reloj.

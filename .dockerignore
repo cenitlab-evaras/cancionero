@@ -1,0 +1,32 @@
+# Lo que nunca debe entrar al contexto de build.
+node_modules
+.next
+out
+build
+coverage
+
+# Secretos: el .env.local de tu máquina se queda en tu máquina.
+.env
+.env.*
+!.env.example
+
+.git
+.gitignore
+.vercel
+.playwright-cli
+*.tsbuildinfo
+next-env.d.ts
+
+# Herramientas locales y documentación: no las usa la imagen.
+supabase
+Dockerfile
+.dockerignore
+README.md
+AGENTS.md
+CLAUDE.md
+**/*.test.ts
+**/*.test.tsx
+vitest.config.mts
+
+.DS_Store
+npm-debug.log*

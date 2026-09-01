@@ -23,15 +23,15 @@
 -- Validarlo solo en la server action no alcanza: una action es alcanzable por
 -- POST directo. La regla vive donde se decide de verdad (innegociable 2).
 
-drop policy if exists coro_acceso_write on cantoral.coro_acceso;
-create policy coro_acceso_write on cantoral.coro_acceso
+drop policy if exists coro_acceso_write on public.coro_acceso;
+create policy coro_acceso_write on public.coro_acceso
   for all
-  using (cantoral.es_director_de(coro_id))
+  using (public.es_director_de(coro_id))
   with check (
-    cantoral.es_director_de(coro_id)
+    public.es_director_de(coro_id)
     and exists (
       select 1
-      from cantoral.perfiles p
+      from public.perfiles p
       where p.id = perfil_id
         and p.aprobado
         -- Una cuenta externa tiene entrada a la instalación, no membresía de
@@ -52,19 +52,19 @@ create policy coro_acceso_write on cantoral.coro_acceso
 -- derivado, y un derivado guardado es un derivado que algún día miente
 -- (innegociable 4).
 
-create or replace function cantoral.directores_de(p_coro_id uuid)
+create or replace function public.directores_de(p_coro_id uuid)
 returns integer
 language sql
 stable
 security definer
-set search_path = cantoral, public
+set search_path = public
 as $$
   select count(*)::integer
-  from cantoral.coro_acceso ca
-  join cantoral.perfiles p on p.id = ca.perfil_id
+  from public.coro_acceso ca
+  join public.perfiles p on p.id = ca.perfil_id
   where ca.coro_id = p_coro_id
     and ca.rol_local = 'director'
     and p.aprobado
 $$;
 
-grant execute on function cantoral.directores_de(uuid) to anon, authenticated, service_role;
+grant execute on function public.directores_de(uuid) to anon, authenticated, service_role;

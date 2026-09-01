@@ -28,7 +28,6 @@ function comprobar(descripcion: string, ok: boolean, detalle: string) {
 
 async function sesion(email: string) {
   const c = createClient(URL, PUBLISHABLE, {
-    db: { schema: 'cantoral' },
     auth: { autoRefreshToken: false, persistSession: false },
   })
   const { error } = await c.auth.signInWithPassword({ email, password: PASSWORD })

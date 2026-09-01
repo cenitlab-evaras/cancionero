@@ -8,7 +8,7 @@ import { cookies } from 'next/headers'
  * Next 16 `cookies()` es asíncrono, por eso esta función es async y HAY QUE
  * AWAIT-EARLA siempre: `const supabase = await createClient()`.
  *
- * Trabaja sobre el esquema dedicado `cantoral`, nunca sobre `public`.
+ * Trabaja sobre `public`, el esquema por defecto de la Data API.
  */
 export async function createClient() {
   const cookieStore = await cookies()
@@ -17,7 +17,6 @@ export async function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
-      db: { schema: 'cantoral' },
       cookies: {
         getAll() {
           return cookieStore.getAll()

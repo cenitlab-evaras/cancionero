@@ -10,11 +10,11 @@
  * pantalla funcione.
  */
 
-/** Rol GLOBAL, en `cantoral.perfiles`. Qué TIPO de cosas puede hacer alguien. */
+/** Rol GLOBAL, en `public.perfiles`. Qué TIPO de cosas puede hacer alguien. */
 export const ROLES = ['admin', 'miembro', 'externo'] as const
 export type Rol = (typeof ROLES)[number]
 
-/** Rol EN UN CORO, en `cantoral.coro_acceso`. Sobre CUÁLES actúa. */
+/** Rol EN UN CORO, en `public.coro_acceso`. Sobre CUÁLES actúa. */
 export const ROLES_LOCALES = ['director', 'musico'] as const
 export type RolLocal = (typeof ROLES_LOCALES)[number]
 

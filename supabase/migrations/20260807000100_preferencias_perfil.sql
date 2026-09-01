@@ -22,18 +22,18 @@
 --   decidir qué pasa con los cantos que la persona nunca abrió.
 -- =============================================================================
 
-create table if not exists cantoral.preferencias_perfil (
-  perfil_id       uuid primary key references cantoral.perfiles(id) on delete cascade,
+create table if not exists public.preferencias_perfil (
+  perfil_id       uuid primary key references public.perfiles(id) on delete cascade,
   -- El default es `true`: el producto es un cancionero con acordes y esa es la
   -- lectura normal. Quien no los quiere, los apaga una vez.
   mostrar_acordes boolean not null default true,
   updated_at      timestamptz not null default now()
 );
 
-comment on table cantoral.preferencias_perfil is
+comment on table public.preferencias_perfil is
   'Preferencias de lectura de una persona, válidas en TODO el repertorio. Las que son por canto —transposición y tamaño de letra— viven en preferencias_lectura (PRD §7).';
 
-comment on column cantoral.preferencias_perfil.mostrar_acordes is
+comment on column public.preferencias_perfil.mostrar_acordes is
   'H11. En false la lectura omite los acordes EN EL MOTOR, no con CSS: no quedan en el HTML.';
 
 -- `perfil_id` es la clave primaria, así que no hace falta índice aparte: una
@@ -43,12 +43,12 @@ comment on column cantoral.preferencias_perfil.mostrar_acordes is
 -- RLS — clase C, predicado propio. Activa en la MISMA migración que la crea.
 -- -----------------------------------------------------------------------------
 
-alter table cantoral.preferencias_perfil enable row level security;
+alter table public.preferencias_perfil enable row level security;
 
 -- Ver: solo la propia. Sin excepción para admin ni director (§8.2, la fila
 -- `ver_preferencia_ajena` dice que no para los tres roles).
-drop policy if exists preferencias_perfil_select on cantoral.preferencias_perfil;
-create policy preferencias_perfil_select on cantoral.preferencias_perfil
+drop policy if exists preferencias_perfil_select on public.preferencias_perfil;
+create policy preferencias_perfil_select on public.preferencias_perfil
   for select using (perfil_id = auth.uid());
 
 -- Escribir: solo la propia.
@@ -56,7 +56,7 @@ create policy preferencias_perfil_select on cantoral.preferencias_perfil
 -- A diferencia de `preferencias_lectura`, acá NO hay un segundo predicado de
 -- coro: esta preferencia no cuelga de ningún canto ni de ningún coro, así que
 -- no hay alcance que comprobar. Agregar un `puede_ver_coro` sería teatro.
-drop policy if exists preferencias_perfil_write on cantoral.preferencias_perfil;
-create policy preferencias_perfil_write on cantoral.preferencias_perfil
+drop policy if exists preferencias_perfil_write on public.preferencias_perfil;
+create policy preferencias_perfil_write on public.preferencias_perfil
   for all using (perfil_id = auth.uid())
           with check (perfil_id = auth.uid());

@@ -30,16 +30,16 @@
 -- sentencias, y §16 dejó abierto si va a haber un tercer estado (`archivado`).
 -- Con `check`, ese día es una línea.
 
-alter table cantoral.cantos
+alter table public.cantos
   add column if not exists estado text not null default 'listo';
 
-alter table cantoral.cantos
+alter table public.cantos
   drop constraint if exists cantos_estado_check;
 
-alter table cantoral.cantos
+alter table public.cantos
   add constraint cantos_estado_check check (estado in ('en_ensayo', 'listo'));
 
-comment on column cantoral.cantos.estado is
+comment on column public.cantos.estado is
   'En qué punto está el canto dentro del coro: en_ensayo (se está sacando) o listo (el coro lo canta). NO es el momento litúrgico, y NO es una sugerencia: sugerir es de una persona, el estado es del canto (PRD §5, §19.4).';
 
 -- -----------------------------------------------------------------------------

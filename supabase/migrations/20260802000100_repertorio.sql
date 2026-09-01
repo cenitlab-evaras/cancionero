@@ -17,7 +17,7 @@
 -- Sin organizaciones, un catálogo es único para toda la instalación. Eso cambia
 -- qué es el producto y está declarado en el PRD (decisión 6), no descubierto acá.
 
-create table if not exists cantoral.momentos_liturgicos (
+create table if not exists public.momentos_liturgicos (
   id         uuid primary key default gen_random_uuid(),
   codigo     text not null unique,
   nombre     text not null,
@@ -25,16 +25,16 @@ create table if not exists cantoral.momentos_liturgicos (
   created_at timestamptz not null default now()
 );
 
-comment on column cantoral.momentos_liturgicos.orden is
+comment on column public.momentos_liturgicos.orden is
   'Posición del momento dentro de la misa. NO es el orden de un canto dentro de una celebración.';
 
-create table if not exists cantoral.autores (
+create table if not exists public.autores (
   id         uuid primary key default gen_random_uuid(),
   nombre     text not null,
   created_at timestamptz not null default now()
 );
 
-create unique index if not exists autores_nombre_uk on cantoral.autores (lower(nombre));
+create unique index if not exists autores_nombre_uk on public.autores (lower(nombre));
 
 -- -----------------------------------------------------------------------------
 -- 2 · Cantos (clase B)
@@ -47,11 +47,11 @@ create unique index if not exists autores_nombre_uk on cantoral.autores (lower(n
 -- y cada canto la muestra en pantalla (PRD §18-1). Son nulas en los cantos que
 -- el director cree a mano (H8).
 
-create table if not exists cantoral.cantos (
+create table if not exists public.cantos (
   id                 uuid primary key default gen_random_uuid(),
-  coro_id            uuid not null references cantoral.coros(id) on delete cascade,
+  coro_id            uuid not null references public.coros(id) on delete cascade,
   titulo             text not null check (length(btrim(titulo)) > 0),
-  autor_id           uuid references cantoral.autores(id) on delete set null,
+  autor_id           uuid references public.autores(id) on delete set null,
   cifrado            text not null check (length(btrim(cifrado)) > 0),
   tonalidad_original text,
   notas              text,
@@ -67,9 +67,9 @@ create table if not exists cantoral.cantos (
 -- heredado marcaba esto como limitación conocida, RN-03). Entre coros distintos
 -- sí se puede, que es el caso que importa (PRD decisión 5).
 create unique index if not exists cantos_coro_titulo_uk
-  on cantoral.cantos (coro_id, lower(titulo));
+  on public.cantos (coro_id, lower(titulo));
 
-create index if not exists cantos_coro_idx on cantoral.cantos (coro_id);
+create index if not exists cantos_coro_idx on public.cantos (coro_id);
 
 -- -----------------------------------------------------------------------------
 -- 3 · Canto ↔ momento (clase B, a dos saltos del raíz)
@@ -78,62 +78,62 @@ create index if not exists cantos_coro_idx on cantoral.cantos (coro_id);
 -- anidada (select coro_id from cantos where id = canto_id) se evalúa por fila y
 -- es exactamente donde se cuela el bug.
 
-create table if not exists cantoral.canto_momentos (
+create table if not exists public.canto_momentos (
   id         uuid primary key default gen_random_uuid(),
-  canto_id   uuid not null references cantoral.cantos(id) on delete cascade,
-  momento_id uuid not null references cantoral.momentos_liturgicos(id) on delete restrict,
-  coro_id    uuid not null references cantoral.coros(id) on delete cascade,
+  canto_id   uuid not null references public.cantos(id) on delete cascade,
+  momento_id uuid not null references public.momentos_liturgicos(id) on delete restrict,
+  coro_id    uuid not null references public.coros(id) on delete cascade,
   created_at timestamptz not null default now(),
   unique (canto_id, momento_id)
 );
 
-create index if not exists canto_momentos_coro_idx on cantoral.canto_momentos (coro_id);
+create index if not exists canto_momentos_coro_idx on public.canto_momentos (coro_id);
 
 -- -----------------------------------------------------------------------------
 -- 4 · RLS — activa en la MISMA migración que crea las tablas
 -- -----------------------------------------------------------------------------
 
-alter table cantoral.momentos_liturgicos enable row level security;
-alter table cantoral.autores             enable row level security;
-alter table cantoral.cantos              enable row level security;
-alter table cantoral.canto_momentos      enable row level security;
+alter table public.momentos_liturgicos enable row level security;
+alter table public.autores             enable row level security;
+alter table public.cantos              enable row level security;
+alter table public.canto_momentos      enable row level security;
 
 -- D · catálogos globales
-drop policy if exists momentos_select on cantoral.momentos_liturgicos;
-create policy momentos_select on cantoral.momentos_liturgicos
-  for select using (cantoral.es_interno());
+drop policy if exists momentos_select on public.momentos_liturgicos;
+create policy momentos_select on public.momentos_liturgicos
+  for select using (public.es_interno());
 
-drop policy if exists momentos_write on cantoral.momentos_liturgicos;
-create policy momentos_write on cantoral.momentos_liturgicos
-  for all using (cantoral.es_admin()) with check (cantoral.es_admin());
+drop policy if exists momentos_write on public.momentos_liturgicos;
+create policy momentos_write on public.momentos_liturgicos
+  for all using (public.es_admin()) with check (public.es_admin());
 
-drop policy if exists autores_select on cantoral.autores;
-create policy autores_select on cantoral.autores
-  for select using (cantoral.es_interno());
+drop policy if exists autores_select on public.autores;
+create policy autores_select on public.autores
+  for select using (public.es_interno());
 
-drop policy if exists autores_write on cantoral.autores;
-create policy autores_write on cantoral.autores
-  for all using (cantoral.es_admin()) with check (cantoral.es_admin());
+drop policy if exists autores_write on public.autores;
+create policy autores_write on public.autores
+  for all using (public.es_admin()) with check (public.es_admin());
 
 -- B · cantos. La escritura es del DIRECTOR del coro, decidido a propósito
 -- (PRD §8.2): no es el default es_admin() copiado.
-drop policy if exists cantos_select on cantoral.cantos;
-create policy cantos_select on cantoral.cantos
-  for select using (cantoral.puede_ver_coro(coro_id));
+drop policy if exists cantos_select on public.cantos;
+create policy cantos_select on public.cantos
+  for select using (public.puede_ver_coro(coro_id));
 
-drop policy if exists cantos_write on cantoral.cantos;
-create policy cantos_write on cantoral.cantos
-  for all using (cantoral.es_director_de(coro_id))
-          with check (cantoral.es_director_de(coro_id));
+drop policy if exists cantos_write on public.cantos;
+create policy cantos_write on public.cantos
+  for all using (public.es_director_de(coro_id))
+          with check (public.es_director_de(coro_id));
 
 -- B · canto_momentos, por su coro_id denormalizado
-drop policy if exists canto_momentos_select on cantoral.canto_momentos;
-create policy canto_momentos_select on cantoral.canto_momentos
-  for select using (cantoral.puede_ver_coro(coro_id));
+drop policy if exists canto_momentos_select on public.canto_momentos;
+create policy canto_momentos_select on public.canto_momentos
+  for select using (public.puede_ver_coro(coro_id));
 
-drop policy if exists canto_momentos_write on cantoral.canto_momentos;
-create policy canto_momentos_write on cantoral.canto_momentos
-  for all using (cantoral.es_director_de(coro_id))
-          with check (cantoral.es_director_de(coro_id));
+drop policy if exists canto_momentos_write on public.canto_momentos;
+create policy canto_momentos_write on public.canto_momentos
+  for all using (public.es_director_de(coro_id))
+          with check (public.es_director_de(coro_id));
 
 -- Los grants de tabla los cubre el `alter default privileges` de la migración 00.

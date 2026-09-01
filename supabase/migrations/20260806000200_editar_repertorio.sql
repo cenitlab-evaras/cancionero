@@ -19,40 +19,40 @@
 -- Se parte en dos: dar de alta es del director de un coro; renombrar y borrar
 -- siguen siendo del admin, porque tocan filas que otros coros ya están usando.
 
-create or replace function cantoral.es_director_de_algun_coro()
+create or replace function public.es_director_de_algun_coro()
 returns boolean
 language sql
 stable
 security definer
-set search_path = cantoral, public
+set search_path = public
 as $$
   select exists (
     select 1
-    from cantoral.coro_acceso ca
-    join cantoral.perfiles p on p.id = ca.perfil_id
+    from public.coro_acceso ca
+    join public.perfiles p on p.id = ca.perfil_id
     where ca.perfil_id = auth.uid()
       and ca.rol_local = 'director'
       and p.aprobado
-  ) or cantoral.es_admin()
+  ) or public.es_admin()
 $$;
 
-grant execute on function cantoral.es_director_de_algun_coro() to anon, authenticated, service_role;
+grant execute on function public.es_director_de_algun_coro() to anon, authenticated, service_role;
 
-drop policy if exists autores_write on cantoral.autores;
+drop policy if exists autores_write on public.autores;
 
-drop policy if exists autores_insert on cantoral.autores;
-create policy autores_insert on cantoral.autores
-  for insert with check (cantoral.es_director_de_algun_coro());
+drop policy if exists autores_insert on public.autores;
+create policy autores_insert on public.autores
+  for insert with check (public.es_director_de_algun_coro());
 
 -- Renombrar o borrar un autor afecta a los cantos de OTROS coros que lo usan:
 -- eso sigue siendo de la instalación, no de un director.
-drop policy if exists autores_update on cantoral.autores;
-create policy autores_update on cantoral.autores
-  for update using (cantoral.es_admin()) with check (cantoral.es_admin());
+drop policy if exists autores_update on public.autores;
+create policy autores_update on public.autores
+  for update using (public.es_admin()) with check (public.es_admin());
 
-drop policy if exists autores_delete on cantoral.autores;
-create policy autores_delete on cantoral.autores
-  for delete using (cantoral.es_admin());
+drop policy if exists autores_delete on public.autores;
+create policy autores_delete on public.autores
+  for delete using (public.es_admin());
 
 -- -----------------------------------------------------------------------------
 -- 2 · Dos versiones del mismo canto, alineado con RN-03
@@ -68,10 +68,10 @@ create policy autores_delete on cantoral.autores
 -- título convivirían y la semilla dejaría de ser idempotente para ellos —que
 -- son varios, porque el cancionero tiene muchos anónimos.
 
-drop index if exists cantoral.cantos_coro_titulo_uk;
+drop index if exists public.cantos_coro_titulo_uk;
 
 create unique index if not exists cantos_coro_titulo_autor_uk
-  on cantoral.cantos (
+  on public.cantos (
     coro_id,
     lower(titulo),
     coalesce(autor_id, '00000000-0000-0000-0000-000000000000'::uuid)

@@ -24,7 +24,6 @@ export function createAdminClient() {
   }
 
   return createSupabaseClient(url, secret, {
-    db: { schema: 'cantoral' },
     auth: { autoRefreshToken: false, persistSession: false },
   })
 }

@@ -14,9 +14,9 @@
 -- 1 · Celebraciones (clase B, cuelga del raíz a un salto)
 -- -----------------------------------------------------------------------------
 
-create table if not exists cantoral.celebraciones (
+create table if not exists public.celebraciones (
   id         uuid primary key default gen_random_uuid(),
-  coro_id    uuid not null references cantoral.coros(id) on delete cascade,
+  coro_id    uuid not null references public.coros(id) on delete cascade,
   nombre     text not null check (btrim(nombre) <> ''),
   -- Nullable a propósito: un ensayo o una lista de trabajo no tiene fecha
   -- (PRD §18-6). Si algún día estorba, agregar `tipo` es una columna, no un
@@ -26,10 +26,10 @@ create table if not exists cantoral.celebraciones (
   updated_at timestamptz not null default now()
 );
 
-create index if not exists celebraciones_coro_idx on cantoral.celebraciones (coro_id);
+create index if not exists celebraciones_coro_idx on public.celebraciones (coro_id);
 -- El listado de §12 es "por fecha descendente": se indexa como se lee.
 create index if not exists celebraciones_coro_fecha_idx
-  on cantoral.celebraciones (coro_id, fecha desc nulls last);
+  on public.celebraciones (coro_id, fecha desc nulls last);
 
 -- -----------------------------------------------------------------------------
 -- 2 · Cantos de la celebración (clase B, a DOS saltos del raíz)
@@ -38,15 +38,15 @@ create index if not exists celebraciones_coro_fecha_idx
 -- Una política con subconsulta anidada se evalúa fila por fila y es justo donde
 -- se cuela el bug (PRD §7).
 
-create table if not exists cantoral.celebracion_cantos (
+create table if not exists public.celebracion_cantos (
   id             uuid primary key default gen_random_uuid(),
-  celebracion_id uuid not null references cantoral.celebraciones(id) on delete cascade,
-  canto_id       uuid not null references cantoral.cantos(id) on delete cascade,
-  momento_id     uuid not null references cantoral.momentos_liturgicos(id) on delete restrict,
+  celebracion_id uuid not null references public.celebraciones(id) on delete cascade,
+  canto_id       uuid not null references public.cantos(id) on delete cascade,
+  momento_id     uuid not null references public.momentos_liturgicos(id) on delete restrict,
   -- La posición dentro de la misa. NO es el momento: dos cantos pueden
   -- compartir momento y su orden los separa (PRD §5).
   orden          integer not null check (orden >= 0),
-  coro_id        uuid not null references cantoral.coros(id) on delete cascade,
+  coro_id        uuid not null references public.coros(id) on delete cascade,
   created_at     timestamptz not null default now(),
   -- Un canto no se repite dentro de la misma celebración.
   unique (celebracion_id, canto_id)
@@ -57,38 +57,38 @@ create table if not exists cantoral.celebracion_cantos (
 -- comprobable. `deferrable` para poder reordenar en una sola transacción sin
 -- pelear con posiciones intermedias.
 create unique index if not exists celebracion_cantos_orden_uk
-  on cantoral.celebracion_cantos (celebracion_id, orden);
+  on public.celebracion_cantos (celebracion_id, orden);
 
 create index if not exists celebracion_cantos_coro_idx
-  on cantoral.celebracion_cantos (coro_id);
+  on public.celebracion_cantos (coro_id);
 create index if not exists celebracion_cantos_celebracion_idx
-  on cantoral.celebracion_cantos (celebracion_id, orden);
+  on public.celebracion_cantos (celebracion_id, orden);
 
 -- -----------------------------------------------------------------------------
 -- 3 · RLS — activa en la MISMA migración que crea las tablas
 -- -----------------------------------------------------------------------------
 
-alter table cantoral.celebraciones      enable row level security;
-alter table cantoral.celebracion_cantos enable row level security;
+alter table public.celebraciones      enable row level security;
+alter table public.celebracion_cantos enable row level security;
 
 -- B · celebraciones. Lee todo el coro; escribe el director.
-drop policy if exists celebraciones_select on cantoral.celebraciones;
-create policy celebraciones_select on cantoral.celebraciones
-  for select using (cantoral.puede_ver_coro(coro_id));
+drop policy if exists celebraciones_select on public.celebraciones;
+create policy celebraciones_select on public.celebraciones
+  for select using (public.puede_ver_coro(coro_id));
 
-drop policy if exists celebraciones_write on cantoral.celebraciones;
-create policy celebraciones_write on cantoral.celebraciones
-  for all using (cantoral.es_director_de(coro_id))
-          with check (cantoral.es_director_de(coro_id));
+drop policy if exists celebraciones_write on public.celebraciones;
+create policy celebraciones_write on public.celebraciones
+  for all using (public.es_director_de(coro_id))
+          with check (public.es_director_de(coro_id));
 
 -- B · celebracion_cantos, por su coro_id denormalizado.
-drop policy if exists celebracion_cantos_select on cantoral.celebracion_cantos;
-create policy celebracion_cantos_select on cantoral.celebracion_cantos
-  for select using (cantoral.puede_ver_coro(coro_id));
+drop policy if exists celebracion_cantos_select on public.celebracion_cantos;
+create policy celebracion_cantos_select on public.celebracion_cantos
+  for select using (public.puede_ver_coro(coro_id));
 
-drop policy if exists celebracion_cantos_write on cantoral.celebracion_cantos;
-create policy celebracion_cantos_write on cantoral.celebracion_cantos
-  for all using (cantoral.es_director_de(coro_id))
-          with check (cantoral.es_director_de(coro_id));
+drop policy if exists celebracion_cantos_write on public.celebracion_cantos;
+create policy celebracion_cantos_write on public.celebracion_cantos
+  for all using (public.es_director_de(coro_id))
+          with check (public.es_director_de(coro_id));
 
 -- Los grants de tabla los cubre el `alter default privileges` de la migración 00.
