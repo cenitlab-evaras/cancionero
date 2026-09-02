@@ -1,7 +1,7 @@
 # Cantoral
 
 El repertorio de un coro católico, en el teléfono. Especificación completa en
-[`../docs/PRD.md`](../docs/PRD.md).
+[`docs/PRD.md`](docs/PRD.md).
 
 Next.js 16 · Supabase · esquema `public` · despliegue previsto en Vercel.
 

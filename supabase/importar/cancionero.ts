@@ -17,6 +17,9 @@ import { leerCancionero, type CantoDelCancionero } from './leer-cancionero.ts'
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SECRETO = process.env.SUPABASE_SECRET_KEY!
+// El PDF vive FUERA del repositorio y así se queda: son cancioneros de
+// terceros, con derechos, y este repo es público. Los documentos del
+// producto sí están versionados, en `docs/`.
 const PDF = '../docs/cancioneros catolicos/Cancionero Catolico.pdf'
 const FUENTE = 'Cancionero Misionero — Coro Misión País 2025'
 const CORO = 'San José de la Familia'
