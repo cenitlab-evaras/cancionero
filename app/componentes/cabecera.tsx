@@ -45,6 +45,16 @@ export default function Cabecera({ sesion }: { sesion: SesionCantoral }) {
               Miembros
             </Link>
           )}
+          {/* H14: la ficha la carga cada uno, así que el enlace es para todos
+              los vinculados — no solo para el director. */}
+          {sesion.coroActivo && puede(sesion.sujeto, 'editar_ficha_propia') && (
+            <Link
+              href="/mi-ficha"
+              className="rounded px-2 text-xs text-texto-tenue transition-colors hover:text-texto"
+            >
+              Mi ficha
+            </Link>
+          )}
           {puede(sesion.sujeto, 'aprobar_perfil') && (
             <Link
               href="/admin/perfiles"

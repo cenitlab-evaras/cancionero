@@ -6,6 +6,8 @@ import { perfilesConVinculo } from '@/lib/datos/gobierno'
 import { resumenDeMiembros } from '@/lib/motores/gobierno'
 import Cabecera from '@/app/componentes/cabecera'
 import ListaMiembros from './lista'
+import FichasDelCoro from './fichas'
+import { fichasDelCoro } from '@/lib/datos/ficha'
 
 export const metadata = { title: 'Miembros del coro · Cantoral' }
 
@@ -54,6 +56,11 @@ export default async function MiembrosPage() {
 
   const perfiles = await perfilesConVinculo(sesion.coroActivo.id)
   const resumen = resumenDeMiembros(perfiles)
+  // H14: la RLS ya filtra —solo el director del coro las lee—, pero la
+  // pantalla no ofrece lo que la matriz no concede (§8.3).
+  const fichas = puede(sesion.sujeto, 'ver_ficha_del_coro')
+    ? await fichasDelCoro(sesion.coroActivo.id)
+    : []
 
   return (
     <>
@@ -78,6 +85,8 @@ export default async function MiembrosPage() {
           directores={resumen.directores}
           yoId={sesion.usuarioId}
         />
+
+        {fichas.length > 0 && <FichasDelCoro fichas={fichas} />}
       </main>
     </>
   )

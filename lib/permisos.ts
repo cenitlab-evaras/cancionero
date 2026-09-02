@@ -38,6 +38,8 @@ export const CAPACIDADES = [
   'leer_canto',
   'guardar_preferencia_propia',
   'ver_preferencia_ajena',
+  'editar_ficha_propia',
+  'ver_ficha_del_coro',
   'editar_canto',
   'asignar_momentos',
   'editar_celebracion',
@@ -71,6 +73,10 @@ const MATRIZ: Record<Rol, Record<Capacidad, Celda>> = {
     leer_canto: true,
     guardar_preferencia_propia: true,
     ver_preferencia_ajena: false, // nadie, tampoco el admin
+    // H14: el admin no dirige coros y §8.2 no le da motivo para leer la
+    // edad de nadie. Su propia ficha sí, como cualquiera.
+    editar_ficha_propia: 'solo_vinculado',
+    ver_ficha_del_coro: false,
     editar_canto: true,
     asignar_momentos: true,
     editar_celebracion: true,
@@ -88,6 +94,9 @@ const MATRIZ: Record<Rol, Record<Capacidad, Celda>> = {
     leer_canto: 'solo_vinculado',
     guardar_preferencia_propia: true,
     ver_preferencia_ajena: false,
+    // H14: la ficha la carga cada uno; el director del coro la lee.
+    editar_ficha_propia: 'solo_vinculado',
+    ver_ficha_del_coro: 'solo_director',
     editar_canto: 'solo_director',
     asignar_momentos: 'solo_director',
     editar_celebracion: 'solo_director',
@@ -105,6 +114,9 @@ const MATRIZ: Record<Rol, Record<Capacidad, Celda>> = {
     leer_canto: false,
     guardar_preferencia_propia: true,
     ver_preferencia_ajena: false,
+    // Un externo no está en ningún coro: no hay ficha que cargar.
+    editar_ficha_propia: false,
+    ver_ficha_del_coro: false,
     editar_canto: false,
     asignar_momentos: false,
     editar_celebracion: false,

@@ -486,6 +486,95 @@ async function main() {
   // vista) y el que la app trata como "todavía nadie eligió".
   await musico.from('preferencias_perfil').delete().eq('perfil_id', idMusico)
 
+  // ---------------------------------------------------------------------------
+  // H14 · Ficha del miembro — el "listo cuando" de §17, lado seguridad.
+  //
+  // Lo que hay que probar acá y no en un test unitario: que la ficha sea
+  // escribible por su dueño SIN abrir la puerta a escribirse el rol, y que el
+  // director la lea sin que la lean los demás.
+  // ---------------------------------------------------------------------------
+
+  const { data: coroParaFicha } = await musico
+    .from('coro_acceso')
+    .select('coro_id')
+    .limit(1)
+    .single()
+  const coroMisionPais = coroParaFicha!.coro_id
+
+  const { error: errFichaPropia } = await musico.from('ficha_miembro').upsert(
+    {
+      perfil_id: idMusico,
+      coro_id: coroMisionPais,
+      tesitura: 'tenor',
+      disponibilidad: 'casi_siempre',
+      fecha_nacimiento: '1995-04-10',
+    },
+    { onConflict: 'perfil_id,coro_id' }
+  )
+  comprobar(
+    'musico@ carga su propia ficha (H14)',
+    !errFichaPropia,
+    errFichaPropia ? `RECHAZADA: ${errFichaPropia.message}` : 'guardada'
+  )
+
+  const { data: fichaVistaPorDirector } = await director
+    .from('ficha_miembro')
+    .select('tesitura, disponibilidad, fecha_nacimiento')
+    .eq('perfil_id', idMusico)
+    .eq('coro_id', coroMisionPais)
+  comprobar(
+    'director@ ve la ficha de su miembro',
+    fichaVistaPorDirector?.[0]?.tesitura === 'tenor',
+    `${fichaVistaPorDirector?.length ?? 0} filas · tesitura ${fichaVistaPorDirector?.[0]?.tesitura ?? '—'}`
+  )
+
+  const { data: fichaAjenaMusico } = await musico
+    .from('ficha_miembro')
+    .select('perfil_id')
+    .eq('perfil_id', idDirector)
+  comprobar(
+    'musico@ NO ve la ficha de otra persona',
+    (fichaAjenaMusico?.length ?? 0) === 0,
+    `${fichaAjenaMusico?.length ?? 0} filas`
+  )
+
+  const { data: fichaVistaPorAjeno } = await ajeno
+    .from('ficha_miembro')
+    .select('perfil_id')
+    .eq('coro_id', coroMisionPais)
+  comprobar(
+    'ajeno@ no ve ninguna ficha de Misión País',
+    (fichaVistaPorAjeno?.length ?? 0) === 0,
+    `${fichaVistaPorAjeno?.length ?? 0} filas`
+  )
+
+  const { error: errFichaAjena } = await musico.from('ficha_miembro').upsert(
+    { perfil_id: idDirector, coro_id: coroMisionPais, tesitura: 'bajo' },
+    { onConflict: 'perfil_id,coro_id' }
+  )
+  comprobar(
+    'musico@ no puede escribir la ficha de otro',
+    !!errFichaAjena,
+    errFichaAjena ? 'la RLS rechazó el upsert' : 'SE ESCRIBIÓ: la política está mal'
+  )
+
+  // El punto del hito: la ficha vive en otra tabla PARA QUE escribirla no sea
+  // una puerta a `rol_local`. Que siga cerrada es lo que hay que comprobar.
+  const { data: ascenso } = await musico
+    .from('coro_acceso')
+    .update({ rol_local: 'director' })
+    .eq('perfil_id', idMusico)
+    .eq('coro_id', coroMisionPais)
+    .select('rol_local')
+  comprobar(
+    'musico@ sigue sin poder ascenderse a director (la ficha no abrió esa puerta)',
+    (ascenso?.length ?? 0) === 0,
+    (ascenso?.length ?? 0) === 0 ? 'cero filas afectadas' : 'SE ASCENDIÓ: la política está mal'
+  )
+
+  // Se deja el coro como estaba.
+  await musico.from('ficha_miembro').delete().eq('perfil_id', idMusico).eq('coro_id', coroMisionPais)
+
   const fallidos = resultados.filter((r) => !r.ok)
   console.log(`\n${resultados.length - fallidos.length}/${resultados.length} comprobaciones en verde`)
   if (fallidos.length > 0) process.exit(1)
