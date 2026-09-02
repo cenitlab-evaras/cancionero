@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation'
 import { obtenerSesion } from '@/lib/sesion'
 import { puede } from '@/lib/permisos'
 import { celebracionesDelCoro } from '@/lib/datos/celebraciones'
+import { hoyISO } from '@/lib/datos/historial'
+import { agruparCelebraciones } from '@/lib/motores/agenda'
 import Cabecera from '@/app/componentes/cabecera'
 
 export const metadata = { title: 'Misas · Cantoral' }
@@ -39,6 +41,7 @@ export default async function CelebracionesPage() {
   }
 
   const celebraciones = await celebracionesDelCoro(sesion.coroActivo.id)
+  const grupos = agruparCelebraciones(celebraciones, hoyISO())
 
   return (
     <>
@@ -66,27 +69,62 @@ export default async function CelebracionesPage() {
               : ' Cuando tu director arme una, aparece acá.'}
           </p>
         ) : (
-          <ul className="mt-4 divide-y divide-borde border-t border-borde">
-            {celebraciones.map((c) => (
-              <li key={c.id}>
-                <Link
-                  href={`/celebraciones/${c.id}`}
-                  className="flex min-h-14 items-center justify-between gap-3 py-2 transition-colors hover:bg-superficie"
-                >
-                  <span className="min-w-0">
-                    <span className="block truncate">{c.nombre}</span>
-                    <span className="block text-xs text-texto-tenue">
-                      {c.fecha ? comoFecha(c.fecha) : 'sin fecha'} ·{' '}
-                      {c.cantidadCantos === 1 ? '1 canto' : `${c.cantidadCantos} cantos`}
-                    </span>
-                  </span>
-                  <span className="shrink-0 text-texto-tenue">→</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <>
+            {/* Lo que viene arriba y lo más próximo primero: la pregunta del
+                domingo es «cuál es la que sigue», y antes había que leer todas
+                las fechas para contestarla. Los grupos se callan si están
+                vacíos — un «Ya cantadas (0)» no informa nada. */}
+            {grupos.proximas.length > 0 && (
+              <Seccion titulo="Lo que viene" celebraciones={grupos.proximas} />
+            )}
+            {grupos.pasadas.length > 0 && (
+              <Seccion titulo="Ya cantadas" celebraciones={grupos.pasadas} />
+            )}
+            {grupos.sinFecha.length > 0 && (
+              <Seccion titulo="Sin fecha" celebraciones={grupos.sinFecha} />
+            )}
+          </>
         )}
       </main>
     </>
+  )
+}
+
+/**
+ * Un grupo de misas con su encabezado.
+ *
+ * Sin la flecha «→» que había en cada fila: la fila entera ya es un enlace, y
+ * seis repeticiones del mismo signo no informaban nada. El espacio se lo lleva
+ * el nombre de la misa, que es lo que se lee.
+ */
+function Seccion({
+  titulo,
+  celebraciones,
+}: {
+  titulo: string
+  celebraciones: Awaited<ReturnType<typeof celebracionesDelCoro>>
+}) {
+  return (
+    <section className="mt-6">
+      <h2 className="text-[0.8125rem] font-semibold text-texto-tenue uppercase">{titulo}</h2>
+      <ul className="mt-2 divide-y divide-borde border-t border-borde">
+        {celebraciones.map((c) => (
+          <li key={c.id}>
+            <Link
+              href={`/celebraciones/${c.id}`}
+              className="-mx-2 flex min-h-14 items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-superficie"
+            >
+              <span className="min-w-0 flex-1">
+                <span className="block truncate">{c.nombre}</span>
+                <span className="block text-xs text-texto-tenue">
+                  {c.fecha ? comoFecha(c.fecha) : 'sin fecha'} ·{' '}
+                  {c.cantidadCantos === 1 ? '1 canto' : `${c.cantidadCantos} cantos`}
+                </span>
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
