@@ -5,6 +5,7 @@ import {
   type EjecucionCruda,
   type HistorialCanto,
 } from '@/lib/motores/historial'
+import { fechaEnZona } from '@/lib/motores/fecha'
 
 /**
  * Consultas del historial de ejecución (H13).
@@ -17,17 +18,18 @@ import {
  */
 
 /**
- * El día de hoy como `YYYY-MM-DD`, en la zona horaria del servidor.
+ * El día de hoy como `YYYY-MM-DD`, en la zona del coro.
  *
- * `sv-SE` porque su formato local ES el ISO, sin tener que recortar strings.
+ * Fijada explícitamente el 2026-09-02, al desplegar: el contenedor corre en UTC
+ * y §17.1-octies ya había declarado la consecuencia — entre las 20:00 y la
+ * medianoche en Chile el servidor estaba en el día siguiente, y una misa
+ * agendada para mañana se contaba como ya cantada.
  *
- * Se usa la hora LOCAL y no UTC a propósito: con UTC, entre las 20:00 y la
- * medianoche en Chile el servidor ya estaría en el día siguiente y una misa de
- * hoy se leería como "hace 1 día". Queda declarado en §17.1-octies que si esto
- * se despliega en un servidor en UTC, la zona hay que fijarla explícitamente.
+ * Lo único que esta función hace es leer el reloj: la conversión vive en
+ * `fechaEnZona`, que es pura y tiene sus casos en `fecha.test.ts`.
  */
 export function hoyISO(): string {
-  return new Date().toLocaleDateString('sv-SE')
+  return fechaEnZona(new Date())
 }
 
 type FilaEjecucion = {
