@@ -60,9 +60,21 @@ export default async function MiFichaPage() {
   return (
     <>
       <Cabecera sesion={sesion} />
-      <main className="mx-auto w-full max-w-2xl px-4 py-8">
-        <h1 className="text-lg font-semibold">Mi ficha</h1>
-        <p className="mt-1 max-w-prose text-sm text-texto-tenue">
+      <main className="mx-auto w-full max-w-2xl flex-1 px-4 pb-10">
+        {/* Mismo patrón de vuelta que Miembros e Historial: la flecha primero,
+            el título después. Sin ella esta era la única pantalla sin salida
+            propia. */}
+        <div className="flex items-baseline gap-3 pt-4">
+          <Link
+            href="/repertorio"
+            className="-ml-1 shrink-0 rounded px-1 text-sm text-texto-tenue transition-colors hover:text-texto"
+            aria-label="Volver al repertorio"
+          >
+            ←
+          </Link>
+          <h1 className="min-w-0 text-[1.375rem] leading-tight font-semibold">Mi ficha</h1>
+        </div>
+        <p className="mt-1.5 max-w-prose pl-7 text-sm text-texto-tenue">
           Tus datos en {sesion.coroActivo.nombre}. Los ve tu director para armar
           las voces y saber con quién cuenta. Nadie más del coro los ve.
           {edad !== null && <> Hoy tienes <strong>{edad} años</strong>.</>}

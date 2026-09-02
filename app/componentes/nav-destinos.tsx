@@ -19,6 +19,10 @@ export type Destino = { href: string; texto: string }
  * `overflow-x-auto` en vez de esconder destinos tras un «⋯»: si mañana aparece
  * otro, entra desplazándose y no hay que decidir cuál se oculta. El scroll es
  * de esta fila, no de la página — el ancho del documento sigue siendo 360.
+ *
+ * El `pr-4` es para que el último no termine pegado al borde: cuando además
+ * era el activo, su fondo quedaba cortado al ras y parecía un error de
+ * maquetación en vez de una fila que sigue.
  */
 export default function NavDestinos({ destinos }: { destinos: Destino[] }) {
   const aqui = usePathname()
@@ -26,7 +30,7 @@ export default function NavDestinos({ destinos }: { destinos: Destino[] }) {
   return (
     <nav
       aria-label="Secciones"
-      className="-mx-1 flex items-center gap-0.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="-mx-1 flex items-center gap-0.5 overflow-x-auto pr-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       {destinos.map(({ href, texto }) => {
         // `/repertorio` no debe quedar activo dentro de `/repertorio/nuevo`:

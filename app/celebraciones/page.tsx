@@ -5,7 +5,7 @@ import { puede } from '@/lib/permisos'
 import { celebracionesDelCoro } from '@/lib/datos/celebraciones'
 import Cabecera from '@/app/componentes/cabecera'
 
-export const metadata = { title: 'Celebraciones · Cantoral' }
+export const metadata = { title: 'Misas · Cantoral' }
 
 /** El domingo 3 de agosto, no "2026-08-03": la misa se nombra por su día. */
 function comoFecha(iso: string) {
@@ -29,7 +29,7 @@ export default async function CelebracionesPage() {
       <>
         <Cabecera sesion={sesion} />
         <main className="mx-auto w-full max-w-2xl px-4 py-10">
-          <h1 className="text-lg font-semibold">Celebraciones</h1>
+          <h1 className="text-lg font-semibold">Misas</h1>
           <p className="mt-2 text-sm text-texto-tenue">
             Todavía no perteneces a ningún coro. Pídele a tu director que te agregue.
           </p>
@@ -46,7 +46,7 @@ export default async function CelebracionesPage() {
 
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 pb-10">
         <div className="flex items-baseline justify-between gap-3 pt-4">
-          <h1 className="text-lg font-semibold">Celebraciones</h1>
+          <h1 className="text-lg font-semibold">Misas</h1>
           {puedeEditar && (
             <Link
               href="/celebraciones/nueva"

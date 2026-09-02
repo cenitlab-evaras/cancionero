@@ -6,7 +6,6 @@ import { perfilesConVinculo } from '@/lib/datos/gobierno'
 import { resumenDeMiembros } from '@/lib/motores/gobierno'
 import Cabecera from '@/app/componentes/cabecera'
 import ListaMiembros from './lista'
-import FichasDelCoro from './fichas'
 import { fichasDelCoro } from '@/lib/datos/ficha'
 
 export const metadata = { title: 'Miembros del coro · Cantoral' }
@@ -84,9 +83,8 @@ export default async function MiembrosPage() {
           disponibles={resumen.disponibles}
           directores={resumen.directores}
           yoId={sesion.usuarioId}
+          fichas={fichas}
         />
-
-        {fichas.length > 0 && <FichasDelCoro fichas={fichas} />}
       </main>
     </>
   )

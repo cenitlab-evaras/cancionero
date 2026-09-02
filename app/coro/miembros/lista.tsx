@@ -4,6 +4,8 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { agregarMiembro, cambiarRolLocal } from '../acciones'
 import type { PerfilConVinculo } from '@/lib/datos/gobierno'
+import type { FichaDeMiembro } from '@/lib/datos/ficha'
+import { etiquetaDisponibilidad, etiquetaTesitura } from '@/lib/motores/ficha'
 
 /**
  * Admitir gente al coro y cambiarle el rol.
@@ -16,11 +18,17 @@ export default function ListaMiembros({
   disponibles,
   directores,
   yoId,
+  fichas = [],
 }: {
   enElCoro: PerfilConVinculo[]
   disponibles: PerfilConVinculo[]
   directores: number
   yoId: string
+  /* H14 · las fichas van EN la fila de cada quien, no en una lista aparte:
+     tenerlas en su propia sección listaba dos veces a la misma gente en la
+     misma pantalla. Llega vacío para quien no puede verlas (la matriz decide,
+     la RLS hace cumplir). */
+  fichas?: FichaDeMiembro[]
 }) {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
@@ -36,6 +44,21 @@ export default function ListaMiembros({
   }
 
   const nombreDe = (p: PerfilConVinculo) => p.nombre || p.email.split('@')[0]
+
+  const fichaDe = new Map(fichas.map((f) => [f.perfilId, f]))
+
+  /** Lo declarado, y solo lo declarado: un «Sin declarar · Sin declarar · —»
+      repetido en cada fila es ruido, y el pie ya dice cuántos faltan. */
+  function resumenFicha(perfilId: string): string | null {
+    const f = fichaDe.get(perfilId)
+    if (!f) return null
+    const partes = [
+      f.tesitura ? etiquetaTesitura(f.tesitura) : null,
+      f.disponibilidad ? etiquetaDisponibilidad(f.disponibilidad) : null,
+      f.edad === null ? null : `${f.edad} años`,
+    ].filter(Boolean)
+    return partes.length > 0 ? partes.join(' · ') : null
+  }
 
   return (
     <div className={pendiente ? 'opacity-60 transition-opacity' : 'transition-opacity'}>
@@ -54,6 +77,16 @@ export default function ListaMiembros({
                 {p.id === yoId && <span className="text-texto-tenue"> · tú</span>}
               </span>
               <span className="block truncate text-xs text-texto-tenue">{p.email}</span>
+              {resumenFicha(p.id) && (
+                <span className="mt-0.5 block truncate text-xs text-texto-tenue">
+                  {resumenFicha(p.id)}
+                  {fichaDe.get(p.id)?.esMenor === true && (
+                    /* Se dice, no se deduce: en contexto parroquial tiene
+                       consecuencias reales. */
+                    <span className="ml-1.5 font-medium text-texto">menor</span>
+                  )}
+                </span>
+              )}
             </span>
 
             <select

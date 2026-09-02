@@ -36,7 +36,10 @@ export default function Cabecera({ sesion }: { sesion: SesionCantoral }) {
     if (puede(sesion.sujeto, 'ver_ficha_del_coro')) {
       destinos.push({ href: '/coro/miembros', texto: 'Miembros' })
     }
-    destinos.push({ href: '/historial', texto: 'Historial' })
+    /* Historial NO va acá: §17.1-octies ya decidió que se alcanza desde el pie
+       del repertorio, «no un ítem en la cabecera», porque se consulta al
+       planificar y se planifica mirando el repertorio. Agregarlo empujaba
+       «Mi ficha» fuera de los 360 px. */
     if (puede(sesion.sujeto, 'editar_ficha_propia')) {
       destinos.push({ href: '/mi-ficha', texto: 'Mi ficha' })
     }
