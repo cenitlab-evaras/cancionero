@@ -94,13 +94,21 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
 
   return (
     <>
-      <Cabecera sesion={sesion} />
+      {/* SIN cabecera global, a propósito (§DESIGN: «no hay a dónde navegar
+          mientras se toca»). Sus dos filas cuestan 83 px en una pantalla donde
+          el contenido ES el producto, y el ← de abajo ya devuelve al
+          repertorio. Las pantallas de error de más arriba sí la llevan: ahí
+          justamente hace falta poder irse a otro lado. */}
 
       {/* El proveedor no emite DOM, así que <main> sigue siendo hijo flex
           directo del <body> y conserva su `flex-1`. */}
       <ProveedorDiagramas acordes={acordes}>
-      <main className="mx-auto w-full max-w-2xl flex-1 px-4 pb-8">
-        <div className="flex items-baseline gap-3 pt-4">
+      <main className="mx-auto w-full max-w-2xl flex-1 pb-8">
+        {/* La cabecera de lectura: 44 px con lo único que hace falta acá —
+            volver, saber qué canto es, y los dos controles que no son de tocar.
+            Va fija porque el ← tiene que estar a mano después de scrollear
+            media misa. */}
+        <div className="sticky top-0 z-(--z-cabecera) flex items-center gap-3 border-b border-borde bg-fondo/95 px-4 py-2 backdrop-blur">
           <Link
             href="/repertorio"
             className="-ml-1 shrink-0 rounded px-1 text-sm text-texto-tenue transition-colors hover:text-texto"
@@ -133,7 +141,7 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
           </span>
         </div>
 
-        <p className="mt-1.5 flex flex-wrap items-center gap-x-1 gap-y-1.5 pl-7 text-xs text-texto-tenue">
+        <p className="mt-2 flex flex-wrap items-center gap-x-1 gap-y-1.5 px-4 text-xs text-texto-tenue">
           {/* H10 · El músico tiene que enterarse acá, no solo en el listado:
               esta es la pantalla donde se para a tocar. Va primero, antes del
               autor, porque cambia cómo se lee todo lo demás. */}

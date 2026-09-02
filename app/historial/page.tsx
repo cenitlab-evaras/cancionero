@@ -85,8 +85,17 @@ export default async function HistorialPage() {
                     className="tactil -mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5 hover:bg-superficie"
                   >
                     {/* El número a la izquierda, como el del cancionero en el
-                        listado: la columna donde el ojo ya sabe buscar. */}
-                    <span className="w-7 shrink-0 text-right font-cifrado text-sm text-acorde">
+                        listado: la columna donde el ojo ya sabe buscar.
+
+                        NO va en `--color-acorde`: ese cálido está reservado a
+                        los acordes y a la tonalidad (§DESIGN, «la regla del
+                        acorde»). Acá no hay ningún acorde en pantalla, pero
+                        usarlo igual entrena al ojo a leer el naranja como
+                        «número importante», y esa lectura se lleva puesta la
+                        vista del canto, que es donde el color decide algo.
+                        La jerarquía la dan la mono, el ancho fijo y la
+                        alineación a la derecha. */}
+                    <span className="w-7 shrink-0 text-right font-cifrado text-sm text-texto">
                       {canto.historial.veces}
                     </span>
                     <span className="min-w-0 flex-1">
