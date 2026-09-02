@@ -24,7 +24,7 @@ import {
  *  3. **Un valor desconocido nunca se trata como tesitura ni disponibilidad.**
  *     Entran por POST y no son confiables; la base tiene su `check`, pero la
  *     pantalla no debería llegar a intentarlo.
- *  4. **La etiqueta se escribe UNA vez**: /mi-ficha y /coro/miembros tienen que
+ *  4. **La etiqueta se escribe UNA vez**: /mi-perfil y /coro/miembros tienen que
  *     decir exactamente lo mismo.
  */
 

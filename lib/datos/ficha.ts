@@ -3,7 +3,14 @@ import { hoyISO } from '@/lib/datos/historial'
 import { edadEn, esMenorDeEdad, ordenarPorTesitura } from '@/lib/motores/ficha'
 
 /**
- * Consultas de la ficha del miembro (H14).
+ * Consultas del perfil del miembro (H14).
+ *
+ * OJO CON EL NOMBRE: en pantalla y en la URL esto se llama «perfil» desde el
+ * 2026-09-02, pero la tabla, las políticas y estos tipos siguen diciendo
+ * «ficha». Es deliberado: renombrar `ficha_miembro` obliga a una migración
+ * sobre datos que ya están en producción y a rehacer las seis comprobaciones
+ * de RLS, sin cambiarle nada a quien usa la app. Si algún día se hace, se hace
+ * entero — no a medias, que es la única forma peor que esta.
  *
  * Como en el resto de la capa de datos, no se re-chequean permisos: la RLS
  * decide qué filas salen. Un músico pidiendo las fichas del coro obtiene solo

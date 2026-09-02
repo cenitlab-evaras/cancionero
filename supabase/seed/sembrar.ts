@@ -35,7 +35,11 @@ const auth = createClient(URL, SECRET, {
   auth: { autoRefreshToken: false, persistSession: false },
 })
 
-const CORO_PRINCIPAL = 'Coro Misión País'
+// El coro real del producto. Renombrado el 2026-09-02: antes decía «Coro Misión
+// País», que era el nombre del cancionero de donde salió el repertorio, no el del
+// coro. `upsertCoro` busca POR NOMBRE, así que cambiar esto sin renombrar antes la
+// fila en la base crearía un coro nuevo y vacío, dejando huérfanos sus cantos.
+const CORO_PRINCIPAL = 'San José de la Familia'
 const CORO_CONTROL = 'San Ejemplo'
 
 /** Los cinco actores del "listo cuando" de H1 (PRD §13.3). */
@@ -245,7 +249,8 @@ async function main() {
   const momentos = new Map(momentosFilas.map((m) => [m.codigo, m.id]))
 
   // 2 · Coros
-  const coroPrincipal = await upsertCoro(CORO_PRINCIPAL, 'Misión País')
+  // Sin parroquia: el nombre del coro ya es completo y no cuelga de otra.
+  const coroPrincipal = await upsertCoro(CORO_PRINCIPAL, null)
   const coroControl = await upsertCoro(CORO_CONTROL, null)
 
   // 3 · Usuarios y vínculos

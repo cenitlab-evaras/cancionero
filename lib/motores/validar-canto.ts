@@ -1,4 +1,4 @@
-import { transponerAcorde } from './transponer'
+import { transponerAcorde } from './transponer.ts'
 
 /**
  * Las reglas de un canto antes de guardarlo (H8 · RN-01 del funcional).

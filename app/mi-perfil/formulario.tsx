@@ -12,11 +12,11 @@ import { guardarMiFicha } from './acciones'
 import type { FichaPropia } from '@/lib/datos/ficha'
 
 /**
- * H14 · el formulario de la ficha propia.
+ * H14 · el formulario del perfil propio.
  *
  * Los tres campos son opcionales a propósito: se puede guardar solo la tesitura
  * y volver por el resto. Las etiquetas salen del motor, no de acá, para que
- * /mi-ficha y /coro/miembros digan exactamente lo mismo.
+ * /mi-perfil y /coro/miembros digan exactamente lo mismo.
  */
 export default function FormularioFicha({ ficha }: { ficha: FichaPropia | null }) {
   const router = useRouter()
@@ -109,7 +109,7 @@ export default function FormularioFicha({ ficha }: { ficha: FichaPropia | null }
       )}
       {guardado && !error && (
         <p role="status" className="text-sm text-texto-tenue">
-          Ficha guardada.
+          Perfil guardado.
         </p>
       )}
 
@@ -118,7 +118,7 @@ export default function FormularioFicha({ ficha }: { ficha: FichaPropia | null }
         disabled={guardando}
         className="w-full rounded-md bg-acento px-4 py-2.5 text-sm font-medium text-fondo disabled:opacity-60"
       >
-        {guardando ? 'Guardando…' : 'Guardar mi ficha'}
+        {guardando ? 'Guardando…' : 'Guardar mi perfil'}
       </button>
     </form>
   )

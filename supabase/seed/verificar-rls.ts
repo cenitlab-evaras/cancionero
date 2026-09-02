@@ -61,11 +61,11 @@ async function main() {
     `${cantosAjeno?.length ?? 0} cantos: ${cantosAjeno?.map((c) => c.titulo).join(', ') ?? '—'}`
   )
 
-  // --- Acto 3: el ajeno NO obtiene un canto de Misión País por su id ---------
+  // --- Acto 3: el ajeno NO obtiene un canto de San José por su id ---------
   const idAjeno = cantosMusico?.[0]?.id
   const { data: fuga } = await ajeno.from('cantos').select('id').eq('id', idAjeno!)
   comprobar(
-    'ajeno@ pidiendo por id un canto de Misión País recibe CERO filas',
+    'ajeno@ pidiendo por id un canto de San José recibe CERO filas',
     (fuga?.length ?? 0) === 0,
     `${fuga?.length ?? 0} filas`
   )
@@ -494,17 +494,17 @@ async function main() {
   // director la lea sin que la lean los demás.
   // ---------------------------------------------------------------------------
 
-  const { data: coroParaFicha } = await musico
+  const { data: coroParaPerfil } = await musico
     .from('coro_acceso')
     .select('coro_id')
     .limit(1)
     .single()
-  const coroMisionPais = coroParaFicha!.coro_id
+  const coroSanJose = coroParaPerfil!.coro_id
 
   const { error: errFichaPropia } = await musico.from('ficha_miembro').upsert(
     {
       perfil_id: idMusico,
-      coro_id: coroMisionPais,
+      coro_id: coroSanJose,
       tesitura: 'tenor',
       disponibilidad: 'casi_siempre',
       fecha_nacimiento: '1995-04-10',
@@ -521,7 +521,7 @@ async function main() {
     .from('ficha_miembro')
     .select('tesitura, disponibilidad, fecha_nacimiento')
     .eq('perfil_id', idMusico)
-    .eq('coro_id', coroMisionPais)
+    .eq('coro_id', coroSanJose)
   comprobar(
     'director@ ve la ficha de su miembro',
     fichaVistaPorDirector?.[0]?.tesitura === 'tenor',
@@ -541,15 +541,15 @@ async function main() {
   const { data: fichaVistaPorAjeno } = await ajeno
     .from('ficha_miembro')
     .select('perfil_id')
-    .eq('coro_id', coroMisionPais)
+    .eq('coro_id', coroSanJose)
   comprobar(
-    'ajeno@ no ve ninguna ficha de Misión País',
+    'ajeno@ no ve ninguna ficha de San José',
     (fichaVistaPorAjeno?.length ?? 0) === 0,
     `${fichaVistaPorAjeno?.length ?? 0} filas`
   )
 
   const { error: errFichaAjena } = await musico.from('ficha_miembro').upsert(
-    { perfil_id: idDirector, coro_id: coroMisionPais, tesitura: 'bajo' },
+    { perfil_id: idDirector, coro_id: coroSanJose, tesitura: 'bajo' },
     { onConflict: 'perfil_id,coro_id' }
   )
   comprobar(
@@ -564,7 +564,7 @@ async function main() {
     .from('coro_acceso')
     .update({ rol_local: 'director' })
     .eq('perfil_id', idMusico)
-    .eq('coro_id', coroMisionPais)
+    .eq('coro_id', coroSanJose)
     .select('rol_local')
   comprobar(
     'musico@ sigue sin poder ascenderse a director (la ficha no abrió esa puerta)',
@@ -573,7 +573,7 @@ async function main() {
   )
 
   // Se deja el coro como estaba.
-  await musico.from('ficha_miembro').delete().eq('perfil_id', idMusico).eq('coro_id', coroMisionPais)
+  await musico.from('ficha_miembro').delete().eq('perfil_id', idMusico).eq('coro_id', coroSanJose)
 
   const fallidos = resultados.filter((r) => !r.ok)
   console.log(`\n${resultados.length - fallidos.length}/${resultados.length} comprobaciones en verde`)

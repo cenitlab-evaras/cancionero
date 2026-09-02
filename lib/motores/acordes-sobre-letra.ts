@@ -1,4 +1,4 @@
-import { latinaAAmericana } from './notacion-latina'
+import { latinaAAmericana } from './notacion-latina.ts'
 
 /**
  * "Acordes sobre letra" → ChordPro (H9 · RF-26 y RF-27 del funcional).

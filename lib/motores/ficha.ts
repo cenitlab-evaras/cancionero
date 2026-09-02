@@ -1,7 +1,7 @@
 /**
  * La ficha de una persona dentro de un coro — H14, docs/PRD.md §17 y §19.2-B5.
  *
- * Función PURA y sin datos: la comparten /mi-ficha, /coro/miembros y la server
+ * Función PURA y sin datos: la comparten /mi-perfil, /coro/miembros y la server
  * action, para que el texto que se ve y la regla que se aplica no diverjan.
  *
  * Esto NO es seguridad. Quién puede leer y escribir una ficha lo decide la RLS

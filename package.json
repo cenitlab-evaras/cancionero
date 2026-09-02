@@ -15,7 +15,8 @@
     "db:reset": "supabase db reset",
     "db:seed": "node --env-file=.env.local supabase/seed/sembrar.ts",
     "db:borrar-semilla": "node --env-file=.env.local supabase/seed/borrar.ts",
-    "verificar:rls": "node --env-file=.env.local supabase/seed/verificar-rls.ts"
+    "verificar:rls": "node --env-file=.env.local supabase/seed/verificar-rls.ts",
+    "importar:cancionero": "node --env-file=.env.local supabase/importar/cancionero.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
