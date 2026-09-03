@@ -666,10 +666,50 @@ en §19; cuando lo tienen, la fila lo dice y nombra qué cambiaría. Mientras ta
 
 | **H17 · Sugerencias y ranking** ✅ **hecho** (2026-09-03) | Tabla `sugerencia` (perfil × canto × momento, con `misa_id` **nullable**: sin misa es una propuesta general, con misa es para ese domingo); motor `sugerencia` con test; el control en la vista del canto, el ranking en `/sugerencias` y los dos bloques al armar la misa | `musico@` propone un canto para un momento **y también para una misa concreta**, y las dos quedan; el coro entero ve el ranking **con quién propuso qué**, y una segunda persona sumándose a la misma propuesta la sube en la lista; `musico@` retira su sugerencia y el conteo baja; al armar la misa el director ve **dos bloques que no se mezclan** —«para esta misa» y «del coro, en general»— y puede asignar un canto desde ahí; y las dos capas de §15-4: nadie retira la sugerencia de otro, `ajeno@` no ve ninguna, y la RLS rechaza sugerir en un coro ajeno o con un canto de otro coro — **verificado en la app a 360 px** (`scrollWidth` 360 = `clientWidth` 360): `/sugerencias` ordenó **«Nada te turbe 2 · Comunión · Miembro, Director»** arriba de dos propuestas de 1, y entre esas dos puso primero la más reciente; `musico@` propuso «Abre tu jardín» desde el canto y el botón pasó a «Retirar»; al cambiar el alcance a la misa del 20 el botón volvió a decir «Proponer» **con el aviso «Ya lo propusiste en general»** —la confusión inevitable de haber pedido las dos cosas, dicha en vez de escondida—; la misa mostró **«Pedidos para esta misa: Abre tu jardín · El Alfarero»** y esos dos **no aparecieron** en el ranking general; y al armar, el director vio los dos bloques separados, con «ya está» en lo que ya estaba asignado, y al tocar `+` sobre «Nada te turbe» el motor de H6 lo dejó **en orden litúrgico** (Antífonas → Comunión → María). `npm run verificar:rls` da **62/62**, incluida la que comprueba que **proponer no le abrió al miembro la puerta a asignar** |
 
-**Los dieciséis hitos están hechos y verificados corriendo la app.** H9 salió de §18-7, que lo dejaba
+| **H18 · Recomendación al armar** ✅ **hecho** (2026-09-03) — cierra B1 | Motor `recomendacion` con test: dentro de cada momento, primero lo que hace más tiempo que no se canta, y los **nunca cantados en su propio grupo**. Sin tablas nuevas: lee las misas de H6 igual que el historial de H13. Y `cantosDisponibles` deja de ofrecer los archivados, que era un hueco abierto desde que se cerró §16 | Al armar la misa, cada momento lista sus cantos **del más olvidado al más reciente, con hace cuánto se cantó cada uno**; los que nunca sonaron van abajo, dichos así, y no arriba tapando el consejo útil; un canto **archivado** no se ofrece; uno **ya asignado a esta misa** tampoco; y el orden es el mismo en cada recarga — **verificado en la app a 360 px** (`scrollWidth` 360 = `clientWidth` 360): en Entrada salió «Escojo la vida · hace 1 mes», «Abre tu jardín · hace 1 mes» y después seis «nunca se cantó»; en Perdón, «Hoy perdóname · hace 4 meses» primero; «Donde hay amor» y «Reina del Cielo» —los dos que ya estaban en la misa— no aparecieron; y al archivar *Pescador de hombres* desapareció de la lista y volvió al desarchivarlo |
+
+**Los diecisiete hitos están hechos y verificados corriendo la app.** H9 salió de §18-7, que lo dejaba
 condicionado a "si estorba"; H10, H11, H13, H14 y H15 salen del backlog de §19; H16 salió de §16,
 donde el parser de dos columnas estaba anotado como *«un hito propio»*. H12 se descartó — y su
 medición envejeció, ver B8.
+
+### Cómo entró H18, y la decisión que §18-12 tenía reservada
+
+Es **B1-C**, la última pieza de B1 y la que §19.3 puso al final porque necesitaba H10, H13 y H17
+construidos para tener de dónde recomendar.
+
+**§18-12 anticipó el problema y lo dejó para este momento:** el historial dice *«hace ocho meses que
+no cantan este»* y el ranking de H17 dice *«la gente quiere este»* — y la gente quiere siempre los
+mismos. Uno empuja a rotar, el otro a repetir.
+
+| Se preguntó | Se decidió (2026-09-03) | Consecuencia |
+| --- | --- | --- |
+| Qué se muestra primero al armar | **Lo que hace falta rotar** | Es lo que el director NO puede calcular de memoria, y la razón por la que se construyó H13. Lo que el coro pide sigue viéndose, en su propio bloque, arriba |
+| Qué no se recomienda nunca | **Los archivados y los ya asignados a esa misa** | Los archivados salieron de circulación; los asignados fallarían con «ese canto ya está en la misa» |
+| Los que están **en ensayo** | **Sí se recomiendan** | Va en contra de lo que anticipaba §19.2-B10 —*«B1 no recomienda cantos que el coro todavía no sabe cantar»*—, y el motivo es que el mundo cambió: desde H16 hay **74 cantos importados en ensayo**, y excluirlos dejaba la recomendación casi vacía |
+
+**No se combinan en un puntaje, y eso es deliberado.** Sumar «hace ocho meses» con «lo piden tres»
+da un número que no significa ninguna de las dos cosas, y §10 exige que la inteligencia del producto
+sea determinista **y explicable**. El orden de acá se dice en una frase: *primero el que hace más
+tiempo que no se canta*. Si el director no puede decir por qué un canto está primero, no lo va a
+usar para decidir.
+
+**Dos grupos y no uno.** «Hace ocho meses» y «nunca se cantó» son consejos distintos, y quien los
+recibe hace cosas distintas con cada uno. Si «nunca» se tratara como «hace infinito tiempo», los 74
+importados coparían el tope de cada momento y enterrarían justo lo que el historial existe para
+decir. Es el mismo corte que ya hace `/historial`.
+
+**Y de paso se cerró un hueco que había dejado el archivado:** `cantosDisponibles` no filtraba por
+estado, así que un canto archivado seguía ofreciéndose al armar la misa — fuera del repertorio y de
+la búsqueda, pero disponible en la pantalla donde se decide qué se canta el domingo.
+
+### 17.1-undecies Lo que quedó pendiente de H18 (declarado, no recortado en silencio)
+
+| Del backlog | Cómo quedó | Por qué / cuándo se revisa |
+| --- | --- | --- |
+| **No se avisa si el canto ya está agendado en otra misa próxima** | Se recomienda igual | El dueño lo dejó fuera el 2026-09-03. El dato existe —H13 separa lo agendado de lo cantado— y la vista del canto ya lo dice; acá sería una columna más en una lista que se lee de reojo |
+| **`describirAntiguedad` redondea** | «hace 1 mes» para dos cantos con días distintos | El orden usa los días exactos; el texto es aproximado a propósito, porque «hace 34 días» no ayuda a decidir. Si dos empatan en el texto, el orden igual es estable: desempata por título |
+| **La recomendación no mira la tonalidad ni quién va a cantar** | No entra | Sería otra clase de consejo —y otra decisión de qué manda—. H15 ya dice quién va y con qué; cruzarlo con el repertorio es un hito propio si alguna vez hace falta |
 
 ### Cómo entró H17, y qué costó el «las dos cosas»
 
@@ -1018,7 +1058,7 @@ Otros pendientes de H6:
 | 9 | Los dos cancioneros comparten títulos con acordes distintos | No deduplicar por título: un canto pertenece a un coro (decisión 5) y las versiones distintas son legítimas | decidido | nada |
 | 10 | **Rastrear cancioneros católicos en internet y proponer versiones** (§19-B4) | **No construir todavía.** Choca con cuatro cosas escritas: §16 dos veces (búsqueda online, IA), §18-1 (rastrear terceros *amplía* la superficie legal, no la reduce) y §18-9 (si las versiones distintas son legítimas, lo hallado **no actualiza** un canto: entra como canto aparte). Antes hay que definir qué significa "agente" —proceso determinista o modelo—. **Alternativa barata que cubre buena parte: que el director pegue una URL o un texto a mano** y los motores de H9 (`desdeElCancionero`) conviertan. Sin cron, sin un adaptador por sitio, sin rastreo | el dueño | §19-B4; nada de lo construido |
 | 11 | **Datos personales de los miembros** (§19-B5) y **grabaciones de su voz** (§19-B6/B7) | Hasta hoy el único dato de persona es el correo de la cuenta. Edad y sexo suben el nivel, y una grabación de voz identifica a alguien que puede ser menor de edad. Decisión tomada: **se guardan los cuatro campos tal cual** (edad, sexo, tesitura, disponibilidad) **con visibilidad declarada** — el director ve la ficha completa del coro que dirige, el miembro no ve datos ajenos. Falta resolver: consentimiento para las grabaciones y qué pasa cuando alguien deja el coro. **La tensión inscripción/disponibilidad quedó cerrada el 2026-09-03 al construir H15: manda la inscripción, siempre — y la disponibilidad solo habla de quien NO se inscribió.** No se contradicen nunca, porque no opinan sobre la misma persona a la vez: al anotarse, la predicción deja de mostrarse | el dueño | §19-B5, §19-B6, §19-B7 |
-| 12 | **El ranking y la recomendación le dan consejos opuestos al director** | El historial dice *"hace ocho meses que no cantan este"*; el ranking dice *"la gente quiere este"* — y la gente quiere siempre los mismos. Uno empuja a rotar, el otro a repetir. No es un defecto: es una decisión de qué se muestra primero al armar la misa | el dueño, al construir H18 (§19.3) | §19-B9 y §19-B1-C conviviendo |
+| 12 | **El ranking y la recomendación le dan consejos opuestos al director** | El historial dice *"hace ocho meses que no cantan este"*; el ranking dice *"la gente quiere este"* — y la gente quiere siempre los mismos. Uno empuja a rotar, el otro a repetir. No es un defecto: es una decisión de qué se muestra primero al armar la misa → **RESUELTO el 2026-09-03 al construir H18: manda ROTAR.** Al armar, los cantos se ordenan por hace cuánto no se cantan; las sugerencias siguen en su propio bloque, arriba, sin mezclarse en un puntaje | decidido | nada |
 | 13 | **No hay versionado del cifrado** | Con repertorio compartido, una corrección equivocada es silenciosa e irreversible: no se sabe quién cambió qué ni se puede volver atrás. Hoy no molesta porque solo el director edita, desde una pantalla, a conciencia (H8). Corregir acordes *en el lugar* multiplica las ediciones pequeñas y lo vuelve necesario | el dueño | §19-B8 **no debería construirse sin esto** |
 | 14 | **Audio: peso, cuota y el navegador del teléfono** | El repertorio entero en texto pesa menos que un solo canto grabado a cuatro voces: hay que declarar cuota y qué pasa al llenarse. Y grabar desde el navegador móvil tiene a **Safari en iPhone como punto frágil** —soporte y formatos que no coinciden con Android—. Se declara ahora para que no se descubra construyendo. → **CERRADO el 2026-09-03: el dueño descartó B6 y B7.** El riesgo desaparece porque desaparece lo que lo causaba; queda escrito por si algún día vuelve | decidido | nada |
 | 15 | **Pulsar un acorde ya hace algo** | H5 dejó verificado que pulsar un acorde abre la barra de diagramas centrada en él. Editar en el lugar necesita **otro gesto** —modo de edición explícito, pulsación larga, u otra cosa—, no puede colgar del mismo | el dueño | §19-B8 |
@@ -1084,7 +1124,7 @@ decisiones escritas. Eso, por sí solo, es una señal de prioridad — ver §18-
 
 | ID | Qué pide | Cuelga de | Costo |
 | --- | --- | --- | :---: |
-| **B1** | Historial de qué se cantó y recomendación por frecuencia | §3, §9, pantalla | ✅ **A+B → H13** · C sigue pendiente, ahora H18 |
+| **B1** | Historial de qué se cantó y recomendación por frecuencia | §3, §9, pantalla | ✅ **completa**: A+B → H13, C → H18 |
 | **B2** | Cada miembro se inscribe a la misa donde va a cantar | tabla nueva, **§8** | medio |
 | **B3** | Modo solo letra: ocultar los acordes | columna + control | ✅ **construida** → H11 |
 | **B4** | Rastrear cancioneros online y proponer versiones | — | **alto** → §18-10 |
@@ -1372,7 +1412,7 @@ construido y verificado.
 | ~~**H16**~~ ✅ | Ingesta del cancionero | — | **Hecho el 2026-09-02** (ver §17). No estaba en este orden: salió de §16, donde el parser de dos columnas quedó anotado como *«un hito propio»* si algún día se ingestaban los cantos |
 | ~~**H15**~~ ✅ | Inscripción a la misa | B2 | **Hecho el 2026-09-03** (ver §17). **Acá se tocó §8 por primera vez desde el lado del miembro**, y §19.5 dejó de ser propuesta |
 | ~~**H17**~~ ✅ | Sugerencias y ranking | B9 | **Hecho el 2026-09-03** (ver §17). Reusó la política de H15 tal cual; lo que costó fue el `misa_id` nullable — dos índices parciales, porque dos NULL no son iguales |
-| **H18** | Recomendación al armar | B1-C | Necesita H10, H13 y H17 |
+| ~~**H18**~~ ✅ | Recomendación al armar | B1-C | **Hecho el 2026-09-03** (ver §17). Cero tablas nuevas, como decía B1. Lo que costó fue la decisión de §18-12, no el código |
 | **H19** | Corrección en el lugar + versionado | B8 B/C | No debería construirse sin el versionado de §18-13 |
 | ~~**H20**~~ ⊘ | Enlaces a versiones (YouTube / Spotify) | B11 | **Descartado por el dueño el 2026-09-03.** Pasa a §16 |
 | ~~**H21**~~ ⊘ | Audio propio de referencia | B6 | **Descartado por el dueño el 2026-09-03.** Pasa a §16 |

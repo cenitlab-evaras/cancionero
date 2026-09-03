@@ -7,6 +7,7 @@ import Cabecera from '@/app/componentes/cabecera'
 import Armador from './armador'
 import { sugerenciasDeMisa, sugerenciasGenerales } from '@/lib/datos/sugerencias'
 import { rankear } from '@/lib/motores/sugerencia'
+import { hoyISO } from '@/lib/datos/historial'
 
 export const metadata = { title: 'Armar la misa · Cantoral' }
 
@@ -100,6 +101,7 @@ export default async function EditarMisaPage({
           misaId={misa.id}
           asignados={misa.cantos}
           disponibles={disponibles}
+          hoy={hoyISO()}
           sugerenciasDeEstaMisa={rankear(deEstaMisa)}
           sugerenciasGenerales={rankear(generales)}
         />

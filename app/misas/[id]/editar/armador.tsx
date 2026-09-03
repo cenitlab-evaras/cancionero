@@ -6,13 +6,11 @@ import { agregarCanto, moverCanto, quitarCanto } from '../../acciones'
 import type { CantoDeMisa } from '@/lib/datos/misas'
 import type { FilaDelRanking } from '@/lib/motores/sugerencia'
 
-type Disponible = {
-  id: string
-  titulo: string
-  momentoId: string
-  momentoNombre: string
-  momentoOrden: number
-}
+import { recomendar, type Candidato } from '@/lib/motores/recomendacion'
+import { describirAntiguedad } from '@/lib/motores/historial'
+import type { CantoDisponible } from '@/lib/datos/misas'
+
+type Disponible = CantoDisponible
 
 /**
  * Armar la misa: agregar un canto por momento, moverlo y quitarlo.
@@ -26,10 +24,13 @@ export default function Armador({
   disponibles,
   sugerenciasDeEstaMisa,
   sugerenciasGenerales,
+  hoy,
 }: {
   misaId: string
   asignados: CantoDeMisa[]
   disponibles: Disponible[]
+  /** El día del coro, no el del servidor (§17.1-octies). */
+  hoy: string
   /* H17 · DOS listas y no una. Lo que el coro pidió PARA ESTE DOMINGO y lo que
      el coro quiere cantar EN GENERAL contestan preguntas distintas; sumarlas
      daría un número que no responde ninguna (§17, §18-12). Van separadas, y
@@ -55,6 +56,34 @@ export default function Armador({
     ;(acc[c.momentoNombre] ??= []).push(c)
     return acc
   }, {})
+
+  /**
+   * H18 · dentro de cada momento, primero lo que hace más tiempo que no se
+   * canta, y los nunca cantados aparte. El orden lo decide el motor; acá solo
+   * se dibuja lo que devolvió.
+   */
+  function ordenados(cantos: Disponible[]) {
+    const { hacenFalta, nuncaCantados } = recomendar(
+      cantos.map((c): Candidato => ({
+        cantoId: c.id,
+        titulo: c.titulo,
+        estado: c.estado,
+        ultima: c.ultima,
+      })),
+      hoy
+    )
+    const deId = new Map(cantos.map((c) => [c.id, c]))
+    return [
+      ...hacenFalta.map((r) => ({
+        canto: deId.get(r.cantoId)!,
+        cuando: describirAntiguedad(r.diasDesdeUltima),
+      })),
+      ...nuncaCantados.map((r) => ({
+        canto: deId.get(r.cantoId)!,
+        cuando: 'nunca se cantó',
+      })),
+    ]
+  }
 
   return (
     <div className={pendiente ? 'opacity-60 transition-opacity' : 'transition-opacity'}>
@@ -184,7 +213,7 @@ export default function Armador({
           <section key={momento} className="mt-4">
             <h3 className="text-[0.8125rem] font-semibold text-texto-tenue">{momento}</h3>
             <ul className="mt-1 divide-y divide-borde border-t border-borde">
-              {cantos.map((c) => (
+              {ordenados(cantos).map(({ canto: c, cuando }) => (
                 <li key={`${c.id}-${c.momentoId}`}>
                   <button
                     onClick={() =>
@@ -193,9 +222,12 @@ export default function Armador({
                       )
                     }
                     disabled={pendiente}
-                    className="tactil flex w-full items-center justify-between gap-3 text-left text-sm transition-colors hover:bg-superficie disabled:opacity-40"
+                    className="tactil flex w-full items-center gap-3 text-left text-sm transition-colors hover:bg-superficie disabled:opacity-40"
                   >
-                    <span className="min-w-0 truncate">{c.titulo}</span>
+                    <span className="min-w-0 flex-1 truncate">{c.titulo}</span>
+                    {/* H18 · el dato que el director NO puede calcular de
+                        memoria, y la razón por la que el orden es el que es. */}
+                    <span className="shrink-0 text-xs text-texto-tenue">{cuando}</span>
                     <span className="shrink-0 text-acento">+</span>
                   </button>
                 </li>

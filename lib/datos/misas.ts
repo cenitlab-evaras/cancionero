@@ -1,4 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
+import { estaArchivado, normalizarEstado, type EstadoCanto } from '@/lib/motores/estado-canto'
+import { fechaEnZona } from '@/lib/motores/fecha'
 
 /**
  * Consultas de misas (H6).
@@ -140,24 +142,59 @@ export async function obtenerMisa(misaId: string): Promise<MisaCompleta | null> 
  * Los cantos del coro que todavía NO están en la misa, con su momento.
  * Es lo que se ofrece al armar la misa.
  */
+export type CantoDisponible = {
+  id: string
+  titulo: string
+  momentoId: string
+  momentoNombre: string
+  momentoOrden: number
+  /** H18 · para no recomendar archivados y para ordenar los nunca cantados. */
+  estado: EstadoCanto
+  /** H18 · `YYYY-MM-DD` de la última vez que sonó, o `null` si nunca. */
+  ultima: string | null
+}
+
 export async function cantosDisponibles(
   coroId: string,
   yaAsignados: string[]
-): Promise<{ id: string; titulo: string; momentoId: string; momentoNombre: string; momentoOrden: number }[]> {
+): Promise<CantoDisponible[]> {
   const supabase = await createClient()
 
-  const { data, error } = await supabase
-    .from('canto_momentos')
-    .select('canto_id, momento_id, cantos(titulo), momentos_liturgicos(nombre, orden)')
-    .eq('coro_id', coroId)
+  // H18 · cuándo sonó por última vez cada canto. UNA consulta para todo el
+  // repertorio y no una por canto: el armador dibuja los once momentos de una,
+  // y ochenta y siete consultas encadenadas se notarían en el teléfono.
+  //
+  // Mismo criterio de «ya ocurrió» que el historial y la agenda: fecha
+  // declarada y no futura. Si acá dijéramos otra cosa, el mismo domingo
+  // contaría como cantado en una pantalla y como pendiente en la otra.
+  const [{ data, error }, { data: sonadas }] = await Promise.all([
+    supabase
+      .from('canto_momentos')
+      .select('canto_id, momento_id, cantos(titulo, estado), momentos_liturgicos(nombre, orden)')
+      .eq('coro_id', coroId),
+    supabase
+      .from('misa_cantos')
+      .select('canto_id, misas(fecha)')
+      .eq('coro_id', coroId),
+  ])
 
   if (error) throw error
+
+  const hoy = fechaEnZona(new Date())
+  const ultimaDe = new Map<string, string>()
+  for (const fila of sonadas ?? []) {
+    const misa = fila.misas as unknown as { fecha: string | null } | null
+    const fecha = misa?.fecha
+    if (!fecha || fecha > hoy) continue
+    const previa = ultimaDe.get(fila.canto_id as string)
+    if (!previa || fecha > previa) ultimaDe.set(fila.canto_id as string, fecha)
+  }
 
   const asignados = new Set(yaAsignados)
 
   return (data ?? [])
     .map((f) => {
-      const canto = f.cantos as unknown as { titulo: string } | null
+      const canto = f.cantos as unknown as { titulo: string; estado: string } | null
       const momento = f.momentos_liturgicos as unknown as { nombre: string; orden: number } | null
       return {
         id: f.canto_id as string,
@@ -165,8 +202,12 @@ export async function cantosDisponibles(
         momentoId: f.momento_id as string,
         momentoNombre: momento?.nombre ?? '—',
         momentoOrden: momento?.orden ?? 0,
+        estado: normalizarEstado(canto?.estado),
+        ultima: ultimaDe.get(f.canto_id as string) ?? null,
       }
     })
-    .filter((c) => !asignados.has(c.id))
+    // Los archivados salieron del repertorio: tampoco se ofrecen para armar.
+    // Faltaba este filtro desde que se cerró §16, y se veía acá.
+    .filter((c) => !asignados.has(c.id) && !estaArchivado(c.estado))
     .sort((a, b) => a.momentoOrden - b.momentoOrden || a.titulo.localeCompare(b.titulo, 'es'))
 }
