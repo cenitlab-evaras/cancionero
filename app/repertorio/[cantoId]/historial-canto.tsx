@@ -43,7 +43,7 @@ export default function HistorialDelCanto({
             {' '}
             {/* El aviso que evita el «esto está roto»: el canto está puesto en
                 una misa que todavía no ocurrió, y por eso no cuenta. */}
-            Está en <span className="text-texto">{agendadas[0].celebracionNombre}</span> del{' '}
+            Está en <span className="text-texto">{agendadas[0].misaNombre}</span> del{' '}
             {fechaCorta(agendadas[0].fecha, agendadas[0].fecha.slice(0, 4) !== anioActual)}, que
             todavía no ocurrió.
           </>
@@ -63,11 +63,11 @@ export default function HistorialDelCanto({
       <div className="mt-2 flex flex-col gap-2 border-l border-borde pl-3 text-xs text-texto-tenue">
         <ul className="flex flex-col gap-1">
           {ejecuciones.map((e) => (
-            <li key={e.celebracionId} className="flex gap-2">
+            <li key={e.misaId} className="flex gap-2">
               <span className="w-16 shrink-0 font-cifrado">
                 {fechaCorta(e.fecha, e.fecha.slice(0, 4) !== anioActual)}
               </span>
-              <span className="min-w-0 flex-1 truncate text-texto">{e.celebracionNombre}</span>
+              <span className="min-w-0 flex-1 truncate text-texto">{e.misaNombre}</span>
               <span className="shrink-0">{e.momento}</span>
             </li>
           ))}
@@ -91,7 +91,7 @@ export default function HistorialDelCanto({
         {agendadas.length > 0 && (
           <p>
             Además está en{' '}
-            <span className="text-texto">{agendadas[0].celebracionNombre}</span> del{' '}
+            <span className="text-texto">{agendadas[0].misaNombre}</span> del{' '}
             {fechaCorta(agendadas[0].fecha, agendadas[0].fecha.slice(0, 4) !== anioActual)}, que
             todavía no ocurrió y no cuenta.
           </p>

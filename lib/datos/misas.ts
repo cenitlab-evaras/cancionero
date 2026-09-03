@@ -1,23 +1,25 @@
 import { createClient } from '@/lib/supabase/server'
 
 /**
- * Consultas de celebraciones (H6).
+ * Consultas de misas (H6).
  *
  * Mismo criterio que `repertorio.ts`: acá no se re-chequean permisos, la RLS
  * decide qué filas salen. Lo que sí hace falta es que la ruta distinga vacío de
- * sin-acceso (PRD §14) — por eso `obtenerCelebracion` devuelve `null` cuando no
+ * sin-acceso (PRD §14) — por eso `obtenerMisa` devuelve `null` cuando no
  * hay fila, y la pantalla lo traduce a "no tienes acceso".
  */
 
-export type CelebracionDeLista = {
+export type MisaDeLista = {
   id: string
   nombre: string
   fecha: string | null
   cantidadCantos: number
+  /** H15 · cuántos se anotaron. Se cuenta al leer, no se guarda. */
+  anotados: number
 }
 
-export type CantoDeCelebracion = {
-  /** El id de la FILA de `celebracion_cantos`, no el del canto. */
+export type CantoDeMisa = {
+  /** El id de la FILA de `misa_cantos`, no el del canto. */
   id: string
   cantoId: string
   titulo: string
@@ -29,12 +31,12 @@ export type CantoDeCelebracion = {
   orden: number
 }
 
-export type CelebracionCompleta = {
+export type MisaCompleta = {
   id: string
   nombre: string
   fecha: string | null
   coroId: string
-  cantos: CantoDeCelebracion[]
+  cantos: CantoDeMisa[]
 }
 
 type FilaCanto = {
@@ -51,17 +53,25 @@ type FilaCanto = {
 }
 
 /**
- * Las celebraciones del coro, por fecha descendente (PRD §12).
+ * Las misas del coro, por fecha descendente (PRD §12).
  *
  * Las que no tienen fecha van al final: son listas de trabajo, no la misa del
  * domingo que se está buscando.
  */
-export async function celebracionesDelCoro(coroId: string): Promise<CelebracionDeLista[]> {
+export async function misasDelCoro(coroId: string): Promise<MisaDeLista[]> {
   const supabase = await createClient()
 
   const { data, error } = await supabase
-    .from('celebraciones')
-    .select('id, nombre, fecha, celebracion_cantos(id)')
+    .from('misas')
+    // El embed nombra la foránea EXPLÍCITAMENTE. `misa_participante` llegó a
+    // tener dos caminos hacia `misas` —la del `misa_id` y la compuesta que
+    // cierra el agujero del `coro_id`— y con dos relaciones PostgREST no puede
+    // resolver el embed: devuelve PGRST201 y esta pantalla no carga. La simple
+    // se elimina en `20260903000300`, pero nombrar la compuesta es correcto
+    // antes y después de esa migración, y deja de depender de que haya una sola.
+    .select(
+      'id, nombre, fecha, misa_cantos(id), misa_participante!participante_misa_del_mismo_coro(perfil_id)'
+    )
     .eq('coro_id', coroId)
     .order('fecha', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false })
@@ -74,31 +84,34 @@ export async function celebracionesDelCoro(coroId: string): Promise<CelebracionD
     fecha: c.fecha,
     // La cantidad se CUENTA al leer; no se guarda una columna con el total
     // (innegociable: cero derivados persistidos).
-    cantidadCantos: (c.celebracion_cantos as { id: string }[] | null)?.length ?? 0,
+    cantidadCantos: (c.misa_cantos as { id: string }[] | null)?.length ?? 0,
+    // Cero para quien no puede verlos: la RLS no devuelve las filas y el
+    // contador simplemente no aparece.
+    anotados: (c.misa_participante as { perfil_id: string }[] | null)?.length ?? 0,
   }))
 }
 
 /**
- * Una celebración con sus cantos, en el orden guardado.
+ * Una misa con sus cantos, en el orden guardado.
  *
  * Devuelve `null` cuando la RLS no deja pasar la fila, para que la ruta pueda
  * decir "no tienes acceso" en vez de mostrar una misa vacía (PRD §14).
  */
-export async function obtenerCelebracion(celebracionId: string): Promise<CelebracionCompleta | null> {
+export async function obtenerMisa(misaId: string): Promise<MisaCompleta | null> {
   const supabase = await createClient()
 
   const { data, error } = await supabase
-    .from('celebraciones')
+    .from('misas')
     .select(
-      'id, nombre, fecha, coro_id, celebracion_cantos(id, canto_id, orden, momentos_liturgicos(nombre, orden), cantos(titulo, tonalidad_original, fuente_numero, autores(nombre)))'
+      'id, nombre, fecha, coro_id, misa_cantos(id, canto_id, orden, momentos_liturgicos(nombre, orden), cantos(titulo, tonalidad_original, fuente_numero, autores(nombre)))'
     )
-    .eq('id', celebracionId)
+    .eq('id', misaId)
     .maybeSingle()
 
   if (error) throw error
   if (!data) return null
 
-  const filas = (data.celebracion_cantos ?? []) as unknown as FilaCanto[]
+  const filas = (data.misa_cantos ?? []) as unknown as FilaCanto[]
 
   return {
     id: data.id,
@@ -124,7 +137,7 @@ export async function obtenerCelebracion(celebracionId: string): Promise<Celebra
 }
 
 /**
- * Los cantos del coro que todavía NO están en la celebración, con su momento.
+ * Los cantos del coro que todavía NO están en la misa, con su momento.
  * Es lo que se ofrece al armar la misa.
  */
 export async function cantosDisponibles(

@@ -2,12 +2,12 @@
  * El orden de una misa y cómo se la recorre (H6 · docs/PRD.md §5 y §17).
  *
  * Funciones puras: entra una lista, sale un número o una lista. Sin base, sin
- * red y sin reloj. La celebración vive en la base, pero *cómo* se ordena y
+ * red y sin reloj. La misa vive en la base, pero *cómo* se ordena y
  * *cómo* se recorre son reglas de negocio, y las reglas se prueban solas.
  *
  * Vocabulario de §5, sin sinónimos:
  *   · **momento**  — la categoría litúrgica (Entrada, Perdón, Ofertorio…)
- *   · **orden**    — la posición dentro de la celebración. NO es el momento:
+ *   · **orden**    — la posición dentro de la misa. NO es el momento:
  *                    dos cantos pueden compartir momento y su orden los separa.
  */
 
@@ -34,10 +34,10 @@ export function ordenDeInsercion(asignados: Asignado[], momentoOrden: number): n
 }
 
 /**
- * Renumera una celebración desde 0 y sin huecos, respetando el orden recibido.
+ * Renumera una misa desde 0 y sin huecos, respetando el orden recibido.
  *
  * Se usa después de mover o quitar un canto. El índice único
- * `(celebracion_id, orden)` de la migración no admite empates, así que el
+ * `(misa_id, orden)` de la migración no admite empates, así que el
  * choque se evita acá y no se descubre como un error de Postgres.
  */
 export function reordenar(idsEnOrden: string[]): { id: string; orden: number }[] {
@@ -53,10 +53,10 @@ export type Recorrido = {
 }
 
 /**
- * Dónde está el músico dentro de la misa y a dónde puede ir.
+ * Dónde está el miembro dentro de la misa y a dónde puede ir.
  *
  * Es lo que sostiene "la recorre en orden sin volver al listado": con esto la
- * vista de ejecución puede pintar ← y → sin saber nada de la celebración.
+ * vista de ejecución puede pintar ← y → sin saber nada de la misa.
  *
  * Ordena por el `orden` GUARDADO, no por cómo vino el array: el "listo cuando"
  * pide que el orden que se ve sea el que se guardó, y una consulta puede
@@ -69,7 +69,7 @@ export function recorrido(
   const enOrden = [...cantos].sort((a, b) => a.orden - b.orden)
   const i = enOrden.findIndex((c) => c.id === actualId)
 
-  // Un canto que no pertenece a esta celebración no tiene vecinos que ofrecer.
+  // Un canto que no pertenece a esta misa no tiene vecinos que ofrecer.
   if (i === -1) return { anterior: null, siguiente: null, posicion: 0, total: enOrden.length }
 
   return {

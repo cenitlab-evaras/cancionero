@@ -15,7 +15,7 @@
  */
 import { createClient } from '@supabase/supabase-js'
 import { CANTOS, CANTO_CONTROL, FUENTE, MOMENTOS, type CantoSemilla } from './cantos.ts'
-import { CELEBRACIONES, type CelebracionSemilla } from './celebraciones.ts'
+import { MISAS, MISA_CONTROL, type MisaSemilla } from './misas.ts'
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SECRET = process.env.SUPABASE_SECRET_KEY
@@ -39,16 +39,16 @@ const auth = createClient(URL, SECRET, {
 // País», que era el nombre del cancionero de donde salió el repertorio, no el del
 // coro. `upsertCoro` busca POR NOMBRE, así que cambiar esto sin renombrar antes la
 // fila en la base crearía un coro nuevo y vacío, dejando huérfanos sus cantos.
-const CORO_PRINCIPAL = 'San José de la Familia'
+const CORO_PRINCIPAL = 'Coro San José de la Familia'
 const CORO_CONTROL = 'San Ejemplo'
 
 /** Los cinco actores del "listo cuando" de H1 (PRD §13.3). */
 const USUARIOS = [
   { email: 'admin@cantoral.local', nombre: 'Admin', rol: 'admin', aprobado: true, coro: null, rolLocal: null },
-  { email: 'director@cantoral.local', nombre: 'Director', rol: 'miembro', aprobado: true, coro: CORO_PRINCIPAL, rolLocal: 'director' },
-  { email: 'musico@cantoral.local', nombre: 'Músico', rol: 'miembro', aprobado: true, coro: CORO_PRINCIPAL, rolLocal: 'musico' },
-  { email: 'pendiente@cantoral.local', nombre: 'Pendiente', rol: 'miembro', aprobado: false, coro: null, rolLocal: null },
-  { email: 'ajeno@cantoral.local', nombre: 'Ajeno', rol: 'miembro', aprobado: true, coro: CORO_CONTROL, rolLocal: 'musico' },
+  { email: 'director@cantoral.local', nombre: 'Director', rol: 'usuario', aprobado: true, coro: CORO_PRINCIPAL, rolLocal: 'director' },
+  { email: 'musico@cantoral.local', nombre: 'Miembro', rol: 'usuario', aprobado: true, coro: CORO_PRINCIPAL, rolLocal: 'miembro' },
+  { email: 'pendiente@cantoral.local', nombre: 'Pendiente', rol: 'usuario', aprobado: false, coro: null, rolLocal: null },
+  { email: 'ajeno@cantoral.local', nombre: 'Ajeno', rol: 'usuario', aprobado: true, coro: CORO_CONTROL, rolLocal: 'miembro' },
 ] as const
 
 function afirmar(condicion: boolean, mensaje: string): asserts condicion {
@@ -165,16 +165,17 @@ async function upsertCanto(canto: CantoSemilla, coroId: string, momentos: Map<st
  * ensayo se duplicaría en cada siembra.
  *
  * `orden` es la posición dentro de la misa y se escribe según el orden en que
- * vienen los cantos, que en `celebraciones.ts` ya es el litúrgico. Va desde 0 y
+ * vienen los cantos, que en `misas.ts` ya es el litúrgico. Va desde 0 y
  * sin huecos, que es lo que H6 dejó verificado.
  */
-async function upsertCelebracion(
-  cel: CelebracionSemilla,
+async function upsertMisa(
+  cel: MisaSemilla,
   coroId: string,
-  momentos: Map<string, string>
+  momentos: Map<string, string>,
+  perfiles: Map<string, string>
 ) {
   const consulta = db
-    .from('celebraciones')
+    .from('misas')
     .select('id')
     .eq('coro_id', coroId)
     .eq('nombre', cel.nombre)
@@ -183,22 +184,22 @@ async function upsertCelebracion(
     : consulta.eq('fecha', cel.fecha)
   ).maybeSingle()
 
-  let celebracionId: string
+  let misaId: string
   if (existente) {
-    celebracionId = existente.id
+    misaId = existente.id
   } else {
     const { data, error } = await db
-      .from('celebraciones')
+      .from('misas')
       .insert({ coro_id: coroId, nombre: cel.nombre, fecha: cel.fecha })
       .select('id')
       .single()
     if (error) throw error
-    celebracionId = data.id
+    misaId = data.id
   }
 
   // Los cantos se reescriben enteros: son pocos y así la semilla no tiene que
   // calcular qué cambió. Igual que hace la server action de H8 con los momentos.
-  await db.from('celebracion_cantos').delete().eq('celebracion_id', celebracionId)
+  await db.from('misa_cantos').delete().eq('misa_id', misaId)
 
   let orden = 0
   for (const entrada of cel.cantos) {
@@ -213,13 +214,37 @@ async function upsertCelebracion(
       .maybeSingle()
     afirmar(!!canto, `El canto "${entrada.titulo}" de "${cel.nombre}" no está sembrado.`)
 
-    const { error } = await db.from('celebracion_cantos').insert({
-      celebracion_id: celebracionId,
+    const { error } = await db.from('misa_cantos').insert({
+      misa_id: misaId,
       canto_id: canto!.id,
       momento_id: momentoId!,
       orden: orden++,
       // coro_id DENORMALIZADO: cuelga a dos saltos del raíz (§7).
       coro_id: coroId,
+    })
+    if (error) throw error
+  }
+
+  // H15 · quién se anotó. Se reescriben enteros por lo mismo que los cantos.
+  //
+  // La semilla usa la clave de servicio, así que pasa por encima de la RLS: es
+  // el ÚNICO lugar donde una inscripción se escribe sin ser la propia. En la
+  // app nadie inscribe a nadie — `misa_participante_write` es
+  // `perfil_id = auth.uid()`, y `verificar-rls.ts` lo comprueba.
+  await db.from('misa_participante').delete().eq('misa_id', misaId)
+
+  for (const p of cel.participantes ?? []) {
+    const perfilId = perfiles.get(p.email)
+    afirmar(!!perfilId, `El usuario "${p.email}" de "${cel.nombre}" no está sembrado.`)
+
+    const { error } = await db.from('misa_participante').insert({
+      misa_id: misaId,
+      perfil_id: perfilId!,
+      // coro_id DENORMALIZADO, y la foránea compuesta exige que sea el de la
+      // misa: si acá se colara otro, el insert falla en vez de mentir.
+      coro_id: coroId,
+      aporte: p.aporte,
+      instrumento: p.instrumento ?? null,
     })
     if (error) throw error
   }
@@ -254,8 +279,10 @@ async function main() {
   const coroControl = await upsertCoro(CORO_CONTROL, null)
 
   // 3 · Usuarios y vínculos
+  const perfiles = new Map<string, string>()
   for (const u of USUARIOS) {
     const perfilId = await upsertUsuario(u)
+    perfiles.set(u.email, perfilId)
     if (u.coro && u.rolLocal) {
       const coroId = u.coro === CORO_PRINCIPAL ? coroPrincipal : coroControl
       const { error } = await db
@@ -273,7 +300,9 @@ async function main() {
   await upsertCanto(CANTO_CONTROL, coroControl, momentos)
 
   // 5 · Misas de ejemplo (H13). Sin historial no hay hito que verificar.
-  for (const cel of CELEBRACIONES) await upsertCelebracion(cel, coroPrincipal, momentos)
+  for (const cel of MISAS) await upsertMisa(cel, coroPrincipal, momentos, perfiles)
+  // La misa del coro de control, para que el aislamiento se pueda PROBAR (H15).
+  await upsertMisa(MISA_CONTROL, coroControl, momentos, perfiles)
 
   // 6 · ASSERTS — fallan, no avisan (PRD §13.4)
   const cuenta = async (tabla: string, filtro?: { col: string; val: string }) => {
@@ -287,35 +316,74 @@ async function main() {
   const nMomentos = await cuenta('momentos_liturgicos')
   const nPrincipal = await cuenta('cantos', { col: 'coro_id', val: coroPrincipal })
   const nControl = await cuenta('cantos', { col: 'coro_id', val: coroControl })
-  const nVinculos = await cuenta('canto_momentos')
+
+  // DESDE H16 EL CORO TIENE MÁS CANTOS QUE LA SEMILLA: los 74 que trajo
+  // `importar:cancionero` son repertorio real y no salen de acá. Afirmar el
+  // TOTAL hacía fallar la semilla por el éxito del import — lo que hay que
+  // comprobar es que los sembrados están, no que sean los únicos.
+  const { count: sembrados, error: errSembrados } = await db
+    .from('cantos')
+    .select('id', { count: 'exact', head: true })
+    .eq('coro_id', coroPrincipal)
+    .in('titulo', CANTOS.map((c) => c.titulo))
+  if (errSembrados) throw errSembrados
 
   afirmar(nMomentos === 11, `Se esperaban 11 momentos litúrgicos y hay ${nMomentos}.`)
-  afirmar(nPrincipal === CANTOS.length, `Se esperaban ${CANTOS.length} cantos en ${CORO_PRINCIPAL} y hay ${nPrincipal}.`)
+  afirmar(
+    sembrados === CANTOS.length,
+    `Se esperaban los ${CANTOS.length} cantos de la semilla en ${CORO_PRINCIPAL} y hay ${sembrados}.`
+  )
   afirmar(nControl === 1, `Se esperaba 1 canto en ${CORO_CONTROL} y hay ${nControl}.`)
-  afirmar(nVinculos === CANTOS.length + 1, `Todo canto debe tener su momento: ${nVinculos} vínculos para ${CANTOS.length + 1} cantos.`)
+
+  // Todo canto sembrado tiene su momento. Los importados también, pero eso lo
+  // afirma su propio script.
+  const { data: sinMomento, error: errSinMomento } = await db
+    .from('cantos')
+    .select('titulo, canto_momentos(canto_id)')
+    .eq('coro_id', coroPrincipal)
+    .in('titulo', CANTOS.map((c) => c.titulo))
+  if (errSinMomento) throw errSinMomento
+  const huerfanos = (sinMomento ?? []).filter(
+    (c) => ((c.canto_momentos as unknown[]) ?? []).length === 0
+  )
+  afirmar(
+    huerfanos.length === 0,
+    `Hay cantos sembrados sin momento: ${huerfanos.map((c) => c.titulo).join(', ')}`
+  )
 
   const sinCifrado = CANTOS.filter((c) => !/\[[A-G]/.test(c.cifrado))
   afirmar(sinCifrado.length === 0, `Hay cantos sin ningún acorde: ${sinCifrado.map((c) => c.titulo).join(', ')}`)
 
   // H13 · el historial tiene que quedar en pie después de sembrar dos veces.
-  const nCelebraciones = await cuenta('celebraciones')
-  const nCelebracionCantos = await cuenta('celebracion_cantos')
-  const filasEsperadas = CELEBRACIONES.reduce((n, c) => n + c.cantos.length, 0)
+  const nMisas = await cuenta('misas')
+  const nMisaCantos = await cuenta('misa_cantos')
+  const filasEsperadas = MISAS.reduce((n, c) => n + c.cantos.length, 0) + MISA_CONTROL.cantos.length
   afirmar(
-    nCelebraciones === CELEBRACIONES.length,
-    `Se esperaban ${CELEBRACIONES.length} celebraciones y hay ${nCelebraciones}: la semilla dejó de ser idempotente.`
+    nMisas === MISAS.length + 1,
+    `Se esperaban ${MISAS.length + 1} misas y hay ${nMisas}: la semilla dejó de ser idempotente.`
   )
   afirmar(
-    nCelebracionCantos === filasEsperadas,
-    `Se esperaban ${filasEsperadas} cantos en celebraciones y hay ${nCelebracionCantos}.`
+    nMisaCantos === filasEsperadas,
+    `Se esperaban ${filasEsperadas} cantos en misas y hay ${nMisaCantos}.`
   )
 
-  const pasadas = CELEBRACIONES.filter((c) => c.fecha !== null && c.fecha <= '2026-08-07').length
-  console.log(`✓ ${nMomentos} momentos · ${nPrincipal} cantos en ${CORO_PRINCIPAL} · ${nControl} en ${CORO_CONTROL}`)
+  // H15 · las inscripciones también tienen que sobrevivir a dos corridas.
+  const nInscritos = await cuenta('misa_participante')
+  const inscritosEsperados = MISAS.reduce((n, c) => n + (c.participantes?.length ?? 0), 0)
+  afirmar(
+    nInscritos === inscritosEsperados,
+    `Se esperaban ${inscritosEsperados} inscripciones y hay ${nInscritos}.`
+  )
+
+  const pasadas = MISAS.filter((c) => c.fecha !== null && c.fecha <= '2026-08-07').length
+  console.log(
+    `✓ ${nMomentos} momentos · ${nPrincipal} cantos en ${CORO_PRINCIPAL} (${sembrados} de la semilla) · ${nControl} en ${CORO_CONTROL}`
+  )
   console.log(`✓ ${USUARIOS.length} usuarios de prueba (contraseña en SEED_PASSWORD)`)
   console.log(
-    `✓ ${nCelebraciones} celebraciones de ejemplo · ${pasadas} ya ocurridas (las otras no cuentan como cantadas)`
+    `✓ ${nMisas} misas de ejemplo · ${pasadas} ya ocurridas (las otras no cuentan como cantadas)`
   )
+  console.log(`✓ ${nInscritos} inscripciones de ejemplo (H15)`)
 }
 
 main().catch((e) => {

@@ -28,7 +28,7 @@ export type Agenda<T> = {
   sinFecha: T[]
 }
 
-export function agruparCelebraciones<T extends ConFecha>(lista: T[], hoy: string): Agenda<T> {
+export function agruparMisas<T extends ConFecha>(lista: T[], hoy: string): Agenda<T> {
   const proximas: T[] = []
   const pasadas: T[] = []
   const sinFecha: T[] = []

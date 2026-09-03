@@ -46,7 +46,7 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
     obtenerPreferencia(cantoId),
     // H11 · Es de la PERSONA, no del canto: por eso no lleva `cantoId`.
     mostrarAcordesDelPerfil(),
-    // H13 · Cero tablas nuevas: esto lee las celebraciones que armó H6.
+    // H13 · Cero tablas nuevas: esto lee las misas que armó H6.
     historialDelCanto(sesion.coroActivo?.id ?? '', cantoId),
   ])
 
@@ -142,7 +142,7 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
         </div>
 
         <p className="mt-2 flex flex-wrap items-center gap-x-1 gap-y-1.5 px-4 text-xs text-texto-tenue">
-          {/* H10 · El músico tiene que enterarse acá, no solo en el listado:
+          {/* H10 · El miembro tiene que enterarse acá, no solo en el listado:
               esta es la pantalla donde se para a tocar. Va primero, antes del
               autor, porque cambia cómo se lee todo lo demás. */}
           {etiquetaEstado(canto.estado) && (

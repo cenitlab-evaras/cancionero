@@ -1,7 +1,7 @@
 /**
  * Misas de ejemplo — docs/PRD.md §17 (H13) y §13.4
  *
- * H13 mide el historial de ejecución, y **el historial es la celebración
+ * H13 mide el historial de ejecución, y **el historial es la misa
  * armada en H6**: sin misas no hay nada que medir ni con qué verificar el
  * hito. §17.1-ter ya lo había anticipado ("se puede agregar a `sembrar.ts`
  * cuando estorbe"); acá estorbó.
@@ -27,15 +27,25 @@
  * como cantado— se ve en pantalla en vez de quedar en un test.
  */
 
-export type CelebracionSemilla = {
+export type MisaSemilla = {
   nombre: string
   /** `YYYY-MM-DD`, o null para la lista sin fecha (§18-6). */
   fecha: string | null
   /** Títulos de cantos, con el momento en que se cantaron. En orden litúrgico. */
   cantos: { titulo: string; momento: string }[]
+  /**
+   * Quién se anotó (H15). Por correo, porque el id lo resuelve la siembra.
+   *
+   * Se siembran las DOS ramas del `check` —una vocal y una instrumental— para
+   * que la pantalla tenga qué mostrar sin pasos manuales y para que la
+   * condicionalidad de B2 quede ejercitada en datos reales, no solo en el test.
+   * §18-17 lo dejó escrito para este hito: el dato que no está en la semilla no
+   * existe.
+   */
+  participantes?: { email: string; aporte: 'vocal' | 'instrumental'; instrumento?: string }[]
 }
 
-export const CELEBRACIONES: CelebracionSemilla[] = [
+export const MISAS: MisaSemilla[] = [
   {
     nombre: 'Ejemplo · Misa dominical',
     fecha: '2026-05-03',
@@ -81,6 +91,9 @@ export const CELEBRACIONES: CelebracionSemilla[] = [
       // Dos cantos en el mismo momento: legítimo, los separa su `orden` (§5).
       { titulo: 'Nada te turbe', momento: 'comunion' },
     ],
+    // H15 · una misa PASADA con gente anotada: es el caso de solo lectura, el
+    // que muestra que la inscripción no se puede cambiar después.
+    participantes: [{ email: 'musico@cantoral.local', aporte: 'vocal' }],
   },
 
   // --- Los dos que NO deben contar -------------------------------------------
@@ -93,6 +106,12 @@ export const CELEBRACIONES: CelebracionSemilla[] = [
       { titulo: 'Donde hay amor', momento: 'antifona' },
       { titulo: 'Reina del Cielo', momento: 'maria' },
     ],
+    // H15 · la misa donde la inscripción está ABIERTA, y con las dos ramas del
+    // `check` ejercitadas: uno canta, el otro trae la guitarra.
+    participantes: [
+      { email: 'director@cantoral.local', aporte: 'vocal' },
+      { email: 'musico@cantoral.local', aporte: 'instrumental', instrumento: 'guitarra' },
+    ],
   },
   {
     // Sin fecha: es una lista de trabajo, no una misa (§18-6). Nunca ocurrió.
@@ -101,3 +120,19 @@ export const CELEBRACIONES: CelebracionSemilla[] = [
     cantos: [{ titulo: 'Himno Misión País', momento: 'himno' }],
   },
 ]
+
+/**
+ * Una misa del coro de CONTROL, hermana de `CANTO_CONTROL`.
+ *
+ * No es decorativa: sin ella, la comprobación más importante de H15 —que un
+ * miembro no puede inscribirse a la misa de otro coro poniendo su propio
+ * `coro_id`— no tiene contra qué correrse, y el verificador la saltaba en
+ * silencio dando 51/51 habiendo probado 50. Es el mismo motivo por el que
+ * existe el canto de control: para que el aislamiento entre coros se pueda
+ * probar y no solo afirmar.
+ */
+export const MISA_CONTROL: MisaSemilla = {
+  nombre: 'Ejemplo · Misa de San Ejemplo',
+  fecha: '2026-07-05',
+  cantos: [{ titulo: 'Canto de prueba del coro de control', momento: 'entrada' }],
+}

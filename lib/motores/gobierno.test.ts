@@ -12,13 +12,13 @@ import { puedeVincularse, resumenDeMiembros } from './gobierno'
 
 describe('puedeVincularse', () => {
   test('un perfil aprobado se puede vincular', () => {
-    expect(puedeVincularse({ aprobado: true, rol: 'miembro' })).toEqual({ ok: true })
+    expect(puedeVincularse({ aprobado: true, rol: 'usuario' })).toEqual({ ok: true })
   })
 
   test('un perfil SIN aprobar no se puede vincular, y dice por qué', () => {
     // Sin esto, el director vincula a alguien que igual no va a ver nada
     // (puede_ver_coro exige aprobado) y queda un miembro fantasma en la lista.
-    const r = puedeVincularse({ aprobado: false, rol: 'miembro' })
+    const r = puedeVincularse({ aprobado: false, rol: 'usuario' })
     expect(r.ok).toBe(false)
     expect(r.ok === false && r.motivo).toMatch(/aprob/i)
   })
@@ -44,7 +44,7 @@ describe('puedeVincularse', () => {
 describe('resumenDeMiembros', () => {
   const perfiles = [
     { id: 'a', aprobado: true, rolLocal: 'director' as const },
-    { id: 'b', aprobado: true, rolLocal: 'musico' as const },
+    { id: 'b', aprobado: true, rolLocal: 'miembro' as const },
     { id: 'c', aprobado: true, rolLocal: null },
     { id: 'd', aprobado: false, rolLocal: null },
   ]

@@ -13,7 +13,7 @@ import { edadEn, esMenorDeEdad, ordenarPorTesitura } from '@/lib/motores/ficha'
  * entero — no a medias, que es la única forma peor que esta.
  *
  * Como en el resto de la capa de datos, no se re-chequean permisos: la RLS
- * decide qué filas salen. Un músico pidiendo las fichas del coro obtiene solo
+ * decide qué filas salen. Un miembro pidiendo las fichas del coro obtiene solo
  * la suya, y eso es correcto — `ficha_miembro_select` es
  * `perfil_id = auth.uid() or es_director_de(coro_id)`.
  *

@@ -11,10 +11,10 @@ import {
 // Sujetos de referencia. El rolLocal viaja EN el sujeto: ninguna pantalla lo
 // resuelve por su cuenta (PRD §8.3).
 const admin: Sujeto = { rol: 'admin', aprobado: true, rolLocal: null }
-const director: Sujeto = { rol: 'miembro', aprobado: true, rolLocal: 'director' }
-const musico: Sujeto = { rol: 'miembro', aprobado: true, rolLocal: 'musico' }
-const sinVinculo: Sujeto = { rol: 'miembro', aprobado: true, rolLocal: null }
-const pendiente: Sujeto = { rol: 'miembro', aprobado: false, rolLocal: 'director' }
+const director: Sujeto = { rol: 'usuario', aprobado: true, rolLocal: 'director' }
+const miembro: Sujeto = { rol: 'usuario', aprobado: true, rolLocal: 'miembro' }
+const sinVinculo: Sujeto = { rol: 'usuario', aprobado: true, rolLocal: null }
+const pendiente: Sujeto = { rol: 'usuario', aprobado: false, rolLocal: 'director' }
 
 describe('el portón `aprobado`', () => {
   test('un sujeto no aprobado no puede NINGUNA capacidad, ni siendo director', () => {
@@ -31,8 +31,9 @@ describe('el portón `aprobado`', () => {
 })
 
 describe('editar_canto — la celda que define el hito de edición', () => {
-  test('un músico NO puede editar un canto, en ningún caso', () => {
-    expect(puede(musico, 'editar_canto')).toBe(false)
+  test('un miembro NO puede editar un canto, en ningún caso', () => {
+    expect(puede(miembro, 'editar_canto')).toBe(false)
+    expect(puede(miembro, 'archivar_canto')).toBe(false)
   })
 
   test('un miembro sin vínculo al coro tampoco puede', () => {
@@ -52,18 +53,21 @@ describe('ver_preferencia_ajena — nadie, tampoco el admin', () => {
   test('los tres roles reciben false', () => {
     expect(puede(admin, 'ver_preferencia_ajena')).toBe(false)
     expect(puede(director, 'ver_preferencia_ajena')).toBe(false)
-    expect(puede(musico, 'ver_preferencia_ajena')).toBe(false)
+    expect(puede(miembro, 'ver_preferencia_ajena')).toBe(false)
   })
 })
 
 describe('lectura del repertorio', () => {
-  test('un músico aprobado puede ver el repertorio y leer un canto', () => {
-    expect(puede(musico, 'ver_repertorio')).toBe(true)
-    expect(puede(musico, 'leer_canto')).toBe(true)
+  test('un miembro aprobado puede ver el repertorio y leer un canto', () => {
+    expect(puede(miembro, 'ver_repertorio')).toBe(true)
+    expect(puede(miembro, 'leer_canto')).toBe(true)
   })
 
-  test('un músico puede guardar su propia preferencia', () => {
-    expect(puede(musico, 'guardar_preferencia_propia')).toBe(true)
+  test('un miembro puede guardar su propia preferencia', () => {
+    expect(puede(miembro, 'guardar_preferencia_propia')).toBe(true)
+    // H15 · la primera escritura del miembro en dato que el coro entero lee.
+    expect(puede(miembro, 'inscribirse_a_misa')).toBe(true)
+    expect(puede(miembro, 'ver_inscripciones')).toBe(true)
   })
 
   test('un externo aprobado no ve el repertorio', () => {
@@ -80,9 +84,12 @@ describe('gobierno', () => {
     expect(puede(director, 'aprobar_perfil')).toBe(false)
   })
 
-  test('el director administra los miembros de su coro; el músico no', () => {
+  test('el director administra los miembros de su coro; el miembro no', () => {
     expect(puede(director, 'administrar_miembros')).toBe(true)
-    expect(puede(musico, 'administrar_miembros')).toBe(false)
+    expect(puede(miembro, 'administrar_miembros')).toBe(false)
+    // Pero no puede inscribirse a un coro del que no es parte, ni ver quién va.
+    expect(puede(sinVinculo, 'inscribirse_a_misa')).toBe(false)
+    expect(puede(sinVinculo, 'ver_inscripciones')).toBe(false)
   })
 
   test('solo el admin edita los catálogos globales', () => {
@@ -96,8 +103,8 @@ describe('rutaInicial — una sola fuente de enrutamiento', () => {
     expect(rutaInicial(pendiente)).toBe('/esperando-aprobacion')
   })
 
-  test('el músico aprobado va al repertorio', () => {
-    expect(rutaInicial(musico)).toBe('/repertorio')
+  test('el miembro aprobado va al repertorio', () => {
+    expect(rutaInicial(miembro)).toBe('/repertorio')
   })
 
   test('un externo aprobado no tiene a dónde ir todavía', () => {
@@ -110,6 +117,6 @@ describe('esRolValido', () => {
   test('un rol desconocido nunca se trata como válido', () => {
     expect(esRolValido('director')).toBe(false) // director es rol_local, no rol global
     expect(esRolValido('admin')).toBe(true)
-    expect(esRolValido('miembro')).toBe(true)
+    expect(esRolValido('usuario')).toBe(true)
   })
 })

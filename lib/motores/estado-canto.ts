@@ -12,14 +12,28 @@
  */
 
 /**
- * Los dos estados, decididos el 2026-08-07.
+ * Los tres estados. `en_ensayo` y `listo` desde el 2026-08-07; `archivado`
+ * desde el 2026-09-03.
  *
- * `archivado` quedó fuera a propósito, y §17 declara la consecuencia: el
- * borrado de §16 sigue sin resolverse. Cuando entre, se agrega acá y en el
- * `check` de la migración — el test de `esEstadoValido` se pone rojo solo.
+ * `archivado` es la respuesta al borrado que §16 había dejado sin decidir, y
+ * la decisión es que **un canto no se borra**. Borrarlo de verdad se lo llevaría
+ * también de las misas pasadas donde se cantó —`misa_cantos` cae en cascada— y
+ * el historial de H13 perdería esas veces sin avisar. Archivar lo saca de
+ * circulación sin tocar lo que ya ocurrió, y se puede deshacer.
  */
-export const ESTADOS = ['en_ensayo', 'listo'] as const
+export const ESTADOS = ['en_ensayo', 'listo', 'archivado'] as const
 export type EstadoCanto = (typeof ESTADOS)[number]
+
+/**
+ * Los que el director alterna desde el formulario.
+ *
+ * `archivado` NO está, y la ausencia es la regla: sacar un canto del repertorio
+ * pasa por su propia confirmación —la que dice en cuántas misas aparece—, no
+ * por el mismo selector con el que se lo pone en ensayo. Esta constante es lo
+ * que hace cumplir esa separación en las dos puntas: la que dibuja los botones
+ * y la que valida el POST.
+ */
+export const ESTADOS_EDITABLES = ['en_ensayo', 'listo'] as const
 
 /** El default, y el mismo que el de la columna: `not null default 'listo'`. */
 export const ESTADO_POR_DEFECTO: EstadoCanto = 'listo'
@@ -49,12 +63,30 @@ export function normalizarEstado(valor: unknown): EstadoCanto {
  * que están para canto»* se cumple mejor marcando las que todavía no lo están.
  */
 export function etiquetaEstado(estado: EstadoCanto): string | null {
-  return estado === 'en_ensayo' ? 'En ensayo' : null
+  if (estado === 'en_ensayo') return 'En ensayo'
+  if (estado === 'archivado') return 'Archivado'
+  return null
 }
 
-/** El texto que ve el director al elegir, donde los dos estados sí se nombran. */
+/** El texto que ve el director al elegir, donde los tres estados sí se nombran. */
 export function nombreEstado(estado: EstadoCanto): string {
-  return estado === 'en_ensayo' ? 'En ensayo' : 'Listo'
+  if (estado === 'en_ensayo') return 'En ensayo'
+  if (estado === 'archivado') return 'Archivado'
+  return 'Listo'
+}
+
+/**
+ * Si el canto salió de circulación.
+ *
+ * Existe como función y no como comparación suelta porque la pregunta se hace
+ * en cuatro lugares —listado, búsqueda, contador y vista de archivados— y basta
+ * que uno se olvide para que un canto archivado reaparezca donde no debe.
+ *
+ * NO se confunde con `en_ensayo`: el que se está sacando sigue en el
+ * repertorio, marcado; el archivado no está.
+ */
+export function estaArchivado(estado: EstadoCanto): boolean {
+  return estado === 'archivado'
 }
 
 /**

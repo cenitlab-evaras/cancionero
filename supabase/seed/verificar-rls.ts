@@ -41,7 +41,7 @@ async function main() {
   const pendiente = await sesion('pendiente@cantoral.local')
   const director = await sesion('director@cantoral.local')
 
-  // --- Acto 1: el músico ve el repertorio de su coro -------------------------
+  // --- Acto 1: el miembro ve el repertorio de su coro -------------------------
   const { data: cantosMusico } = await musico.from('cantos').select('id, titulo')
   const { data: cantosDirector } = await director.from('cantos').select('id')
   // Contra lo que ve el DIRECTOR del mismo coro, no contra un número fijo:
@@ -79,16 +79,16 @@ async function main() {
     `${cantosPendiente?.length ?? 0} cantos, ${corosPendiente?.length ?? 0} coros`
   )
 
-  // --- Escritura: el músico no puede editar; el director sí -----------------
+  // --- Escritura: el miembro no puede editar; el director sí -----------------
   const { error: errEscrituraMusico } = await musico
     .from('cantos')
-    .update({ notas: 'intento de un músico' })
+    .update({ notas: 'intento de un miembro' })
     .eq('id', idAjeno!)
     .select()
   const { data: filasMusico } = await musico.from('cantos').select('notas').eq('id', idAjeno!).single()
   comprobar(
     'musico@ no puede escribir un canto (la RLS lo frena)',
-    filasMusico?.notas !== 'intento de un músico',
+    filasMusico?.notas !== 'intento de un miembro',
     errEscrituraMusico ? `error: ${errEscrituraMusico.message}` : 'cero filas afectadas, la nota no cambió'
   )
 
@@ -146,7 +146,7 @@ async function main() {
     .select('transposicion')
     .eq('canto_id', idAjeno!)
   comprobar(
-    'director@ NO ve la preferencia del músico (ni el director ni el admin)',
+    'director@ NO ve la preferencia del miembro (ni el director ni el admin)',
     (ajenaParaDirector?.length ?? 0) === 0,
     `${ajenaParaDirector?.length ?? 0} filas`
   )
@@ -167,54 +167,54 @@ async function main() {
   // Se deja como estaba.
   await musico.from('preferencias_lectura').delete().eq('canto_id', idAjeno!)
 
-  // --- H6 · Celebraciones ----------------------------------------------------
-  // Solo corren si hay una celebración armada; la semilla no crea ninguna.
-  const { data: celebracion } = await director
-    .from('celebraciones')
+  // --- H6 · Misas ----------------------------------------------------
+  // Solo corren si hay una misa armada; la semilla no crea ninguna.
+  const { data: misa } = await director
+    .from('misas')
     .select('id, coro_id, nombre')
     .limit(1)
     .maybeSingle()
 
-  if (!celebracion) {
-    console.log('\n· sin celebraciones armadas: se omiten las comprobaciones de H6')
+  if (!misa) {
+    console.log('\n· sin misas armadas: se omiten las comprobaciones de H6')
   } else {
-    const { data: veMusico } = await musico.from('celebraciones').select('id').eq('id', celebracion.id)
+    const { data: veMusico } = await musico.from('misas').select('id').eq('id', misa.id)
     comprobar(
-      'musico@ ve la celebración de su coro',
+      'musico@ ve la misa de su coro',
       (veMusico?.length ?? 0) === 1,
       `${veMusico?.length ?? 0} filas`
     )
 
-    const { data: veAjeno } = await ajeno.from('celebraciones').select('id').eq('id', celebracion.id)
+    const { data: veAjeno } = await ajeno.from('misas').select('id').eq('id', misa.id)
     comprobar(
-      'ajeno@ pidiendo la celebración por id recibe CERO filas',
+      'ajeno@ pidiendo la misa por id recibe CERO filas',
       (veAjeno?.length ?? 0) === 0,
       `${veAjeno?.length ?? 0} filas`
     )
 
-    const { data: vePendiente } = await pendiente.from('celebraciones').select('id')
+    const { data: vePendiente } = await pendiente.from('misas').select('id')
     comprobar(
-      'pendiente@ (no aprobado) no obtiene ninguna celebración',
+      'pendiente@ (no aprobado) no obtiene ninguna misa',
       (vePendiente?.length ?? 0) === 0,
       `${vePendiente?.length ?? 0} filas`
     )
 
     const { error: errCrear } = await musico
-      .from('celebraciones')
-      .insert({ coro_id: celebracion.coro_id, nombre: 'intento de un músico' })
+      .from('misas')
+      .insert({ coro_id: misa.coro_id, nombre: 'intento de un miembro' })
     comprobar(
-      'musico@ no puede crear una celebración (la RLS lo frena)',
+      'musico@ no puede crear una misa (la RLS lo frena)',
       !!errCrear,
       errCrear ? 'la RLS rechazó el insert' : 'SE ESCRIBIÓ: la política está mal'
     )
 
     const { data: unMomento } = await musico.from('momentos_liturgicos').select('id').limit(1).single()
-    const { error: errAgregar } = await musico.from('celebracion_cantos').insert({
-      celebracion_id: celebracion.id,
+    const { error: errAgregar } = await musico.from('misa_cantos').insert({
+      misa_id: misa.id,
       canto_id: idAjeno!,
       momento_id: unMomento!.id,
       orden: 999,
-      coro_id: celebracion.coro_id,
+      coro_id: misa.coro_id,
     })
     comprobar(
       'musico@ no puede agregar un canto a la misa',
@@ -223,15 +223,15 @@ async function main() {
     )
 
     const { data: antes } = await musico
-      .from('celebracion_cantos')
+      .from('misa_cantos')
       .select('id, orden')
-      .eq('celebracion_id', celebracion.id)
+      .eq('misa_id', misa.id)
       .order('orden')
-    await musico.from('celebracion_cantos').delete().eq('id', antes![0]!.id)
+    await musico.from('misa_cantos').delete().eq('id', antes![0]!.id)
     const { data: despues } = await musico
-      .from('celebracion_cantos')
+      .from('misa_cantos')
       .select('id')
-      .eq('celebracion_id', celebracion.id)
+      .eq('misa_id', misa.id)
     comprobar(
       'musico@ no puede quitar un canto de la misa',
       (despues?.length ?? 0) === (antes?.length ?? 0),
@@ -239,12 +239,12 @@ async function main() {
     )
 
     const { data: escrituraDirector } = await director
-      .from('celebraciones')
-      .update({ nombre: celebracion.nombre })
-      .eq('id', celebracion.id)
+      .from('misas')
+      .update({ nombre: misa.nombre })
+      .eq('id', misa.id)
       .select('id')
     comprobar(
-      'director@ sí puede editar la celebración de su coro',
+      'director@ sí puede editar la misa de su coro',
       (escrituraDirector?.length ?? 0) === 1,
       `${escrituraDirector?.length ?? 0} filas afectadas`
     )
@@ -267,10 +267,10 @@ async function main() {
     await admin.from('perfiles').select('id').eq('email', 'pendiente@cantoral.local').single()
   ).data!.id
 
-  // El músico no gobierna: ni admite gente ni cambia roles.
+  // El miembro no gobierna: ni admite gente ni cambia roles.
   const { error: errAdmitir } = await musico
     .from('coro_acceso')
-    .insert({ perfil_id: idPendiente, coro_id: coroId, rol_local: 'musico' })
+    .insert({ perfil_id: idPendiente, coro_id: coroId, rol_local: 'miembro' })
   comprobar(
     'musico@ no puede admitir a nadie al coro (la RLS lo frena)',
     !!errAdmitir,
@@ -292,7 +292,7 @@ async function main() {
     errAprobar ? `error: ${errAprobar.message}` : 'cero filas afectadas, sigue sin aprobar'
   )
 
-  const { error: errCoro } = await musico.from('coros').insert({ nombre: 'Coro del músico' })
+  const { error: errCoro } = await musico.from('coros').insert({ nombre: 'Coro del miembro' })
   comprobar(
     'musico@ no puede crear un coro',
     !!errCoro,
@@ -303,7 +303,7 @@ async function main() {
   // saltárselo, ni siquiera por acción directa.
   const { error: errAntesDeAprobar } = await director
     .from('coro_acceso')
-    .insert({ perfil_id: idPendiente, coro_id: coroId, rol_local: 'musico' })
+    .insert({ perfil_id: idPendiente, coro_id: coroId, rol_local: 'miembro' })
   comprobar(
     'director@ NO puede vincular a un perfil sin aprobar (§8.4, el orden del alta)',
     !!errAntesDeAprobar,
@@ -322,7 +322,7 @@ async function main() {
   // …y recién ahí el director puede vincularlo.
   const { data: vinculado, error: errVincular } = await director
     .from('coro_acceso')
-    .insert({ perfil_id: idPendiente, coro_id: coroId, rol_local: 'musico' })
+    .insert({ perfil_id: idPendiente, coro_id: coroId, rol_local: 'miembro' })
     .select('id')
   comprobar(
     'director@ sí puede vincular al perfil YA aprobado',
@@ -349,7 +349,7 @@ async function main() {
 
   const { error: errCrearCanto } = await musico.from('cantos').insert({
     coro_id: coroDelMusico!.coro_id,
-    titulo: 'Canto del músico',
+    titulo: 'Canto del miembro',
     cifrado: '[C]No debería existir',
   })
   comprobar(
@@ -381,7 +381,7 @@ async function main() {
     `${renombrado?.length ?? 0} filas afectadas`
   )
 
-  const { error: errAutorMusico } = await musico.from('autores').insert({ nombre: 'Autor del músico' })
+  const { error: errAutorMusico } = await musico.from('autores').insert({ nombre: 'Autor del miembro' })
   comprobar(
     'musico@ no puede dar de alta un autor',
     !!errAutorMusico,
@@ -426,10 +426,16 @@ async function main() {
   )
 
   // El `check` de la migración es la última línea: ni el director escribe un
-  // estado que no existe. `archivado` está fuera a propósito (§17).
+  // estado que no existe.
+  //
+  // ESTA COMPROBACIÓN CAMBIÓ DE VALOR EL 2026-09-03. H10 la escribió con
+  // `archivado`, que entonces estaba fuera del dominio a propósito. Al cerrar
+  // §16 ese estado pasó a ser legítimo y la comprobación empezó a fallar — hizo
+  // exactamente lo que tenía que hacer: avisar de que el dominio se movió. Se
+  // cambia el valor por uno que sigue sin existir, no se borra la comprobación.
   const { error: errEstadoInvalido } = await director
     .from('cantos')
-    .update({ estado: 'archivado' })
+    .update({ estado: 'suspendido' })
     .eq('id', idAjeno!)
   comprobar(
     'ni el director puede escribir un estado inexistente: el check lo rechaza',
@@ -458,7 +464,7 @@ async function main() {
     .select('perfil_id')
     .eq('perfil_id', idMusico)
   comprobar(
-    'director@ NO ve la preferencia de perfil del músico',
+    'director@ NO ve la preferencia de perfil del miembro',
     (prefAjenaDirector?.length ?? 0) === 0,
     `${prefAjenaDirector?.length ?? 0} filas`
   )
@@ -574,6 +580,226 @@ async function main() {
 
   // Se deja el coro como estaba.
   await musico.from('ficha_miembro').delete().eq('perfil_id', idMusico).eq('coro_id', coroSanJose)
+
+  // --- Acto 8: archivar un canto es del director (§16, cerrado el 2026-09-03) --
+  {
+    const { data: unCanto } = await director
+      .from('cantos')
+      .select('id, estado')
+      .eq('coro_id', coroSanJose)
+      .neq('estado', 'archivado')
+      .limit(1)
+      .single()
+
+    const { data: archivado } = await director
+      .from('cantos')
+      .update({ estado: 'archivado' })
+      .eq('id', unCanto!.id)
+      .select('estado')
+      .maybeSingle()
+    comprobar(
+      'director@ archiva un canto de su coro',
+      archivado?.estado === 'archivado',
+      archivado?.estado ?? 'no se pudo'
+    )
+
+    // El canto archivado NO desaparece de la base: sigue ahí para el historial
+    // y para las misas donde se cantó. Eso es lo que separa archivar de borrar.
+    const { data: sigueVivo } = await musico.from('cantos').select('id').eq('id', unCanto!.id)
+    comprobar(
+      'un canto archivado sigue existiendo para el coro (no es un borrado)',
+      (sigueVivo?.length ?? 0) === 1,
+      (sigueVivo?.length ?? 0) === 1 ? 'la fila está' : 'DESAPARECIÓ: se borró de verdad'
+    )
+
+    // Se restaura ANTES de probar al miembro: si no, el canto ya está archivado
+    // por el director y la comprobación pasaría por eso, no por la RLS.
+    await director.from('cantos').update({ estado: unCanto!.estado }).eq('id', unCanto!.id)
+
+    await musico.from('cantos').update({ estado: 'archivado' }).eq('id', unCanto!.id)
+    const { data: trasIntentoArchivo } = await musico
+      .from('cantos')
+      .select('estado')
+      .eq('id', unCanto!.id)
+      .single()
+    comprobar(
+      'musico@ no puede archivar un canto',
+      trasIntentoArchivo?.estado !== 'archivado',
+      trasIntentoArchivo?.estado !== 'archivado'
+        ? `sigue en «${trasIntentoArchivo?.estado}»`
+        : 'SE ARCHIVÓ: la política está mal'
+    )
+
+    // Un estado inventado lo frena el `check`, no la RLS: el director puede
+    // escribir la columna, pero no cualquier cosa en ella.
+    const { error: errBasura } = await director
+      .from('cantos')
+      .update({ estado: 'borrado' })
+      .eq('id', unCanto!.id)
+    comprobar(
+      'ni el director puede inventar un estado',
+      !!errBasura,
+      errBasura ? 'el check de la columna lo rechazó' : 'SE ESCRIBIÓ: falta el check'
+    )
+
+    // Se deja el repertorio como estaba.
+    await director.from('cantos').update({ estado: unCanto!.estado }).eq('id', unCanto!.id)
+  }
+
+  // --- Acto 9: H15 · la primera escritura del miembro en dato compartido ------
+  {
+    const { data: misaPropia } = await director
+      .from('misas')
+      .select('id')
+      .eq('coro_id', coroSanJose)
+      .limit(1)
+      .single()
+
+    // Se guarda lo que había para poder dejarlo igual: la semilla siembra
+    // inscripciones y sus asserts cuentan, así que el verificador no puede
+    // llevarse una fila por el camino.
+    const { data: previa } = await musico
+      .from('misa_participante')
+      .select('aporte, instrumento')
+      .eq('misa_id', misaPropia!.id)
+      .eq('perfil_id', idMusico)
+      .maybeSingle()
+
+    const { data: inscrito } = await musico
+      .from('misa_participante')
+      .upsert(
+        {
+          misa_id: misaPropia!.id,
+          perfil_id: idMusico,
+          coro_id: coroSanJose,
+          aporte: 'instrumental',
+          instrumento: 'guitarra',
+        },
+        { onConflict: 'misa_id,perfil_id' }
+      )
+      .select('aporte')
+      .maybeSingle()
+    comprobar(
+      'musico@ se inscribe a una misa de su coro (§19.5: escribe su propia fila)',
+      inscrito?.aporte === 'instrumental',
+      inscrito?.aporte ?? 'no se pudo'
+    )
+
+    // LA NOVEDAD FRENTE A H11 Y H14: acá el miembro SÍ ve lo ajeno, porque para
+    // eso existe el dato — que el coro se vea a sí mismo.
+    const { data: veAlDirector } = await musico
+      .from('misa_participante')
+      .select('perfil_id')
+      .eq('misa_id', misaPropia!.id)
+    comprobar(
+      'musico@ ve las inscripciones de sus compañeros (a diferencia de la ficha)',
+      (veAlDirector?.length ?? 0) >= 1,
+      `${veAlDirector?.length ?? 0} filas visibles`
+    )
+
+    const { error: errAjena } = await musico.from('misa_participante').insert({
+      misa_id: misaPropia!.id,
+      perfil_id: idDirector,
+      coro_id: coroSanJose,
+      aporte: 'vocal',
+      instrumento: null,
+    })
+    comprobar(
+      'musico@ no puede inscribir a otra persona',
+      !!errAjena,
+      errAjena ? 'la RLS rechazó el insert' : 'SE ESCRIBIÓ: la política está mal'
+    )
+
+    // Ni el DIRECTOR inscribe a nadie: la inscripción es una declaración de la
+    // persona sobre sí misma, y eso no es una excepción del rol.
+    const { error: errDirectorInscribe } = await director.from('misa_participante').insert({
+      misa_id: misaPropia!.id,
+      perfil_id: idMusico,
+      coro_id: coroSanJose,
+      aporte: 'vocal',
+      instrumento: null,
+    })
+    comprobar(
+      'director@ tampoco puede inscribir a otro',
+      !!errDirectorInscribe,
+      errDirectorInscribe ? 'la RLS rechazó el insert' : 'SE ESCRIBIÓ: nadie declara por nadie'
+    )
+
+    // EL AGUJERO QUE CIERRA LA FORÁNEA COMPUESTA: coro_id propio (que sí puede
+    // ver) con la misa de OTRO coro. Los dos predicados de la política pasan;
+    // lo único que lo frena es la integridad referencial.
+    const { data: misaAjena } = await ajeno.from('misas').select('id').limit(1).maybeSingle()
+    if (!misaAjena) {
+      // NO se salta en silencio. Es la comprobación más importante del hito: si
+      // no hay con qué correrla, el verificador tiene que decirlo y ponerse en
+      // rojo, no dar 52/52 habiendo probado 51.
+      comprobar(
+        'musico@ no puede inscribirse a una misa de otro coro con su propio coro_id',
+        false,
+        'NO SE PUDO PROBAR: el coro de control no tiene ninguna misa sembrada'
+      )
+    } else {
+      const { error: errCruzada } = await musico.from('misa_participante').insert({
+        misa_id: misaAjena.id,
+        perfil_id: idMusico,
+        coro_id: coroSanJose,
+        aporte: 'vocal',
+        instrumento: null,
+      })
+      comprobar(
+        'musico@ no puede inscribirse a una misa de otro coro con su propio coro_id',
+        !!errCruzada,
+        errCruzada ? 'la foránea compuesta lo rechazó' : 'SE ESCRIBIÓ: falta la foránea compuesta'
+      )
+    }
+
+    // El `check` condicional de B2, del lado de la base.
+    const { error: errSinInstrumento } = await musico.from('misa_participante').upsert(
+      {
+        misa_id: misaPropia!.id,
+        perfil_id: idMusico,
+        coro_id: coroSanJose,
+        aporte: 'instrumental',
+        instrumento: null,
+      },
+      { onConflict: 'misa_id,perfil_id' }
+    )
+    comprobar(
+      'tocar sin decir qué se toca lo rechaza la base, no solo el formulario',
+      !!errSinInstrumento,
+      errSinInstrumento ? 'el check condicional lo rechazó' : 'SE ESCRIBIÓ: falta el check'
+    )
+
+    const { data: veAjeno } = await ajeno
+      .from('misa_participante')
+      .select('perfil_id')
+      .eq('misa_id', misaPropia!.id)
+    comprobar(
+      'ajeno@ no ve ninguna inscripción de este coro',
+      (veAjeno?.length ?? 0) === 0,
+      `${veAjeno?.length ?? 0} filas`
+    )
+
+    // Se deja la misa exactamente como estaba.
+    if (previa) {
+      await musico.from('misa_participante').upsert(
+        {
+          misa_id: misaPropia!.id,
+          perfil_id: idMusico,
+          coro_id: coroSanJose,
+          aporte: previa.aporte,
+          instrumento: previa.instrumento,
+        },
+        { onConflict: 'misa_id,perfil_id' }
+      )
+    } else {
+      await musico
+        .from('misa_participante')
+        .delete()
+        .eq('misa_id', misaPropia!.id)
+        .eq('perfil_id', idMusico)
+    }
+  }
 
   const fallidos = resultados.filter((r) => !r.ok)
   console.log(`\n${resultados.length - fallidos.length}/${resultados.length} comprobaciones en verde`)

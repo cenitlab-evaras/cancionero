@@ -45,6 +45,11 @@ type FilaCanto = {
  * ignorar acentos es una regla del producto, no del motor de base de datos.
  *
  * Un momento sin cantos no se devuelve: no se dibuja un grupo vacío (PRD §14).
+ *
+ * Los ARCHIVADOS no salen. El filtro va en la consulta y no al recorrer porque
+ * el contador del pie lee esta misma lista: filtrando después habría un momento
+ * en que el número y la lista no coinciden, y ese momento siempre termina
+ * quedándose.
  */
 export async function repertorioPorMomento(
   coroId: string,
@@ -58,6 +63,7 @@ export async function repertorioPorMomento(
       'id, titulo, tonalidad_original, fuente_numero, estado, autores(nombre), canto_momentos(momentos_liturgicos(codigo, nombre, orden))'
     )
     .eq('coro_id', coroId)
+    .neq('estado', 'archivado')
     .order('titulo', { ascending: true })
 
   if (error) throw error
@@ -120,7 +126,7 @@ export type CantoCompleto = {
   cifrado: string
   tonalidadOriginal: string | null
   momentos: string[]
-  /** H10. El músico lo ve para saber que el canto todavía se está sacando. */
+  /** H10. El miembro lo ve para saber que el canto todavía se está sacando. */
   estado: EstadoCanto
   fuenteTitulo: string | null
   /** Número en el cancionero impreso: es como el coro los busca de memoria. */
@@ -265,4 +271,75 @@ export async function cantoParaEditar(cantoId: string) {
     fuenteNumero: data.fuente_numero ? String(data.fuente_numero) : '',
     fuentePagina: data.fuente_pagina ? String(data.fuente_pagina) : '',
   }
+}
+
+/**
+ * Los cantos que el director sacó de circulación, del más reciente al más viejo.
+ *
+ * Vive aparte de `repertorioPorMomento` y sin agrupar por momento a propósito:
+ * esto no es repertorio, es una papelera con vuelta atrás. Agruparla por
+ * Entrada / Comunión la haría parecer una segunda lista del coro.
+ */
+export async function cantosArchivados(coroId: string): Promise<CantoDeLista[]> {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('cantos')
+    .select('id, titulo, tonalidad_original, fuente_numero, estado, autores(nombre)')
+    .eq('coro_id', coroId)
+    .eq('estado', 'archivado')
+    .order('updated_at', { ascending: false })
+
+  if (error) throw error
+
+  return (data ?? []).map((fila) => {
+    const autor = fila.autores as unknown as { nombre: string } | null
+    return {
+      id: fila.id,
+      titulo: fila.titulo,
+      autor: autor?.nombre ?? null,
+      tonalidadOriginal: fila.tonalidad_original,
+      fuenteNumero: fila.fuente_numero,
+      estado: normalizarEstado(fila.estado),
+    }
+  })
+}
+
+/**
+ * En cuántas misas aparece este canto.
+ *
+ * Es el dato que la confirmación de archivar necesita para no ser una pregunta
+ * vacía: «se cantó en 4 misas» es lo que hace que el director decida distinto
+ * que ante «¿seguro?». Se cuenta al leer, nunca se guarda (innegociable 4).
+ */
+export async function vecesEnMisas(cantoId: string): Promise<number> {
+  const supabase = await createClient()
+
+  const { count, error } = await supabase
+    .from('misa_cantos')
+    .select('id', { count: 'exact', head: true })
+    .eq('canto_id', cantoId)
+
+  if (error) throw error
+  return count ?? 0
+}
+
+/**
+ * Cuántos cantos hay archivados en el coro.
+ *
+ * Cuenta con `head: true` —sin traer las filas— porque el pie del repertorio
+ * solo necesita saber si ofrecer el enlace. Enlazar a una papelera vacía es
+ * ruido en una pantalla que se mira de reojo.
+ */
+export async function contarArchivados(coroId: string): Promise<number> {
+  const supabase = await createClient()
+
+  const { count, error } = await supabase
+    .from('cantos')
+    .select('id', { count: 'exact', head: true })
+    .eq('coro_id', coroId)
+    .eq('estado', 'archivado')
+
+  if (error) throw error
+  return count ?? 0
 }

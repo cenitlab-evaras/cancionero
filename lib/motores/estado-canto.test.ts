@@ -1,8 +1,10 @@
 import { describe, expect, test } from 'vitest'
 import {
   ESTADOS,
+  ESTADOS_EDITABLES,
   contarEnEnsayo,
   esEstadoValido,
+  estaArchivado,
   etiquetaEstado,
   normalizarEstado,
   type EstadoCanto,
@@ -11,8 +13,10 @@ import {
 /**
  * H10 · Estado del canto — el "listo cuando" de §17.
  *
- * Dos estados, decididos por el dueño el 2026-08-07: `en_ensayo` y `listo`.
- * `archivado` NO entra; §17 declara que por eso el borrado de §16 sigue abierto.
+ * Dos estados desde el 2026-08-07 —`en_ensayo` y `listo`— y un tercero desde el
+ * 2026-09-03: `archivado`, que es la respuesta al borrado que §16 había dejado
+ * sin decidir. Un canto no se borra: sale de circulación, y se puede traer de
+ * vuelta.
  *
  * Lo que este motor tiene que garantizar, y por qué cada cosa está acá y no
  * suelta en una pantalla:
@@ -27,15 +31,14 @@ import {
  */
 
 describe('esEstadoValido', () => {
-  test('acepta los dos estados del dominio', () => {
+  test('acepta los tres estados del dominio', () => {
     expect(esEstadoValido('en_ensayo')).toBe(true)
     expect(esEstadoValido('listo')).toBe(true)
+    expect(esEstadoValido('archivado')).toBe(true)
   })
 
   test('cierra hacia el NO ante cualquier otra cosa', () => {
-    // `archivado` está acá a propósito: es el que §17 dejó fuera. El día que
-    // entre, este test se pone rojo solo y obliga a mirar la migración.
-    for (const basura of ['archivado', 'LISTO', 'en ensayo', '', 'sugerido']) {
+    for (const basura of ['LISTO', 'en ensayo', '', 'sugerido']) {
       expect(esEstadoValido(basura)).toBe(false)
     }
   })
@@ -65,10 +68,53 @@ describe('etiquetaEstado', () => {
     expect(etiquetaEstado('listo')).toBe(null)
   })
 
-  test('los dos estados están cubiertos, sin celdas ambiguas', () => {
+  test('un canto archivado se dice, porque solo se ve donde hay que decirlo', () => {
+    // Fuera del repertorio no aparece. Pero en la vista de archivados y en la
+    // misa pasada donde se cantó, sí — y ahí la marca es la que explica por
+    // qué ese canto no está en el listado.
+    expect(etiquetaEstado('archivado')).toBe('Archivado')
+  })
+
+  test('los tres estados están cubiertos, sin celdas ambiguas', () => {
     for (const e of ESTADOS) {
       expect(etiquetaEstado(e)).not.toBe(undefined)
     }
+  })
+})
+
+describe('ESTADOS_EDITABLES', () => {
+  test('el formulario alterna dos estados, no tres', () => {
+    // `archivado` NO se elige desde el mismo selector que `en_ensayo`: sacar un
+    // canto del repertorio pasa por su propia confirmación, que dice en cuántas
+    // misas aparece. Si estuviera acá, un toque de más lo archivaría sin que
+    // nadie se enterara.
+    expect([...ESTADOS_EDITABLES]).toEqual(['en_ensayo', 'listo'])
+  })
+
+  test('todo lo editable es un estado válido: no se puede ofrecer lo que la base rechaza', () => {
+    for (const e of ESTADOS_EDITABLES) {
+      expect(esEstadoValido(e)).toBe(true)
+    }
+  })
+
+  test('archivado queda fuera de lo editable pero dentro del dominio', () => {
+    expect((ESTADOS_EDITABLES as readonly string[]).includes('archivado')).toBe(false)
+    expect((ESTADOS as readonly string[]).includes('archivado')).toBe(true)
+  })
+})
+
+describe('estaArchivado', () => {
+  test('solo `archivado` está archivado', () => {
+    expect(estaArchivado('archivado')).toBe(true)
+    expect(estaArchivado('listo')).toBe(false)
+    expect(estaArchivado('en_ensayo')).toBe(false)
+  })
+
+  test('un canto en ensayo NO está archivado: son cosas distintas', () => {
+    // El que se está sacando sigue en el repertorio, marcado. El archivado
+    // salió de circulación. Confundirlos escondería del listado justo los
+    // cantos que el coro está aprendiendo.
+    expect(estaArchivado('en_ensayo')).toBe(false)
   })
 })
 

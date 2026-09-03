@@ -13,7 +13,7 @@ import AutoScroll from './auto-scroll'
  * la guitarra puesta, con un pulgar. De ahí las tres decisiones de forma:
  *   · fija abajo, donde llega el pulgar;
  *   · 44 px de alto en todo lo tocable, sin excepción;
- *   · la tonalidad al centro, que es el dato que el músico mira de reojo.
+ *   · la tonalidad al centro, que es el dato que el miembro mira de reojo.
  *
  * El indicador central hace de "volver al original": en 360 px no entra un
  * control más, y tocar la tonalidad para resetearla es más directo que buscar

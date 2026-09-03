@@ -37,10 +37,10 @@ Todos con la contraseña de `SEED_PASSWORD` (no está en el repo).
 | Usuario | Rol | Coro | Para qué |
 | --- | --- | --- | --- |
 | `admin@cantoral.local` | admin | — | aprobar perfiles (H7) |
-| `director@cantoral.local` | miembro · director | San José de la Familia | editar repertorio (H8) |
-| `musico@cantoral.local` | miembro · músico | San José de la Familia | leer y tocar |
-| `pendiente@cantoral.local` | miembro, **sin aprobar** | — | probar el portón |
-| `ajeno@cantoral.local` | miembro · músico | San Ejemplo | probar el aislamiento entre coros |
+| `director@cantoral.local` | usuario · director | Coro San José de la Familia | editar repertorio (H8) |
+| `musico@cantoral.local` | usuario · miembro | Coro San José de la Familia | leer y tocar |
+| `pendiente@cantoral.local` | usuario, **sin aprobar** | — | probar el portón |
+| `ajeno@cantoral.local` | usuario · miembro | San Ejemplo | probar el aislamiento entre coros |
 
 ## Lo que no se toca
 

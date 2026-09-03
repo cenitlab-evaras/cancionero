@@ -5,7 +5,12 @@ import { renderizarCifrado } from '@/lib/motores/renderizar-cifrado'
 import { validarCanto, type Campo } from '@/lib/motores/validar-canto'
 import { desdeElCancionero, pareceAcordesSobreLetra } from '@/lib/motores/acordes-sobre-letra'
 import { esNotacionLatina } from '@/lib/motores/notacion-latina'
-import { ESTADOS, nombreEstado, type EstadoCanto } from '@/lib/motores/estado-canto'
+import {
+  ESTADOS_EDITABLES,
+  estaArchivado,
+  nombreEstado,
+  type EstadoCanto,
+} from '@/lib/motores/estado-canto'
 import { crearCanto, editarCanto } from './acciones'
 
 /**
@@ -135,7 +140,11 @@ export default function FormularioCanto({
       autorNombre: v.autorNombre,
       tonalidadOriginal: v.tonalidadOriginal,
       momentoIds: v.momentoIds,
-      estado: v.estado,
+      // Un canto ARCHIVADO se puede seguir corrigiendo, pero guardarlo no lo
+      // devuelve al repertorio: se omite la clave y la columna queda como
+      // está. Mandarla lo desarchivaría por la puerta de atrás, saltándose la
+      // única pantalla que dice que eso está pasando.
+      ...(estaArchivado(v.estado) ? {} : { estado: v.estado }),
       fuenteTitulo: v.fuenteTitulo,
       fuenteNumero: v.fuenteNumero ? Number(v.fuenteNumero) : null,
       fuentePagina: v.fuentePagina ? Number(v.fuentePagina) : null,
@@ -222,9 +231,11 @@ export default function FormularioCanto({
           y lo ve todo el coro. Por eso está acá, en la edición del canto, y no
           en la vista de lectura junto a la transposición —que sí es privada. */}
       <fieldset className="flex flex-col gap-1.5">
-        <legend className="text-xs text-texto-tenue">Estado</legend>
+        <legend className="text-xs text-texto-tenue">
+          Estado{estaArchivado(v.estado) && ' · archivado'}
+        </legend>
         <div className="flex flex-wrap gap-1.5">
-          {ESTADOS.map((e) => {
+          {ESTADOS_EDITABLES.map((e) => {
             const elegido = v.estado === e
             return (
               <button

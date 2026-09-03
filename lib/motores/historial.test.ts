@@ -12,7 +12,7 @@ import {
  * H13 · Historial y métricas por canto — el "listo cuando" de §17, y B1 A+B.
  *
  * La regla que manda, decidida el 2026-08-07: **cuenta lo que ya ocurrió.**
- * Una celebración con fecha futura está agendada, no cantada; una sin fecha
+ * Una misa con fecha futura está agendada, no cantada; una sin fecha
  * —el ensayo de §18-6— nunca ocurrió en una misa. Las dos quedan fuera.
  *
  * `hoy` entra por parámetro y no sale de `new Date()`: un motor que mira el
@@ -24,8 +24,8 @@ const HOY = '2026-08-07'
 
 const ej = (cantoId: string, fecha: string | null, momento = 'Entrada'): EjecucionCruda => ({
   cantoId,
-  celebracionId: `misa-${fecha ?? 'sin-fecha'}-${cantoId}`,
-  celebracionNombre: `Misa del ${fecha ?? '—'}`,
+  misaId: `misa-${fecha ?? 'sin-fecha'}-${cantoId}`,
+  misaNombre: `Misa del ${fecha ?? '—'}`,
   fecha,
   momento,
 })

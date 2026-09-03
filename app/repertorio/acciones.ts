@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/server'
 import { obtenerSesion } from '@/lib/sesion'
 import { puede } from '@/lib/permisos'
 import { validarCanto, type Campo } from '@/lib/motores/validar-canto'
-import { ESTADOS, normalizarEstado } from '@/lib/motores/estado-canto'
+import { ESTADOS_EDITABLES, normalizarEstado } from '@/lib/motores/estado-canto'
 
 /**
  * Alta y edición del repertorio (H8).
@@ -30,7 +30,7 @@ const Entrada = z.object({
   momentoIds: z.array(z.string().uuid()).min(1, 'Elige al menos un momento.'),
   // H10. Opcional para que un cliente viejo —o un POST armado a mano— no rompa
   // el alta: sin estado, la columna aplica su default (`listo`).
-  estado: z.enum(ESTADOS).optional(),
+  estado: z.enum(ESTADOS_EDITABLES).optional(),
   fuenteTitulo: z.string().optional(),
   fuenteNumero: z.number().int().nullable().optional(),
   fuentePagina: z.number().int().nullable().optional(),
@@ -167,4 +167,60 @@ export async function editarCanto(cantoId: string, raw: unknown): Promise<Result
   const r = await guardar(raw, id.data)
   if (r.ok) redirect(`/repertorio/${r.cantoId}`)
   return r
+}
+
+/**
+ * Archivar y desarchivar (§16, la fila del borrado, cerrada el 2026-09-03).
+ *
+ * NO borra. `misa_cantos` cae en cascada, así que un `delete` real se llevaría
+ * el canto de las misas pasadas donde se cantó y el historial de H13 perdería
+ * esas veces en silencio. Acá solo cambia `estado`, que es el mismo `update`
+ * que ya hacía H10 — la RLS (`cantos_write` = `es_director_de`) y el `check` de
+ * la columna son los mismos de siempre.
+ *
+ * Desarchivar devuelve el canto a `listo` y no al estado que tenía antes: el
+ * anterior no se guarda en ninguna parte, e inventar que era `en_ensayo`
+ * pondría al coro a ensayar algo que nadie pidió.
+ */
+export type ResultadoArchivo = { ok: true } | { ok: false; error: string }
+
+const NO_PUEDE_ARCHIVAR = 'No tienes permiso para archivar cantos de este coro.'
+
+async function cambiarEstadoDeArchivo(
+  cantoId: string,
+  nuevo: 'archivado' | 'listo'
+): Promise<ResultadoArchivo> {
+  const id = z.string().uuid().safeParse(cantoId)
+  if (!id.success) return { ok: false, error: 'Ese canto no existe.' }
+
+  const sesion = await obtenerSesion()
+  if (!sesion) return { ok: false, error: 'Sesión expirada. Vuelve a entrar.' }
+  if (!sesion.coroActivo) return { ok: false, error: 'No perteneces a ningún coro.' }
+  if (!puede(sesion.sujeto, 'archivar_canto')) return { ok: false, error: NO_PUEDE_ARCHIVAR }
+
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('cantos')
+    .update({ estado: nuevo, updated_at: new Date().toISOString() })
+    .eq('id', id.data)
+    .select('id')
+    .maybeSingle()
+
+  if (error) return { ok: false, error: 'No pudimos guardar el cambio.' }
+  // Cero filas sin error es la RLS diciendo que no (§14): no se deja pasar
+  // como un guardado exitoso.
+  if (!data) return { ok: false, error: NO_PUEDE_ARCHIVAR }
+
+  revalidatePath('/repertorio')
+  revalidatePath('/repertorio/archivados')
+  revalidatePath(`/repertorio/${id.data}`)
+  return { ok: true }
+}
+
+export async function archivarCanto(cantoId: string): Promise<ResultadoArchivo> {
+  return cambiarEstadoDeArchivo(cantoId, 'archivado')
+}
+
+export async function desarchivarCanto(cantoId: string): Promise<ResultadoArchivo> {
+  return cambiarEstadoDeArchivo(cantoId, 'listo')
 }

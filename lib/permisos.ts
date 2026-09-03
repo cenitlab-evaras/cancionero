@@ -10,12 +10,27 @@
  * pantalla funcione.
  */
 
-/** Rol GLOBAL, en `public.perfiles`. Qué TIPO de cosas puede hacer alguien. */
-export const ROLES = ['admin', 'miembro', 'externo'] as const
+/**
+ * Rol GLOBAL, en `public.perfiles`. Qué TIPO de cosas puede hacer alguien.
+ *
+ * `admin` NO es un tipo de persona del coro: es la cuenta de instalación
+ * —aprueba altas, crea coros— y no se nombra en ninguna pantalla del coro.
+ * Dentro de un coro hay dos y solo dos: director y miembro (ver abajo).
+ *
+ * El valor común se llama `usuario` y no `miembro` a propósito: `miembro` es
+ * el rol LOCAL, y dos columnas con el mismo valor significando cosas distintas
+ * es exactamente lo que PRD §5 prohíbe.
+ */
+export const ROLES = ['admin', 'usuario', 'externo'] as const
 export type Rol = (typeof ROLES)[number]
 
-/** Rol EN UN CORO, en `public.coro_acceso`. Sobre CUÁLES actúa. */
-export const ROLES_LOCALES = ['director', 'musico'] as const
+/**
+ * Rol EN UN CORO, en `public.coro_acceso`. Sobre CUÁLES actúa.
+ *
+ * Los dos únicos tipos de persona del coro. El director arma el repertorio y
+ * las misas; el miembro lee y toca.
+ */
+export const ROLES_LOCALES = ['director', 'miembro'] as const
 export type RolLocal = (typeof ROLES_LOCALES)[number]
 
 /**
@@ -34,17 +49,20 @@ export type Sujeto = {
 export const CAPACIDADES = [
   'ver_coro',
   'ver_repertorio',
-  'ver_celebracion',
+  'ver_misa',
   'leer_canto',
   'guardar_preferencia_propia',
   'ver_preferencia_ajena',
   'editar_ficha_propia',
   'ver_ficha_del_coro',
   'editar_canto',
+  'archivar_canto',
   'asignar_momentos',
-  'editar_celebracion',
-  'asignar_cantos_celebracion',
-  'quitar_canto_celebracion',
+  'inscribirse_a_misa',
+  'ver_inscripciones',
+  'editar_misa',
+  'asignar_cantos_misa',
+  'quitar_canto_misa',
   'administrar_miembros',
   'crear_coro',
   'aprobar_perfil',
@@ -69,7 +87,7 @@ const MATRIZ: Record<Rol, Record<Capacidad, Celda>> = {
   admin: {
     ver_coro: true,
     ver_repertorio: true,
-    ver_celebracion: true,
+    ver_misa: true,
     leer_canto: true,
     guardar_preferencia_propia: true,
     ver_preferencia_ajena: false, // nadie, tampoco el admin
@@ -77,31 +95,49 @@ const MATRIZ: Record<Rol, Record<Capacidad, Celda>> = {
     // edad de nadie. Su propia ficha sí, como cualquiera.
     editar_ficha_propia: 'solo_vinculado',
     ver_ficha_del_coro: false,
+    // H15: inscribirse es declarar algo sobre uno mismo en un coro. Sin
+    // vínculo no hay nada que declarar.
+    inscribirse_a_misa: 'solo_vinculado',
+    ver_inscripciones: 'solo_vinculado',
     editar_canto: true,
+    // Archivar es del coro, y el admin no dirige ninguno: la capacidad la
+    // resuelve el vínculo, igual que editar.
+    archivar_canto: true,
     asignar_momentos: true,
-    editar_celebracion: true,
-    asignar_cantos_celebracion: true,
-    quitar_canto_celebracion: true,
+    editar_misa: true,
+    asignar_cantos_misa: true,
+    quitar_canto_misa: true,
     administrar_miembros: true,
     crear_coro: true,
     aprobar_perfil: true,
     editar_catalogo: true,
   },
-  miembro: {
+  usuario: {
     ver_coro: 'solo_vinculado',
     ver_repertorio: 'solo_vinculado',
-    ver_celebracion: 'solo_vinculado',
+    ver_misa: 'solo_vinculado',
     leer_canto: 'solo_vinculado',
     guardar_preferencia_propia: true,
     ver_preferencia_ajena: false,
     // H14: la ficha la carga cada uno; el director del coro la lee.
     editar_ficha_propia: 'solo_vinculado',
     ver_ficha_del_coro: 'solo_director',
+    // H15 · LA PRIMERA ESCRITURA DEL MIEMBRO EN DATO COMPARTIDO (§19.5). Y la
+    // primera lectura compartida de algo personal: a diferencia de la ficha,
+    // acá el coro entero ve quién va, porque para eso existe el dato.
+    //
+    // No hay capacidad de inscribir a OTRO, ni siquiera para el director: la
+    // inscripción es una declaración de la persona sobre sí misma.
+    inscribirse_a_misa: 'solo_vinculado',
+    ver_inscripciones: 'solo_vinculado',
     editar_canto: 'solo_director',
+    // Sacar un canto de circulación es del director: con el admin fuera del
+    // coro, él es la máxima autoridad dentro de él. Y no borra nada — §16.
+    archivar_canto: 'solo_director',
     asignar_momentos: 'solo_director',
-    editar_celebracion: 'solo_director',
-    asignar_cantos_celebracion: 'solo_director',
-    quitar_canto_celebracion: 'solo_director',
+    editar_misa: 'solo_director',
+    asignar_cantos_misa: 'solo_director',
+    quitar_canto_misa: 'solo_director',
     administrar_miembros: 'solo_director',
     crear_coro: false,
     aprobar_perfil: false,
@@ -110,18 +146,21 @@ const MATRIZ: Record<Rol, Record<Capacidad, Celda>> = {
   externo: {
     ver_coro: false,
     ver_repertorio: false,
-    ver_celebracion: false,
+    ver_misa: false,
     leer_canto: false,
     guardar_preferencia_propia: true,
     ver_preferencia_ajena: false,
     // Un externo no está en ningún coro: no hay ficha que cargar.
     editar_ficha_propia: false,
     ver_ficha_del_coro: false,
+    inscribirse_a_misa: false,
+    ver_inscripciones: false,
     editar_canto: false,
+    archivar_canto: false,
     asignar_momentos: false,
-    editar_celebracion: false,
-    asignar_cantos_celebracion: false,
-    quitar_canto_celebracion: false,
+    editar_misa: false,
+    asignar_cantos_misa: false,
+    quitar_canto_misa: false,
     administrar_miembros: false,
     crear_coro: false,
     aprobar_perfil: false,

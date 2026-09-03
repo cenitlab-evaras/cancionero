@@ -90,12 +90,12 @@ export default function ListaMiembros({
             </span>
 
             <select
-              value={p.rolLocal ?? 'musico'}
+              value={p.rolLocal ?? 'miembro'}
               onChange={(e) =>
                 correr(() =>
                   cambiarRolLocal({
                     accesoId: p.accesoId!,
-                    rolLocal: e.target.value as 'director' | 'musico',
+                    rolLocal: e.target.value as 'director' | 'miembro',
                   })
                 )
               }
@@ -103,7 +103,7 @@ export default function ListaMiembros({
               aria-label={`Rol de ${nombreDe(p)} en el coro`}
               className="tactil shrink-0 rounded-lg border border-borde-fuerte bg-superficie px-2 text-sm"
             >
-              <option value="musico">músico</option>
+              <option value="miembro">miembro</option>
               <option value="director">director</option>
             </select>
           </li>
@@ -136,7 +136,7 @@ export default function ListaMiembros({
                 <span className="block truncate text-xs text-texto-tenue">{p.email}</span>
               </span>
               <button
-                onClick={() => correr(() => agregarMiembro({ perfilId: p.id, rolLocal: 'musico' }))}
+                onClick={() => correr(() => agregarMiembro({ perfilId: p.id, rolLocal: 'miembro' }))}
                 disabled={pendiente}
                 className="tactil shrink-0 rounded-lg px-3 text-sm text-acento disabled:opacity-40"
               >

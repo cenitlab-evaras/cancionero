@@ -32,7 +32,7 @@ export default function Cabecera({ sesion }: { sesion: SesionCantoral }) {
 
   if (sesion.coroActivo) {
     destinos.push({ href: '/repertorio', texto: 'Repertorio' })
-    destinos.push({ href: '/celebraciones', texto: 'Misas' })
+    destinos.push({ href: '/misas', texto: 'Misas' })
     if (puede(sesion.sujeto, 'ver_ficha_del_coro')) {
       destinos.push({ href: '/coro/miembros', texto: 'Miembros' })
     }

@@ -3,11 +3,11 @@
  *
  * Motor PURO: entra lo que H6 ya guardó —qué canto, en qué misa, en qué momento
  * y con qué fecha— y sale cuántas veces se cantó, hace cuánto y cada cuánto.
- * Cero tablas nuevas: la celebración armada ES el historial.
+ * Cero tablas nuevas: la misa armada ES el historial.
  *
  * DOS REGLAS QUE SOSTIENEN TODO LO DEMÁS:
  *
- * 1. **Cuenta lo que ya ocurrió.** Una celebración con fecha futura está
+ * 1. **Cuenta lo que ya ocurrió.** Una misa con fecha futura está
  *    agendada, no cantada; una sin fecha —el ensayo de §18-6— nunca ocurrió en
  *    una misa. Si contaran, «cantado 5 veces» dejaría de significar algo.
  *
@@ -18,20 +18,20 @@
  * Nada de esto se persiste (innegociable 4): se calcula al leer.
  */
 
-/** Una fila de `celebracion_cantos` cruzada con su celebración. */
+/** Una fila de `misa_cantos` cruzada con su misa. */
 export type EjecucionCruda = {
   cantoId: string
-  celebracionId: string
-  celebracionNombre: string
-  /** `YYYY-MM-DD`, o null si la celebración no declara fecha (§18-6). */
+  misaId: string
+  misaNombre: string
+  /** `YYYY-MM-DD`, o null si la misa no declara fecha (§18-6). */
   fecha: string | null
   momento: string
 }
 
 /** Una vez que el canto sonó en una misa que ya ocurrió. */
 export type Ejecucion = {
-  celebracionId: string
-  celebracionNombre: string
+  misaId: string
+  misaNombre: string
   fecha: string
   momento: string
 }
@@ -83,8 +83,8 @@ function conFecha(
       return cuales === 'ocurridas' ? e.fecha <= hoy : e.fecha > hoy
     })
     .map((e) => ({
-      celebracionId: e.celebracionId,
-      celebracionNombre: e.celebracionNombre,
+      misaId: e.misaId,
+      misaNombre: e.misaNombre,
       fecha: e.fecha,
       momento: e.momento,
     }))

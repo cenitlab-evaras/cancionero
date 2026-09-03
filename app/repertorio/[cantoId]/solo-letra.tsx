@@ -39,7 +39,7 @@ export default function SoloLetra({ mostrarAcordes }: { mostrarAcordes: boolean 
       title={optimista ? 'Ocultar los acordes en todo el repertorio' : 'Volver a ver los acordes'}
       // El estado se dice con SUPERFICIE, no con el color del acorde. Pintarlo
       // de `--color-acorde` hacía que un control compitiera con lo único que el
-      // músico busca de reojo a un metro (§DESIGN, «la regla del acorde»): el
+      // miembro busca de reojo a un metro (§DESIGN, «la regla del acorde»): el
       // toggle y los acordes tenían el mismo valor de color, medido.
       // Apagado va tachado, que dice lo que pasó sin depender del color.
       className={`shrink-0 rounded-full border px-2 py-0.5 text-[0.6875rem] transition-colors ${

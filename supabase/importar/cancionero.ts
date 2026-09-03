@@ -22,7 +22,7 @@ const SECRETO = process.env.SUPABASE_SECRET_KEY!
 // producto sí están versionados, en `docs/`.
 const PDF = '../docs/cancioneros catolicos/Cancionero Catolico.pdf'
 const FUENTE = 'Cancionero Misionero — Coro Misión País 2025'
-const CORO = 'San José de la Familia'
+const CORO = 'Coro San José de la Familia'
 
 const aplicar = process.argv.includes('--aplicar')
 

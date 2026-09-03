@@ -22,7 +22,7 @@ const DT_MAXIMO_MS = 1000
 
 /**
  * Velocidad en píxeles por segundo para un nivel del control.
- * Lineal entre los extremos: el músico mueve el control y el cambio se siente
+ * Lineal entre los extremos: el miembro mueve el control y el cambio se siente
  * proporcional, sin escalones.
  */
 export function pixelesPorSegundo(nivel: number): number {

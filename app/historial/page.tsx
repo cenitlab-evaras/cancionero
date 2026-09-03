@@ -66,7 +66,7 @@ export default async function HistorialPage() {
         {cantados.length === 0 && nunca.length > 0 && (
           <p className="mt-8 max-w-prose text-sm text-texto-tenue">
             Todavía no hay ninguna misa pasada registrada, así que ningún canto tiene historial.
-            Cuando se arme una celebración con fecha y esa fecha pase, va a aparecer acá.
+            Cuando se arme una misa con fecha y esa fecha pase, va a aparecer acá.
           </p>
         )}
 
@@ -139,7 +139,7 @@ export default async function HistorialPage() {
                       {/* Un canto agendado no está olvidado: está por sonar. */}
                       {canto.historial.agendadas.length > 0 && (
                         <span className="block truncate text-xs text-texto-tenue">
-                          agendado en {canto.historial.agendadas[0].celebracionNombre}
+                          agendado en {canto.historial.agendadas[0].misaNombre}
                         </span>
                       )}
                     </span>

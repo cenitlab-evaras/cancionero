@@ -11,10 +11,10 @@ import { fechaEnZona } from '@/lib/motores/fecha'
  * Consultas del historial de ejecución (H13).
  *
  * Cero tablas nuevas: lo que se lee es lo que H6 ya guarda. Una fila de
- * `celebracion_cantos` cruzada con su celebración ES una ejecución.
+ * `misa_cantos` cruzada con su misa ES una ejecución.
  *
  * Como en el resto de la capa de datos, no se re-chequean permisos: la RLS
- * decide qué filas salen. Un músico de otro coro obtiene cero y eso es correcto.
+ * decide qué filas salen. Un miembro de otro coro obtiene cero y eso es correcto.
  */
 
 /**
@@ -34,7 +34,7 @@ export function hoyISO(): string {
 
 type FilaEjecucion = {
   canto_id: string
-  celebraciones: { id: string; nombre: string; fecha: string | null } | null
+  misas: { id: string; nombre: string; fecha: string | null } | null
   momentos_liturgicos: { nombre: string } | null
 }
 
@@ -43,8 +43,8 @@ async function ejecucionesDelCoro(coroId: string): Promise<EjecucionCruda[]> {
   const supabase = await createClient()
 
   const { data, error } = await supabase
-    .from('celebracion_cantos')
-    .select('canto_id, celebraciones(id, nombre, fecha), momentos_liturgicos(nombre)')
+    .from('misa_cantos')
+    .select('canto_id, misas(id, nombre, fecha), momentos_liturgicos(nombre)')
     .eq('coro_id', coroId)
 
   if (error) throw error
@@ -53,12 +53,12 @@ async function ejecucionesDelCoro(coroId: string): Promise<EjecucionCruda[]> {
   // en el motor, que está probado. Si estuviera en los dos lados, algún día
   // dirían cosas distintas.
   return ((data ?? []) as unknown as FilaEjecucion[])
-    .filter((f) => f.celebraciones !== null && f.momentos_liturgicos !== null)
+    .filter((f) => f.misas !== null && f.momentos_liturgicos !== null)
     .map((f) => ({
       cantoId: f.canto_id,
-      celebracionId: f.celebraciones!.id,
-      celebracionNombre: f.celebraciones!.nombre,
-      fecha: f.celebraciones!.fecha,
+      misaId: f.misas!.id,
+      misaNombre: f.misas!.nombre,
+      fecha: f.misas!.fecha,
       momento: f.momentos_liturgicos!.nombre,
     }))
 }
@@ -86,7 +86,7 @@ export type CantoConHistorial = {
  * Todo el repertorio con su historial, para `/historial`.
  *
  * Se parte del REPERTORIO y no de las ejecuciones: un canto que nunca se cantó
- * no tiene ni una fila en `celebracion_cantos`, y si la lista saliera de ahí
+ * no tiene ni una fila en `misa_cantos`, y si la lista saliera de ahí
  * sería justamente el que no aparecería — cuando es el que más importa ver.
  */
 export async function repertorioConHistorial(coroId: string): Promise<CantoConHistorial[]> {

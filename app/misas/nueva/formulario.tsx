@@ -1,12 +1,12 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { crearCelebracion } from '../acciones'
+import { crearMisa } from '../acciones'
 
 const CAMPO =
   'h-11 rounded-lg border border-borde-fuerte bg-superficie px-3 text-texto transition-colors placeholder:text-texto-tenue hover:border-texto-tenue focus:border-acento'
 
-export default function FormularioCelebracion() {
+export default function FormularioMisa() {
   const [nombre, setNombre] = useState('')
   const [fecha, setFecha] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -17,7 +17,7 @@ export default function FormularioCelebracion() {
     setError(null)
     empezar(async () => {
       // La acción redirige sola cuando sale bien; si vuelve, es que falló.
-      const r = await crearCelebracion({ nombre, fecha })
+      const r = await crearMisa({ nombre, fecha })
       if (r && !r.ok) setError(r.error)
     })
   }

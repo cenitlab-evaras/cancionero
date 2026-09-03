@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { obtenerSesion } from '@/lib/sesion'
 import { puede } from '@/lib/permisos'
-import { repertorioPorMomento } from '@/lib/datos/repertorio'
+import { contarArchivados, repertorioPorMomento } from '@/lib/datos/repertorio'
 import { contarEnEnsayo, etiquetaEstado } from '@/lib/motores/estado-canto'
 import Cabecera from '@/app/componentes/cabecera'
 import Buscador from './buscador'
@@ -37,7 +37,12 @@ export default async function RepertorioPage({
   }
 
   const { q = '' } = await searchParams
-  const grupos = await repertorioPorMomento(sesion.coroActivo.id, q)
+  const puedeArchivar = puede(sesion.sujeto, 'archivar_canto')
+  const [grupos, archivados] = await Promise.all([
+    repertorioPorMomento(sesion.coroActivo.id, q),
+    // Solo se pregunta si hay a quién ofrecerle el enlace.
+    puedeArchivar ? contarArchivados(sesion.coroActivo.id) : Promise.resolve(0),
+  ])
   const total = grupos.reduce((n, g) => n + g.cantos.length, 0)
   // Se calcula al leer, nunca se guarda (innegociable 4). El motor cuenta por
   // id: un canto asignado a tres momentos aparece tres veces en `grupos`.
@@ -167,6 +172,20 @@ export default async function RepertorioPage({
             <Link href="/historial" className="text-acento underline underline-offset-2">
               ver historial
             </Link>
+            {/* Los archivados se ofrecen solo a quien puede traerlos de vuelta,
+                y solo si hay alguno: un enlace a una papelera vacía es ruido en
+                una pantalla que se mira de reojo. */}
+            {puedeArchivar && archivados > 0 && (
+              <>
+                {' · '}
+                <Link
+                  href="/repertorio/archivados"
+                  className="text-acento underline underline-offset-2"
+                >
+                  {archivados} {archivados === 1 ? 'archivado' : 'archivados'}
+                </Link>
+              </>
+            )}
           </p>
         )}
       </main>

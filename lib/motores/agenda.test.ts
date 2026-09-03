@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { agruparCelebraciones } from './agenda'
+import { agruparMisas } from './agenda'
 
 /**
  * Agrupar las misas por lo que el director pregunta el domingo.
@@ -17,9 +17,9 @@ import { agruparCelebraciones } from './agenda'
 
 const misa = (nombre: string, fecha: string | null) => ({ nombre, fecha })
 
-describe('agruparCelebraciones', () => {
+describe('agruparMisas', () => {
   test('lo que viene va primero, y lo más próximo arriba', () => {
-    const r = agruparCelebraciones(
+    const r = agruparMisas(
       [misa('lejana', '2026-12-25'), misa('próxima', '2026-09-06')],
       '2026-09-02'
     )
@@ -28,7 +28,7 @@ describe('agruparCelebraciones', () => {
   })
 
   test('lo ya cantado va después, y lo más reciente arriba', () => {
-    const r = agruparCelebraciones(
+    const r = agruparMisas(
       [misa('vieja', '2026-05-03'), misa('reciente', '2026-08-30')],
       '2026-09-02'
     )
@@ -38,14 +38,14 @@ describe('agruparCelebraciones', () => {
   test('la de hoy cuenta como ocurrida, igual que en el historial', () => {
     // §17 decidió «fecha declarada y ya pasada». Si acá la tratáramos como
     // pendiente, el mismo domingo diría dos cosas distintas según la pantalla.
-    const r = agruparCelebraciones([misa('la de hoy', '2026-09-02')], '2026-09-02')
+    const r = agruparMisas([misa('la de hoy', '2026-09-02')], '2026-09-02')
     expect(r.pasadas.map((c) => c.nombre)).toEqual(['la de hoy'])
     expect(r.proximas).toEqual([])
   })
 
   test('las listas sin fecha van aparte, no al fondo de las pasadas', () => {
     // Un ensayo sin fecha no es una misa vieja: no ocurrió ni está agendado.
-    const r = agruparCelebraciones(
+    const r = agruparMisas(
       [misa('ensayo', null), misa('misa', '2026-08-30')],
       '2026-09-02'
     )
@@ -61,7 +61,7 @@ describe('agruparCelebraciones', () => {
       misa('d', '2026-05-03'),
       misa('e', null),
     ]
-    const r = agruparCelebraciones(lista, '2026-09-02')
+    const r = agruparMisas(lista, '2026-09-02')
     const total = [...r.proximas, ...r.pasadas, ...r.sinFecha]
     expect(total).toHaveLength(lista.length)
     expect(new Set(total.map((c) => c.nombre)).size).toBe(lista.length)
@@ -69,12 +69,12 @@ describe('agruparCelebraciones', () => {
 
   test('no muta la lista que recibe', () => {
     const lista = [misa('a', '2026-05-03'), misa('b', '2026-12-25')]
-    agruparCelebraciones(lista, '2026-09-02')
+    agruparMisas(lista, '2026-09-02')
     expect(lista.map((c) => c.nombre)).toEqual(['a', 'b'])
   })
 
   test('una lista vacía devuelve los tres grupos vacíos, no undefined', () => {
-    const r = agruparCelebraciones([], '2026-09-02')
+    const r = agruparMisas([], '2026-09-02')
     expect(r).toEqual({ proximas: [], pasadas: [], sinFecha: [] })
   })
 })

@@ -31,7 +31,7 @@ async function exigir(capacidad: Capacidad, mensaje: string): Promise<Contexto> 
 
 const Vincular = z.object({
   perfilId: z.string().uuid(),
-  rolLocal: z.enum(['director', 'musico']),
+  rolLocal: z.enum(['director', 'miembro']),
 })
 
 export async function agregarMiembro(raw: unknown): Promise<Resultado> {
@@ -79,7 +79,7 @@ export async function agregarMiembro(raw: unknown): Promise<Resultado> {
 
 const CambiarRol = z.object({
   accesoId: z.string().uuid(),
-  rolLocal: z.enum(['director', 'musico']),
+  rolLocal: z.enum(['director', 'miembro']),
 })
 
 export async function cambiarRolLocal(raw: unknown): Promise<Resultado> {
@@ -96,7 +96,7 @@ export async function cambiarRolLocal(raw: unknown): Promise<Resultado> {
 
   // Un coro sin director no puede volver a armar una misa, y nadie podría
   // deshacerlo desde la app. Se frena acá, con su motivo.
-  if (datos.data.rolLocal === 'musico') {
+  if (datos.data.rolLocal === 'miembro') {
     const { data: acceso } = await supabase
       .from('coro_acceso')
       .select('rol_local')

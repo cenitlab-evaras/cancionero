@@ -1,9 +1,9 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { obtenerSesion } from '@/lib/sesion'
-import { obtenerCelebracion } from '@/lib/datos/celebraciones'
+import { obtenerMisa } from '@/lib/datos/misas'
 import { obtenerCanto, obtenerPreferencia } from '@/lib/datos/repertorio'
-import { recorrido } from '@/lib/motores/celebracion'
+import { recorrido } from '@/lib/motores/misa'
 import { transponer, transponerAcorde } from '@/lib/motores/transponer'
 import { acordesDeCanto } from '@/lib/motores/acordes-de-canto'
 import { buscarDigitacion } from '@/lib/motores/buscar-digitacion'
@@ -19,14 +19,14 @@ import {
   ZonaAcordes,
 } from '@/app/repertorio/[cantoId]/diagramas'
 
-export const metadata = { title: 'Celebración · Cantoral' }
+export const metadata = { title: 'Misa · Cantoral' }
 
 /**
  * **Vista de ejecución** (H6): el canto que toca ahora, dentro de la misa.
  *
  * Es la misma lectura de H2–H5 —cifrado, transponer, tamaño, auto scroll,
  * diagramas— más lo único que agrega este hito: saber en qué punto de la misa
- * está el músico y poder pasar al siguiente **sin volver al listado**, que es
+ * está el miembro y poder pasar al siguiente **sin volver al listado**, que es
  * literalmente lo que pide el "listo cuando".
  *
  * La navegación la calcula un motor puro y probado; acá solo se pinta.
@@ -41,37 +41,37 @@ export default async function EjecucionPage({
   if (!sesion.sujeto.aprobado) redirect('/esperando-aprobacion')
 
   const { id, filaId } = await params
-  const celebracion = await obtenerCelebracion(id)
+  const misa = await obtenerMisa(id)
 
-  if (!celebracion) {
+  if (!misa) {
     return (
       <>
         <Cabecera sesion={sesion} />
         <main className="mx-auto w-full max-w-2xl px-4 py-10">
           <h1 className="text-lg font-semibold text-peligro">
-            No tienes acceso a esta celebración
+            No tienes acceso a esta misa
           </h1>
           <Link
-            href="/celebraciones"
+            href="/misas"
             className="mt-6 inline-block text-sm text-acento underline underline-offset-2"
           >
-            Volver a las celebraciones
+            Volver a las misas
           </Link>
         </main>
       </>
     )
   }
 
-  const fila = celebracion.cantos.find((c) => c.id === filaId)
-  if (!fila) redirect(`/celebraciones/${id}`)
+  const fila = misa.cantos.find((c) => c.id === filaId)
+  if (!fila) redirect(`/misas/${id}`)
 
   const [canto, preferencia] = await Promise.all([
     obtenerCanto(fila.cantoId),
     obtenerPreferencia(fila.cantoId),
   ])
-  if (!canto) redirect(`/celebraciones/${id}`)
+  if (!canto) redirect(`/misas/${id}`)
 
-  const paso = recorrido(celebracion.cantos, filaId)
+  const paso = recorrido(misa.cantos, filaId)
 
   const cifradoEnPantalla = transponer(canto.cifrado, preferencia.transposicion)
   const tonalidadActual = canto.tonalidadOriginal
@@ -94,13 +94,13 @@ export default async function EjecucionPage({
           {/* La cinta de la misa: dónde estás, sin ocupar una barra propia. */}
           <div className="flex items-baseline gap-3 pt-4 text-xs text-texto-tenue">
             <Link
-              href={`/celebraciones/${celebracion.id}`}
+              href={`/misas/${misa.id}`}
               className="-ml-1 shrink-0 rounded px-1 transition-colors hover:text-texto"
-              aria-label="Volver a la celebración"
+              aria-label="Volver a la misa"
             >
               ←
             </Link>
-            <span className="min-w-0 truncate">{celebracion.nombre}</span>
+            <span className="min-w-0 truncate">{misa.nombre}</span>
             <span className="ml-auto shrink-0 font-cifrado">
               {paso.posicion} de {paso.total}
             </span>
@@ -135,7 +135,7 @@ export default async function EjecucionPage({
           <nav className="mt-10 flex items-stretch gap-2 border-t border-borde pt-4">
             {paso.anterior ? (
               <Link
-                href={`/celebraciones/${celebracion.id}/${paso.anterior}`}
+                href={`/misas/${misa.id}/${paso.anterior}`}
                 className="tactil flex flex-1 items-center justify-center rounded-lg border border-borde text-sm transition-colors hover:bg-superficie"
               >
                 ← Anterior
@@ -148,7 +148,7 @@ export default async function EjecucionPage({
 
             {paso.siguiente ? (
               <Link
-                href={`/celebraciones/${celebracion.id}/${paso.siguiente}`}
+                href={`/misas/${misa.id}/${paso.siguiente}`}
                 className="tactil flex flex-1 items-center justify-center rounded-lg bg-acento text-sm font-medium text-white"
               >
                 Siguiente →
@@ -156,7 +156,7 @@ export default async function EjecucionPage({
             ) : (
               // Fin de la misa. No se esconde el botón: se dice que se terminó.
               <Link
-                href={`/celebraciones/${celebracion.id}`}
+                href={`/misas/${misa.id}`}
                 className="tactil flex flex-1 items-center justify-center rounded-lg border border-borde text-sm transition-colors hover:bg-superficie"
               >
                 Fin de la misa

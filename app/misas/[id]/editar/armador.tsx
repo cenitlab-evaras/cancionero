@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { agregarCanto, moverCanto, quitarCanto } from '../../acciones'
-import type { CantoDeCelebracion } from '@/lib/datos/celebraciones'
+import type { CantoDeMisa } from '@/lib/datos/misas'
 
 type Disponible = {
   id: string
@@ -20,12 +20,12 @@ type Disponible = {
  * servidor. Esto es solo el pegamento: llamar la acción y refrescar.
  */
 export default function Armador({
-  celebracionId,
+  misaId,
   asignados,
   disponibles,
 }: {
-  celebracionId: string
-  asignados: CantoDeCelebracion[]
+  misaId: string
+  asignados: CantoDeMisa[]
   disponibles: Disponible[]
 }) {
   const router = useRouter()
@@ -73,7 +73,7 @@ export default function Armador({
 
               <button
                 onClick={() =>
-                  correr(() => moverCanto({ celebracionId, filaId: c.id, direccion: 'arriba' }))
+                  correr(() => moverCanto({ misaId, filaId: c.id, direccion: 'arriba' }))
                 }
                 disabled={i === 0 || pendiente}
                 aria-label={`Subir ${c.titulo}`}
@@ -83,7 +83,7 @@ export default function Armador({
               </button>
               <button
                 onClick={() =>
-                  correr(() => moverCanto({ celebracionId, filaId: c.id, direccion: 'abajo' }))
+                  correr(() => moverCanto({ misaId, filaId: c.id, direccion: 'abajo' }))
                 }
                 disabled={i === asignados.length - 1 || pendiente}
                 aria-label={`Bajar ${c.titulo}`}
@@ -92,11 +92,11 @@ export default function Armador({
                 ↓
               </button>
               <button
-                onClick={() => correr(() => quitarCanto({ celebracionId, filaId: c.id }))}
+                onClick={() => correr(() => quitarCanto({ misaId, filaId: c.id }))}
                 disabled={pendiente}
-                aria-label={`Quitar ${c.titulo} de la celebración`}
+                aria-label={`Quitar ${c.titulo} de la misa`}
                 // La única acción destructiva del producto tiene el único color
-                // de peligro (PRD §11.1). Quitar de una celebración no borra el
+                // de peligro (PRD §11.1). Quitar de una misa no borra el
                 // canto del repertorio.
                 className="tactil w-9 rounded-lg text-peligro disabled:opacity-25"
               >
@@ -113,7 +113,7 @@ export default function Armador({
 
       {disponibles.length === 0 ? (
         <p className="mt-2 text-sm text-texto-tenue">
-          Todos los cantos del repertorio ya están en esta celebración.
+          Todos los cantos del repertorio ya están en esta misa.
         </p>
       ) : (
         Object.entries(porMomento).map(([momento, cantos]) => (
@@ -125,7 +125,7 @@ export default function Armador({
                   <button
                     onClick={() =>
                       correr(() =>
-                        agregarCanto({ celebracionId, cantoId: c.id, momentoId: c.momentoId })
+                        agregarCanto({ misaId, cantoId: c.id, momentoId: c.momentoId })
                       )
                     }
                     disabled={pendiente}

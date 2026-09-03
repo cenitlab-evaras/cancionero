@@ -2,9 +2,9 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { obtenerSesion } from '@/lib/sesion'
 import { puede } from '@/lib/permisos'
-import { celebracionesDelCoro } from '@/lib/datos/celebraciones'
+import { misasDelCoro } from '@/lib/datos/misas'
 import { hoyISO } from '@/lib/datos/historial'
-import { agruparCelebraciones } from '@/lib/motores/agenda'
+import { agruparMisas } from '@/lib/motores/agenda'
 import Cabecera from '@/app/componentes/cabecera'
 
 export const metadata = { title: 'Misas · Cantoral' }
@@ -19,12 +19,12 @@ function comoFecha(iso: string) {
   })
 }
 
-export default async function CelebracionesPage() {
+export default async function MisasPage() {
   const sesion = await obtenerSesion()
   if (!sesion) redirect('/entrar')
   if (!sesion.sujeto.aprobado) redirect('/esperando-aprobacion')
 
-  const puedeEditar = puede(sesion.sujeto, 'editar_celebracion')
+  const puedeEditar = puede(sesion.sujeto, 'editar_misa')
 
   if (!sesion.coroActivo) {
     return (
@@ -40,8 +40,8 @@ export default async function CelebracionesPage() {
     )
   }
 
-  const celebraciones = await celebracionesDelCoro(sesion.coroActivo.id)
-  const grupos = agruparCelebraciones(celebraciones, hoyISO())
+  const misas = await misasDelCoro(sesion.coroActivo.id)
+  const grupos = agruparMisas(misas, hoyISO())
 
   return (
     <>
@@ -52,7 +52,7 @@ export default async function CelebracionesPage() {
           <h1 className="text-lg font-semibold">Misas</h1>
           {puedeEditar && (
             <Link
-              href="/celebraciones/nueva"
+              href="/misas/nueva"
               className="tactil flex items-center rounded-lg px-3 text-sm text-acento"
             >
               Nueva
@@ -60,10 +60,10 @@ export default async function CelebracionesPage() {
           )}
         </div>
 
-        {celebraciones.length === 0 ? (
+        {misas.length === 0 ? (
           // Vacío legítimo, con su motivo: no es falta de acceso (PRD §14).
           <p className="mt-6 max-w-prose text-sm text-texto-tenue">
-            Este coro todavía no tiene celebraciones armadas.
+            Este coro todavía no tiene misas armadas.
             {puedeEditar
               ? ' Crea una y asígnale un canto por momento.'
               : ' Cuando tu director arme una, aparece acá.'}
@@ -75,13 +75,13 @@ export default async function CelebracionesPage() {
                 las fechas para contestarla. Los grupos se callan si están
                 vacíos — un «Ya cantadas (0)» no informa nada. */}
             {grupos.proximas.length > 0 && (
-              <Seccion titulo="Lo que viene" celebraciones={grupos.proximas} />
+              <Seccion titulo="Lo que viene" misas={grupos.proximas} />
             )}
             {grupos.pasadas.length > 0 && (
-              <Seccion titulo="Ya cantadas" celebraciones={grupos.pasadas} />
+              <Seccion titulo="Ya cantadas" misas={grupos.pasadas} />
             )}
             {grupos.sinFecha.length > 0 && (
-              <Seccion titulo="Sin fecha" celebraciones={grupos.sinFecha} />
+              <Seccion titulo="Sin fecha" misas={grupos.sinFecha} />
             )}
           </>
         )}
@@ -99,19 +99,19 @@ export default async function CelebracionesPage() {
  */
 function Seccion({
   titulo,
-  celebraciones,
+  misas,
 }: {
   titulo: string
-  celebraciones: Awaited<ReturnType<typeof celebracionesDelCoro>>
+  misas: Awaited<ReturnType<typeof misasDelCoro>>
 }) {
   return (
     <section className="mt-6">
       <h2 className="text-[0.8125rem] font-semibold text-texto-tenue uppercase">{titulo}</h2>
       <ul className="mt-2 divide-y divide-borde border-t border-borde">
-        {celebraciones.map((c) => (
+        {misas.map((c) => (
           <li key={c.id}>
             <Link
-              href={`/celebraciones/${c.id}`}
+              href={`/misas/${c.id}`}
               className="-mx-2 flex min-h-14 items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-superficie"
             >
               <span className="min-w-0 flex-1">
@@ -119,6 +119,10 @@ function Seccion({
                 <span className="block text-xs text-texto-tenue">
                   {c.fecha ? comoFecha(c.fecha) : 'sin fecha'} ·{' '}
                   {c.cantidadCantos === 1 ? '1 canto' : `${c.cantidadCantos} cantos`}
+                  {/* H15 · solo si hay alguien: «0 anotados» en cada fila sería
+                      un reproche semanal, no un dato. */}
+                  {c.anotados > 0 &&
+                    ` · ${c.anotados} ${c.anotados === 1 ? 'anotado' : 'anotados'}`}
                 </span>
               </span>
             </Link>

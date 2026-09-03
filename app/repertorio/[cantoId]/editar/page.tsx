@@ -2,9 +2,10 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { obtenerSesion } from '@/lib/sesion'
 import { puede } from '@/lib/permisos'
-import { cantoParaEditar, catalogosParaEditar } from '@/lib/datos/repertorio'
+import { cantoParaEditar, catalogosParaEditar, vecesEnMisas } from '@/lib/datos/repertorio'
 import Cabecera from '@/app/componentes/cabecera'
 import FormularioCanto from '../../formulario-canto'
+import Archivar from './archivar'
 
 export const metadata = { title: 'Editar canto · Cantoral' }
 
@@ -42,9 +43,10 @@ export default async function EditarCantoPage({
     )
   }
 
-  const [canto, { momentos, autores }] = await Promise.all([
+  const [canto, { momentos, autores }, enMisas] = await Promise.all([
     cantoParaEditar(cantoId),
     catalogosParaEditar(),
+    vecesEnMisas(cantoId),
   ])
 
   // Cero filas por RLS no es un canto vacío: es falta de acceso (§14).
@@ -98,6 +100,14 @@ export default async function EditarCantoPage({
             fuentePagina: canto.fuentePagina,
           }}
         />
+
+        {/* Archivar cuelga de la edición y no de la vista de lectura: sacar un
+            canto del repertorio es una decisión que se toma mirándolo entero,
+            sentado, no mientras se toca. Y no se ofrece sobre uno que ya está
+            archivado — para eso está /repertorio/archivados. */}
+        {puede(sesion.sujeto, 'archivar_canto') && canto.estado !== 'archivado' && (
+          <Archivar cantoId={canto.id} enMisas={enMisas} />
+        )}
       </main>
     </>
   )

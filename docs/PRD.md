@@ -3,7 +3,7 @@
 **Fecha:** 2026-08-02 · **Estado:** Borrador
 **Producto:** Cantoral (nombre de trabajo, ver §18-2) · **Cliente 0:** Coro Misión País
 **Repo:** lo define `prd-a-codigo` — no es materia de este documento · **Esquema:** `public` (migrado desde `cantoral` el 2026-08-07, ver §18-18)
-**Fuentes:** `docs/` — ver §2 · **Alcance declarado:** un coro católico lee, transpone y toca su repertorio desde el teléfono, y arma con él las celebraciones.
+**Fuentes:** `docs/` — ver §2 · **Alcance declarado:** un coro católico lee, transpone y toca su repertorio desde el teléfono, y arma con él las misas.
 **Backlog vigente:** §19 — once ideas capturadas el 2026-08-06, priorizadas y **sin comprometer**.
 
 ---
@@ -15,7 +15,7 @@ todos observables en las fuentes de `docs/`:
 
 - **No se puede transponer.** El *Cancionero Misionero* trae *Abre tu jardín* en MI. Si la voz no
   llega, alguien reescribe los acordes a mano en el margen y esa versión solo existe en su copia.
-- **No hay repertorio compartido.** Cada músico llega con su propio PDF, en su propia versión, y
+- **No hay repertorio compartido.** Cada miembro llega con su propio PDF, en su propia versión, y
   la corrección que hizo uno no le llega a los demás.
 - **Armar la misa es memoria y WhatsApp.** El repertorio está organizado por momento litúrgico
   —Entrada, Perdón, Gloria, Ofertorio, Santo, Comunión…— pero no hay dónde dejar escrito *qué se
@@ -36,7 +36,7 @@ verificados.
 | Búsqueda en un servicio externo de cifrados (en estado BETA, solo Android) | El repertorio del coro no está en ese servicio: está en dos cancioneros que ya tenemos |
 | Inglés y portugués | El coro es chileno |
 
-El resultado que se busca: **que un músico del coro entre desde su teléfono, encuentre el canto de
+El resultado que se busca: **que un miembro del coro entre desde su teléfono, encuentre el canto de
 la Comunión del domingo ya transpuesto a su tonalidad, y lo toque con la pantalla desplazándose
 sola.**
 
@@ -51,7 +51,7 @@ sola.**
 | `docs/cancioneros catolicos/Cancionero Canto Católico.pdf` | *Canto Católico 2015*: 413 pág, ~380 cantos, mismos momentos litúrgicos y varios títulos en común | reserva de repertorio; confirma que el catálogo de momentos no es idiosincrásico de un solo cancionero | sí | **No se siembra** en el prototipo. Comparte títulos con el Misionero pero **con acordes distintos**: si algún día se ingesta, dos cantos con el mismo título no son duplicados |
 | `docs/diseno/ref-ug-chords-oscuro.png`, `ref-ug-modal-acorde.png`, `ref-ug-chords-diagramas.png`, `ref-ug-tab-pro.png` | tema oscuro, acorde en color cálido sobre monoespaciado, barra inferior de auto scroll con velocidad, modal de diagrama de acorde | los tokens y la densidad de la vista de lectura (§11) | no | Son capturas de un producto ajeno: se copia el **patrón de interacción**, no la marca, ni el color exacto, ni la tipografía propietaria |
 | `docs/diseno/openchord-original-cinco-pantallas.png` | la estructura de navegación del antecedente | nada — queda superada por la piel oscura y por el cambio de dominio | no | Muestra pestañas y funciones fuera de alcance (búsqueda online, artistas como pestaña propia) |
-| `docs/diseno/Captura … 20.26.55 / 20.27.02 / 20.27.09.png`, `ref-transpose-autoscroll-clasico.png` | lacuerda.net y transpositores clásicos: contexto de densidad y de qué espera un músico hispanohablante | nada | no | Baja resolución, ilegibles en detalle. Sirven de referencia de densidad, no de especificación |
+| `docs/diseno/Captura … 20.26.55 / 20.27.02 / 20.27.09.png`, `ref-transpose-autoscroll-clasico.png` | lacuerda.net y transpositores clásicos: contexto de densidad y de qué espera un miembro hispanohablante | nada | no | Baja resolución, ilegibles en detalle. Sirven de referencia de densidad, no de especificación |
 
 **Orden de arbitraje:** cancionero impreso > `FUNCIONAL.md` > capturas de diseño. Si el PDF y el
 funcional discrepan sobre un canto, manda el PDF: es lo que el coro tiene en las manos.
@@ -79,8 +79,8 @@ No falta ninguna **fuente**. Faltan dos **datos**:
 - Auto scroll con play/pausa y velocidad.
 - Diagramas de acorde de guitarra, coherentes con la transposición vigente.
 - Preferencias de lectura por **canto × usuario**.
-- Celebraciones: fecha, nombre y un canto asignado por momento, con orden.
-- Vista de ejecución de la celebración (recorrer los cantos sin volver al listado).
+- Misas: fecha, nombre y un canto asignado por momento, con orden.
+- Vista de ejecución de la misa (recorrer los cantos sin volver al listado).
 - Gobierno del coro: el director admite miembros y cambia su rol local.
 - Edición del repertorio: el director crea y edita cantos en ChordPro y les asigna momentos.
 
@@ -98,7 +98,7 @@ No falta ninguna **fuente**. Faltan dos **datos**:
 | Agregado | Qué cierra | Qué cuesta |
 | --- | --- | --- |
 | **Momento litúrgico** como clasificación de primera clase | Es como está organizado el cancionero en papel y como piensa el coro. Sin esto, buscar "algo para la Comunión" es imposible | un catálogo global (11 filas) y una tabla de vínculo canto↔momento |
-| **Celebración** en lugar de lista de reproducción | Deja escrito qué se canta el domingo y en qué orden; reemplaza al WhatsApp | dos tablas y dos pantallas (armado y ejecución) |
+| **Misa** en lugar de lista de reproducción | Deja escrito qué se canta el domingo y en qué orden; reemplaza al WhatsApp | dos tablas y dos pantallas (armado y ejecución) |
 | **Multiusuario con coro como recurso raíz** | Es el problema central: el repertorio es del coro, no de un teléfono | auth, perfiles, vínculo, RLS en toda tabla — es el H1 |
 
 ### 3.2 Concesiones de prototipo (declaradas, no descubiertas)
@@ -107,7 +107,7 @@ No falta ninguna **fuente**. Faltan dos **datos**:
 | --- | --- |
 | El repertorio entra por **semilla curada**, no por importador | Cada canto declara PDF y número de canto; el seed es idempotente y tiene su borrador (§13) |
 | **Lectura antes que edición**: H1–H6 viven de datos sembrados | Todo lo que se ve en pantalla lo calculó el motor real, no un valor de relleno |
-| **Sin borrado** (salvo quitar un canto de una celebración) | Con repertorio compartido, borrar es destructivo para terceros. Va al YAGNI con su razón (§16) |
+| **Sin borrado** (salvo quitar un canto de una misa) | Con repertorio compartido, borrar es destructivo para terceros. Va al YAGNI con su razón (§16) |
 | **Sin integración continua**; el despliegue lo dispara una persona | El comando exacto está en §15, paso 8 |
 | **Sin librería de componentes**: interfaz a mano sobre tokens | Ningún color escrito a mano fuera de los tokens de §11 |
 | **Diagramas dibujados en el servidor como SVG**, sin librería de gráficos | El JSON de digitaciones es un dato, no una dependencia de render |
@@ -119,19 +119,19 @@ No falta ninguna **fuente**. Faltan dos **datos**:
 
 1. **El coro es el recurso raíz de la autorización**, no el usuario ni la parroquia. El repertorio
    se comparte entre los miembros; con `auth.uid()` como clave de alcance, el director no vería lo
-   que no cargó él y dos músicos del mismo coro no podrían trabajar sobre lo mismo. *Consecuencia:*
+   que no cargó él y dos miembros del mismo coro no podrían trabajar sobre lo mismo. *Consecuencia:*
    toda tabla del dominio lleva `coro_id`, y una persona en dos coros necesita un **coro activo**
    (§18-3).
 
-2. **La celebración reemplaza a la lista de reproducción genérica** (RF-09 a RF-12 del funcional).
+2. **La misa reemplaza a la lista de reproducción genérica** (RF-09 a RF-12 del funcional).
    En el dominio real la lista *es* una misa: tiene fecha y un canto por momento, no un orden
-   arbitrario. *Consecuencia:* no hay listas libres. Quien quiera una arma una celebración sin
+   arbitrario. *Consecuencia:* no hay listas libres. Quien quiera una arma una misa sin
    fecha; si eso resulta forzado, se revisa (§18-6).
 
 3. **El cifrado se almacena en ChordPro y se muestra en notación americana** (C, Am, F#m), como el
    funcional. Los diagramas de guitarra y las librerías de cifrado hablan americana; mostrar
    notación latina agregaría un motor de mapeo que no cierra nada del alcance elegido.
-   *Consecuencia asumida:* el músico que viene del cancionero impreso lee `Bm` donde el papel dice
+   *Consecuencia asumida:* el miembro que viene del cancionero impreso lee `Bm` donde el papel dice
    `sim`. Es fricción real y se acepta a cambio de un motor menos (§18-7).
 
 4. **El cifrado se renderiza en el servidor**, no en un WebView ni con una librería de cliente
@@ -147,7 +147,7 @@ No falta ninguna **fuente**. Faltan dos **datos**:
    otra nomenclatura de momentos, la comparte. Se acepta porque los momentos de la misa son los
    mismos en los dos cancioneros de `docs/`, que es toda la evidencia disponible.
 
-7. **Sin borrado en el prototipo**, salvo quitar un canto de una celebración. El borrado en cascada
+7. **Sin borrado en el prototipo**, salvo quitar un canto de una misa. El borrado en cascada
    del funcional (RN-05: el artista sin canciones desaparece; RN-06: borrar artista borra sus
    canciones) tenía sentido en un teléfono de un solo dueño; con repertorio compartido, es
    destructivo para terceros. Queda **sin decidir a propósito**, declarado en §16.
@@ -178,8 +178,9 @@ coro 1 ──< coro_acceso >── 1 perfil            (una persona en varios co
 coro 1 ──< canto >── 1 autor                   (el autor es catálogo global)
          canto N ──< canto_momento >── N momento_liturgico
 
-coro 1 ──< celebracion 1 ──< celebracion_canto >── canto
-                              cada fila: un momento, un canto, un orden
+coro 1 ──< misa 1 ──< misa_canto >── canto
+                       cada fila: un momento, un canto, un orden
+              misa 1 ──< misa_participante >── 1 perfil   (quién va, y con qué — H15)
 
 perfil 1 ──< preferencia_lectura >── 1 canto   (transposición y tamaño, privadas)
 ```
@@ -189,13 +190,14 @@ perfil 1 ──< preferencia_lectura >── 1 canto   (transposición y tamaño
 | **canto** | la pieza del repertorio de un coro: título, autor, cifrado | no es "canción" (el funcional decía `Song`; acá se dice canto) |
 | **cifrado** | el contenido ChordPro del canto | no es el canto: un canto tiene un cifrado, no *es* su cifrado |
 | **momento** | categoría litúrgica: Entrada, Perdón, Gloria, Salmo, Antífona, Ofertorio, Santo, Cordero, Comunión, María, Himno | no es el orden dentro de la misa (dos cantos pueden compartir momento) |
-| **orden** | posición del canto dentro de una celebración | no es el momento |
-| **celebración** | una misa con fecha y nombre | no es una lista de reproducción libre |
-| **rol** | el rol **global** en `perfiles`: `admin`, `miembro`, `externo` | no es el rol dentro de un coro |
-| **rol_local** | el rol **en un coro**, en `coro_acceso`: `director`, `musico` | no es el rol global |
+| **orden** | posición del canto dentro de una misa | no es el momento |
+| **misa** | la celebración que el coro canta: nombre y fecha | no es una lista de reproducción libre. Y **la palabra «celebración» no se usa**: hasta el 2026-09-03 así se llamaba en el código, y el coro nunca la llamó así |
+| **rol** | el rol **global** en `perfiles`: `admin`, `usuario`, `externo` | no es el rol dentro de un coro. El valor común se llama `usuario` y **no** `miembro` justamente para no chocar con el rol local |
+| **rol_local** | el rol **en un coro**, en `coro_acceso`: `director`, `miembro` | no es el rol global. **Son los dos únicos tipos de persona del coro**: `admin` no es uno de ellos, es la cuenta de instalación |
+| **aporte** | con qué va alguien a una misa: `vocal` o `instrumental`, y si es instrumental, cuál — H15 | **no es «voz»** (§19.4 la prohíbe como nombre de nada) ni «canto», que es la otra tabla; y no es la tesitura, que es de la persona y vive en su perfil |
 | **autor** | quién compuso el canto | no es "artista" (el funcional lo llamaba así); en el cancionero muchos son anónimos o comunitarios |
 | **transposición** | número de semitonos, entero de −11 a +11 | no es la tonalidad; el cifrado guardado nunca cambia (decisión 10) |
-| **estado** | en qué punto está un canto dentro del coro: `en_ensayo` (se está sacando) o `listo` (el coro lo canta) — H10 | no es el momento litúrgico; y no es una sugerencia: proponer un canto es de una persona, el estado es del canto |
+| **estado** | en qué punto está un canto dentro del coro: `en_ensayo` (se está sacando), `listo` (el coro lo canta) o `archivado` (fuera de circulación, sin borrarse) — H10 y §16 | no es el momento litúrgico; y no es una sugerencia: proponer un canto es de una persona, el estado es del canto |
 | **modo solo letra** | que una **persona** lea sin acordes, en todo el repertorio — H11 | no es una propiedad del canto (el canto sigue teniendo sus acordes); no es "ocultar tablaturas" (§16: los cancioneros no traen tablatura); y no se guarda por canto, como sí la transposición |
 
 ---
@@ -240,17 +242,17 @@ patrón de autorización multiusuario; ver §8.
 | --- | --- | --- | --- |
 | Raíz | `coros` | **A** | id, nombre, parroquia (texto libre), created_at. Lectura: `puede_ver_coro(id)`; escritura: `es_admin()` |
 | Identidad | `perfiles` | **E** | id = id del usuario autenticado, email, nombre, `rol` (`admin`/`miembro`/`externo`), **`aprobado`** (portón), created_at |
-| Identidad | `coro_acceso` | **E** | perfil_id, coro_id, **`rol_local`** (`director`/`musico`), único (perfil_id, coro_id) |
+| Identidad | `coro_acceso` | **E** | perfil_id, coro_id, **`rol_local`** (`director`/`miembro`), único (perfil_id, coro_id) |
 | Repertorio | `cantos` | **B** | **coro_id**, titulo, autor_id, `cifrado` (ChordPro), tonalidad_original, notas, **`estado`** (`en_ensayo`/`listo`, default `listo` — H10), created_at, updated_at |
 | Repertorio | `canto_momentos` | **B** | canto_id, momento_id, **coro_id denormalizado** |
 | Catálogo | `momentos_liturgicos` | **D** | codigo, nombre, `orden` (posición en la misa). 11 filas, global a la instalación |
 | Catálogo | `autores` | **D** | nombre (único). Global a la instalación |
-| Celebración | `celebraciones` | **B** | **coro_id**, nombre, fecha (nullable), created_at |
-| Celebración | `celebracion_cantos` | **B** | celebracion_id, canto_id, momento_id, `orden`, **coro_id denormalizado** |
+| Misa | `misas` | **B** | **coro_id**, nombre, fecha (nullable), created_at |
+| Misa | `misa_cantos` | **B** | misa_id, canto_id, momento_id, `orden`, **coro_id denormalizado** |
 | Preferencias | `preferencias_lectura` | **C** | perfil_id, canto_id, **coro_id**, `transposicion` (−11..11), `tamano_letra` (14..24, par), updated_at. Único (perfil_id, canto_id) |
 | Preferencias | `preferencias_perfil` | **C** | perfil_id (PK), **`mostrar_acordes`** (default true — H11), updated_at. **Una fila por persona, sin `coro_id`**: no cuelga de ningún canto ni coro, así que su política no comprueba alcance, solo `perfil_id = auth.uid()` |
 
-**Denormalización obligatoria.** `canto_momentos` y `celebracion_cantos` cuelgan del coro a **dos
+**Denormalización obligatoria.** `canto_momentos` y `misa_cantos` cuelgan del coro a **dos
 saltos**. Cada una lleva su propio `coro_id`, escrito en el insert, para que la política sea
 `puede_ver_coro(coro_id)` y no una subconsulta evaluada fila por fila.
 
@@ -259,7 +261,7 @@ saltos**. Cada una lleva su propio `coro_id`, escrito en el insert, para que la 
 | Del funcional | Por qué no está |
 | --- | --- |
 | `GlobalSettings` (registro único de preferencias) | Con usuarios reales las preferencias son por persona: viven en `preferencias_lectura` y en el perfil |
-| `Playlist` genérica | Reemplazada por `celebraciones` (decisión 2) |
+| `Playlist` genérica | Reemplazada por `misas` (decisión 2) |
 | `Artist` con borrado automático al quedar sin canciones (RN-05) | `autores` es catálogo global: no se borra solo |
 | `mostrar_tablaturas` por canción (RF-20) | Los cancioneros católicos no traen tablatura (§16) |
 
@@ -298,22 +300,32 @@ esa es justamente la razón del cambio de §18-18.
 
 ### 8.2 La matriz
 
-Capacidades en filas, roles en columnas. Sin celdas ambiguas. `director` y `musico` se evalúan
+Capacidades en filas, roles en columnas. Sin celdas ambiguas. `director` y `miembro` se evalúan
 **siempre respecto del coro en cuestión**: un director lo es de su coro, no de todos.
 
-| Capacidad | admin | director (de ese coro) | musico (de ese coro) |
+**El coro tiene dos tipos de persona y solo dos: director y miembro.** La columna `admin` está acá
+porque el código la necesita, no porque sea un tercer tipo: es la cuenta de instalación —aprueba
+altas, crea coros— y no se nombra en ninguna pantalla del coro.
+
+| Capacidad | admin | director (de ese coro) | miembro (de ese coro) |
 | --- | :-: | :-: | :-: |
 | ver el coro | sí | sí | sí |
 | ver el repertorio del coro | sí | sí | sí |
-| ver una celebración del coro | sí | sí | sí |
+| ver una misa del coro | sí | sí | sí |
 | leer un canto (vista de lectura) | sí | sí | sí |
 | guardar su propia preferencia de lectura | sí | sí | sí |
 | ver la preferencia de otro | **no** | **no** | **no** |
+| cargar su propio perfil (H14) | sí | sí | sí |
+| ver el perfil de otro del coro (H14) | **no** | sí | **no** |
+| **inscribirse a una misa** (H15) | sí | sí | **sí** |
+| **ver quién se inscribió** (H15) | sí | sí | **sí** |
+| inscribir o retirar a **otra** persona | **no** | **no** | **no** |
 | crear o editar un canto | sí | sí | **no** |
+| **archivar un canto** (§16) | sí | sí | **no** |
 | asignar momentos a un canto | sí | sí | **no** |
-| crear o editar una celebración | sí | sí | **no** |
-| asignar cantos a una celebración | sí | sí | **no** |
-| quitar un canto de una celebración | sí | sí | **no** |
+| crear o editar una misa | sí | sí | **no** |
+| asignar cantos a una misa | sí | sí | **no** |
+| quitar un canto de una misa | sí | sí | **no** |
 | admitir un miembro al coro / cambiar su `rol_local` | sí | sí | **no** |
 | crear un coro | sí | **no** | **no** |
 | aprobar un perfil nuevo | sí | **no** | **no** |
@@ -321,6 +333,15 @@ Capacidades en filas, roles en columnas. Sin celdas ambiguas. `director` y `musi
 
 Un usuario **sin vínculo** con el coro: **no** a todo, incluido ver. Un usuario **no aprobado**: no
 a todo, sin excepción, cualquiera sea su rol.
+
+**Las dos filas de H15 son la primera vez que la columna del miembro dice «sí» en dato
+compartido**, y con eso §19.5 deja de ser una propuesta y pasa a estar construida. La regla es la
+que se decidió el 2026-08-06 y no se movió: **escribe solo filas suyas**. Por eso la tercera fila
+—inscribir a otro— dice «no» en las tres columnas, incluida la del director: la inscripción es una
+declaración de una persona sobre sí misma, y eso no es un privilegio que un rol pueda saltarse.
+
+**Y la fila de archivar cierra §16.** No hay «borrar un canto» en esta matriz porque no hay borrado:
+se archiva. El motivo está en §16.
 
 ### 8.3 Dónde vive la matriz y cómo se arbitra
 
@@ -336,7 +357,7 @@ RLS rechaza en silencio con cero filas afectadas y el usuario cree que guardó.
 
 ### 8.4 Alta de usuarios
 
-Registro con correo y contraseña → se crea el perfil con `rol = 'miembro'` y `aprobado = false` →
+Registro con correo y contraseña → se crea el perfil con `rol = 'usuario'` y `aprobado = false` →
 el usuario ve `/esperando-aprobacion` → un `admin` lo aprueba → un `director` lo vincula a su coro
 con `rol_local`. Hasta que ocurren las dos cosas, el usuario está autenticado pero no ve nada.
 
@@ -354,9 +375,9 @@ puede probar.
 | `renderizarCifrado` | cifrado ChordPro (+ ancho opcional) | líneas, cada una con sus pares (acorde, columna) y su texto | `U[C]sing the [Dm]chordPro format[G]` produce tres acordes: `C` en columna **1** —el corchete va tras la "U"—, `Dm` en la 10 y `G` en la 25 (final de línea), sobre el texto `Using the chordPro format`, de 25 caracteres. Con `ancho: 20`, ninguna línea supera 20 columnas y cada acorde viaja al trozo que le toca (RF-17) | `motores/renderizar-cifrado.ts` · `.test.ts` |
 | `acordesDeCanto` *(construido en H5)* | cifrado ChordPro | lista ordenada, sin repetidos | El cifrado sembrado de *Abre tu jardín* devuelve exactamente `[E, F#m, G#m, B, B7, A]`: seis acordes, en orden de primera aparición, sin duplicados (el cifrado repite `E` y `F#m` varias veces). El test lee el cifrado **real de la semilla**, no una copia | `motores/acordes-de-canto.ts` · `.test.ts` |
 | `buscarDigitacion` *(construido en H5)* | nombre de acorde + catálogo de digitaciones | posiciones de traste y cuerdas al aire, o `null` | `C` devuelve `x32010` como primera digitación. Un acorde inexistente (`H9`) devuelve `null`, no lanza. Un acorde **con bajo** también devuelve `null`, por decisión declarada en §17.1-bis. La ventana del diagrama (`trasteInicial`) se **deriva**, no se declara: `G#m` (`466444`) arranca en el traste 4 | `motores/buscar-digitacion.ts` · `.test.ts` · catálogo en `motores/digitaciones.ts` |
-| `celebracion` *(agregado en H6)* | los cantos ya asignados + el momento del nuevo · o la lista + el canto actual | dónde se inserta · la renumeración · el recorrido | Agregar un canto de **Entrada** a una misa que ya tiene Ofertorio y Santo lo pone **primero**, no al final; con el mismo momento va después de los que ya están. `reordenar` renumera desde 0 sin huecos ni repetidos (el índice único de la migración no admite empates). `recorrido` usa el **orden guardado**, no el del array: en el primero no hay anterior, en el último no hay siguiente, y un canto ajeno a la celebración no inventa vecinos | `motores/celebracion.ts` · `.test.ts` |
+| `misa` *(agregado en H6)* | los cantos ya asignados + el momento del nuevo · o la lista + el canto actual | dónde se inserta · la renumeración · el recorrido | Agregar un canto de **Entrada** a una misa que ya tiene Ofertorio y Santo lo pone **primero**, no al final; con el mismo momento va después de los que ya están. `reordenar` renumera desde 0 sin huecos ni repetidos (el índice único de la migración no admite empates). `recorrido` usa el **orden guardado**, no el del array: en el primero no hay anterior, en el último no hay siguiente, y un canto ajeno a la misa no inventa vecinos | `motores/misa.ts` · `.test.ts` |
 | `autoscroll` *(agregado en H4)* | resto acumulado + píxeles por segundo + milisegundos del cuadro | píxeles a desplazar y el nuevo resto | A 10 px/s, dos cuadros de 50 ms avanzan 0 y luego 1 px: la fracción se acumula, no se pierde (sin esto el scroll va a tirones). 60 cuadros a 24 px/s suman exactamente 24 px. Un cuadro de 30 s se topa para que volver a la pestaña no dispare la página | `motores/autoscroll.ts` · `.test.ts` |
-| `permisos` | rol global + rol local + capacidad | booleano | Un `musico` no puede `editar_canto` en ningún caso. Un `director` puede `editar_canto` **solo** con vínculo al coro; sin vínculo, `false`. Un `admin` puede todo salvo `ver_preferencia_ajena`, que es `false` para los tres roles | `permisos.ts` · `permisos.test.ts` |
+| `permisos` | rol global + rol local + capacidad | booleano | Un `miembro` no puede `editar_canto` en ningún caso. Un `director` puede `editar_canto` **solo** con vínculo al coro; sin vínculo, `false`. Un `admin` puede todo salvo `ver_preferencia_ajena`, que es `false` para los tres roles | `permisos.ts` · `permisos.test.ts` |
 | `coincideBusqueda` *(agregado al construir H1)* | canto (título + autor) + término | booleano | `"jardin"` encuentra *Abre tu jardín* pese al acento; `"MARÍA"` encuentra por autor ignorando mayúsculas y acento; `"nino"` **no** encuentra *Niño* —la ñ no es una n acentuada—; un término vacío coincide con todo y no filtra nada | `motores/busqueda.ts` · `.test.ts` |
 
 **Composición que hay que respetar:** los diagramas de H5 se calculan sobre el cifrado **ya
@@ -403,7 +424,7 @@ Ningún color escrito a mano fuera de esta tabla.
 | `--texto-tenue` | `#9A9A9A` | metadatos, autor, subtítulos |
 | `--acorde` | `#E08A3C` | **el acorde**, único color cálido de la lectura |
 | `--acento` | `#3B82F6` | acciones primarias, foco |
-| `--peligro` | `#DC2626` | quitar de celebración, única acción destructiva |
+| `--peligro` | `#DC2626` | quitar de misa, única acción destructiva |
 | `--exito` | `#16A34A` | confirmaciones |
 
 | Token | Valor |
@@ -420,7 +441,7 @@ Ningún color escrito a mano fuera de esta tabla.
 | Superficie | Densidad | Tono |
 | --- | --- | --- |
 | Vista de lectura | máxima: sin cabecera fija, controles en barra inferior retráctil | el canto ocupa la pantalla; todo lo demás desaparece |
-| Repertorio y celebraciones | media: filas de 56 px, agrupadas por momento | escaneable de un vistazo, con el dedo |
+| Repertorio y misas | media: filas de 56 px, agrupadas por momento | escaneable de un vistazo, con el dedo |
 | Gestión (miembros, edición) | aireada: formularios de una columna | poco frecuente, se prioriza claridad sobre densidad |
 
 **Objetivo táctil mínimo 44 px** en todo control de la vista de lectura: se usa con la guitarra
@@ -440,15 +461,17 @@ Cada uno con su motivo explícito; ninguno es una pantalla en blanco. Catálogo 
 | `/esperando-aprobacion` | perfil creado, sin aprobar | autenticado | no | H1 |
 | `/` | redirige al coro activo, o a `/coros` si hay más de uno | miembro aprobado | no | H1 |
 | `/coros` | elegir coro activo | miembro aprobado | no (fija sesión) | H1 |
-| `/repertorio` | cantos del coro agrupados por momento, con búsqueda por título y autor (RF-02) | musico | no | H1 |
-| `/repertorio/[cantoId]` | **vista de lectura**: cifrado, transponer, tamaño, auto scroll, diagramas | musico | su preferencia | H2–H5 |
+| `/repertorio` | cantos del coro agrupados por momento, con búsqueda por título y autor (RF-02) | miembro | no | H1 |
+| `/repertorio/[cantoId]` | **vista de lectura**: cifrado, transponer, tamaño, auto scroll, diagramas | miembro | su preferencia | H2–H5 |
 | `/repertorio/nuevo` | alta de canto en ChordPro | director | sí | H8 |
-| `/repertorio/[cantoId]/editar` | edición de canto y sus momentos | director | sí | H8 |
-| `/celebraciones` | celebraciones del coro, por fecha descendente | musico | no | H6 |
-| `/celebraciones/nueva` | crear celebración | director | sí | H6 |
-| `/celebraciones/[id]` | **vista de ejecución**: recorrer los cantos en orden | musico | no | H6 |
-| `/celebraciones/[id]/editar` | asignar canto por momento y ordenar | director | sí | H6 |
-| `/historial` | el repertorio ordenado por uso, y el bloque de **nunca cantados** | musico | no | H13 |
+| `/repertorio/[cantoId]/editar` | edición de canto y sus momentos, y **archivarlo** | director | sí | H8 · §16 |
+| `/repertorio/archivados` | los cantos fuera de circulación, con «Devolver» | director | sí | §16 |
+| `/misas` | misas del coro, por fecha descendente | miembro | no | H6 |
+| `/misas/nueva` | crear misa | director | sí | H6 |
+| `/misas/[id]` | la misa con sus cantos, y **quién va** (inscripción propia + lista del coro) | miembro | sí, su inscripción | H6 · H15 |
+| `/misas/[id]/[filaId]` | **vista de ejecución**: recorrer los cantos en orden | miembro | no | H6 |
+| `/misas/[id]/editar` | asignar canto por momento y ordenar | director | sí | H6 |
+| `/historial` | el repertorio ordenado por uso, y el bloque de **nunca cantados** | miembro | no | H13 |
 | `/coro/miembros` | admitir miembros, cambiar `rol_local` | director | sí | H7 |
 | `/admin/perfiles` | aprobar perfiles, crear coros | admin | sí | H7 |
 
@@ -509,10 +532,10 @@ con acordes `MI fa#m` → `[E]Abre tu jardín, / [F#m]traigo una nueva noticia`.
 | Coro **Misión País** | los 30 cantos | el coro real |
 | Coro **San Ejemplo** (control) | 1 canto, distinto de los 30 | probar el aislamiento: nadie de un coro ve el otro |
 | Perfil `admin@…` | rol `admin`, aprobado | aprobar perfiles, crear coros |
-| Perfil `director@…` | rol `miembro`, aprobado, `rol_local = director` en Misión País | gobierno y edición |
-| Perfil `musico@…` | rol `miembro`, aprobado, `rol_local = musico` en Misión País | lectura |
-| Perfil `pendiente@…` | rol `miembro`, **no aprobado**, sin coro | probar el portón |
-| Perfil `ajeno@…` | rol `miembro`, aprobado, `rol_local = musico` en San Ejemplo | probar el aislamiento entre coros |
+| Perfil `director@…` | rol `usuario`, aprobado, `rol_local = director` en Misión País | gobierno y edición |
+| Perfil `musico@…` | rol `usuario`, aprobado, `rol_local = miembro` en Misión País | lectura |
+| Perfil `pendiente@…` | rol `usuario`, **no aprobado**, sin coro | probar el portón |
+| Perfil `ajeno@…` | rol `usuario`, aprobado, `rol_local = miembro` en San Ejemplo | probar el aislamiento entre coros |
 
 ### 13.4 Reglas del seed
 
@@ -542,7 +565,7 @@ y se dice con esas palabras. Toda ruta con alcance verifica el vínculo antes de
 | Canto sin preferencia guardada | se abre en 0 semitonos y tamaño 16, sin mensaje | Es el caso normal la primera vez |
 | Canto cuyo cifrado no tiene acordes | se muestra la letra; la barra de diagramas dice "este canto no tiene acordes escritos" | Distinto de un fallo del motor |
 | Acorde sin digitación conocida | el diagrama muestra "sin digitación para «X»" y el resto de la barra funciona | `buscarDigitacion` devuelve `null`, no lanza (§9) |
-| Celebración sin cantos asignados | "Esta celebración todavía no tiene cantos" + si es director, botón de armar | Vacío legítimo |
+| Misa sin cantos asignados | "Esta misa todavía no tiene cantos" + si es director, botón de armar | Vacío legítimo |
 | Escritura rechazada por rol | mensaje explícito "no tienes permiso para editar el repertorio de este coro" | La server action valida antes; sin eso, la RLS afecta cero filas y el usuario cree que guardó |
 | Fallo de la base | "No pudimos cargar el repertorio. Reintenta" + reintentar | Un error de infraestructura no se disfraza de vacío |
 
@@ -572,7 +595,7 @@ Pasos numerados, ejecutables por alguien que no construyó esto.
    el proyecto de Vercel. Después: abrir el sitio desplegado, ver el HTML de la vista de lectura
    con `view-source` y **comprobar que no aparece ninguna clave de servicio**; confirmar que la
    única variable con prefijo público es la clave publicable de Supabase.
-9. **Prueba de humo con una persona del coro:** alguien que no construyó esto abre una celebración
+9. **Prueba de humo con una persona del coro:** alguien que no construyó esto abre una misa
    sembrada en su teléfono y toca los cinco cantos de una misa sin preguntar nada.
 
 ---
@@ -594,8 +617,8 @@ en §19; cuando lo tienen, la fila lo dice y nombra qué cambiaría. Mientras ta
 | Page turner táctil (RF-22) | Gesto de pantalla táctil pensado para app nativa; el auto scroll cubre la necesidad |
 | Mostrar/ocultar tablaturas (RF-20) | Los cancioneros de `docs/` no traen tablatura |
 | Modo proyección | Requiere una segunda superficie de diseño completa; el corte mínimo (§17) no la necesita |
-| Listas de reproducción libres | Reemplazadas por celebraciones (decisión 2) |
-| Borrado de cantos, autores y coros (RN-05, RN-06) | Con repertorio compartido, borrar es destructivo para terceros. **Sin decidir a propósito**: hace falta antes definir si se archiva, se borra en lógico o se prohíbe. → **Ya tiene candidato de respuesta: §19-B10.** El estado del canto *es* esa definición: se archiva, no se borra. La decisión de no borrar no cambia; deja de estar sin respuesta |
+| Listas de reproducción libres | Reemplazadas por misas (decisión 2) |
+| Borrado de cantos, autores y coros (RN-05, RN-06) | Con repertorio compartido, borrar es destructivo para terceros. → **DECIDIDO el 2026-09-03, y construido: se ARCHIVA, no se borra.** El tercer estado del canto (`archivado`) lo saca del listado y de la búsqueda, y lo hace el **director**. Sigue apareciendo en las misas donde se cantó y en el historial, y se puede devolver desde `/repertorio/archivados`. El motivo es concreto y no filosófico: `misa_cantos.canto_id` es `on delete cascade`, así que un borrado real se llevaría también esas filas y el historial de H13 perdería esas veces **sin avisar**. Autores y coros siguen sin borrarse |
 | Sincronización sin conexión / PWA instalable | La vista de lectura llega pintada desde el servidor; medir primero si hace falta |
 | Múltiples afinaciones y digitaciones alternativas | Guitarra en afinación estándar, como el antecedente |
 | Integración continua | Despliegue a mano, comando documentado en §15 paso 8 |
@@ -612,33 +635,87 @@ en §19; cuando lo tienen, la fila lo dice y nombra qué cambiaría. Mientras ta
 | **H3 · Transponer y tamaño** ✅ **hecho** (2026-08-02) | Motor `transponer` con test, controles ± y A↑A↓, `preferencias_lectura` por canto×usuario | Subir 2 semitonos convierte `E` en `F#` en toda la pantalla; al recargar sigue transpuesto; `director@` abre el mismo canto y lo ve en 0; llegar a +12 vuelve a 0 — **los cuatro verificados**: los tres primeros en la app, el ciclo de octava por test (`+12` devuelve el original carácter por carácter) y la privacidad además por `npm run verificar:rls` |
 | **H4 · Tocar sin manos** ✅ **hecho** (2026-08-02) | Auto scroll con play/pausa y velocidad continua, en barra inferior | Play desplaza de forma continua, mover la velocidad cambia el ritmo sin saltos, pausa detiene en el punto exacto, y reanudar sigue desde ahí — **los cuatro medidos en la app**: avance parejo (10·20·31·42·53·64 px), 27 px/s en nivel 4 contra 67 px/s en nivel 10, 72 px al pausar y 72 px tras 1,2 s quieto, y 72 → 111 px al reanudar sin salto |
 | **H5 · Diagramas de acorde** ✅ **hecho** (2026-08-06) | `acordesDeCanto` + `buscarDigitacion` + catálogo de 48 digitaciones + barra de diagramas SVG dibujados en el servidor | Pulsar un acorde abre la barra centrada en él con los seis acordes del canto; con +2 semitonos los diagramas son los **transpuestos**; un acorde sin digitación muestra su mensaje y no rompe la barra — **los tres verificados en la app a 360 px**: pulsar `G#m` en *Abre tu jardín* abre la tira con `E F#m G#m B B7 A` y esa carta a la vista (con su cejilla y el traste 4); con +2 las cartas pasan a `F# G#m A#m C# C#7 B` **sin cerrarse y sin perder el foco**; y `Bm/A` en *Pescador de hombres* —dato sembrado, sin trucos— dice "sin digitación para «Bm/A»" mientras las otras siete dibujan. Además: la alineación de H2 intacta (`E`→"Abre", `F#m`→"jard**ín**"), sin scroll horizontal, los 7 `<svg>` presentes en el HTML del servidor, y `ajeno@` por URL recibe cero acordes y cero cartas |
-| **H6 · Celebraciones** ✅ **hecho** (2026-08-06) | `celebraciones`, `celebracion_cantos` con `coro_id` denormalizado, motor `celebracion` (orden e insercion + recorrido), armado por momento y vista de ejecución | `director@` arma una misa de 5 momentos (Entrada, Perdón, Ofertorio, Santo, Comunión) y `musico@` la recorre en orden desde el teléfono sin volver al listado; el orden que ve es el que se guardó — **verificado en la app**: los cinco cantos se agregaron **en desorden** (Santo, Entrada, Comunión, Perdón, Ofertorio) y el motor los dejó en orden litúrgico; `musico@` recorrió `1 de 5 … 5 de 5` con «Siguiente» sin volver al listado, y en el último el botón dice «Fin de la misa». El orden guardado es `[0,1,2,3,4]`, sin huecos ni repetidos. Lado negativo, las dos capas (§15-4): `musico@` no ve «Armar», por URL recibe "No tienes permiso", y la RLS le rechaza crear, agregar y quitar |
+| **H6 · Misas** ✅ **hecho** (2026-08-06) | `misas`, `misa_cantos` con `coro_id` denormalizado, motor `misa` (orden e insercion + recorrido), armado por momento y vista de ejecución | `director@` arma una misa de 5 momentos (Entrada, Perdón, Ofertorio, Santo, Comunión) y `musico@` la recorre en orden desde el teléfono sin volver al listado; el orden que ve es el que se guardó — **verificado en la app**: los cinco cantos se agregaron **en desorden** (Santo, Entrada, Comunión, Perdón, Ofertorio) y el motor los dejó en orden litúrgico; `musico@` recorrió `1 de 5 … 5 de 5` con «Siguiente» sin volver al listado, y en el último el botón dice «Fin de la misa». El orden guardado es `[0,1,2,3,4]`, sin huecos ni repetidos. Lado negativo, las dos capas (§15-4): `musico@` no ve «Armar», por URL recibe "No tienes permiso", y la RLS le rechaza crear, agregar y quitar |
 | **H7 · Gobernar el coro** ✅ **hecho** (2026-08-06) | Alta de miembros por el director, cambio de `rol_local`, aprobación de perfiles y creación de coros por el admin; motor `gobierno`; **y la política de `coro_acceso` endurecida para que la base haga cumplir el orden de §8.4** | `musico@` no ve el botón de admitir **y** la server action lo rechaza con mensaje; `director@` agrega a `pendiente@` (ya aprobado por el admin) y este ve el repertorio en su siguiente entrada — **verificado en la app, el recorrido completo**: `pendiente@` quedaba en `/esperando-aprobacion`; `admin@` lo aprobó desde `/admin/perfiles`; recién entonces apareció como disponible en `/coro/miembros` y `director@` lo agregó; al volver a entrar vio **los 12 cantos** de Coro Misión País, sin acceso a Miembros. Las dos capas del lado negativo (§15-4): `musico@` no ve los enlaces, por URL recibe "No tienes permiso", y la RLS le rechaza admitir, aprobar y crear coros |
 | **H8 · Editar el repertorio** ✅ **hecho** (2026-08-06) | Alta y edición de cantos en ChordPro **con vista previa en vivo**, asignación de momentos, procedencia opcional, motor `validarCanto` (RN-01) y dos migraciones: el director puede **dar de alta** autores, y el índice único pasa a `(coro_id, titulo, autor)` alineado con RN-03 | `director@` crea un canto nuevo, lo asigna a Comunión y aparece en el listado y en la vista de lectura ya renderizado; guardar sin título o sin cifrado se bloquea con mensaje por campo; `musico@` no puede, ni por interfaz ni por acción directa — **los tres verificados en la app**: se creó *Alma misionera* (Comunión, en D) y quedó renderizada con 8 acordes pulsables y 4 diagramas; guardar vacío devuelve **los dos** errores a la vez, cada uno en su campo y con `aria-invalid`; `musico@` no ve el `+` ni el enlace «Editar», por URL recibe "No tienes permiso", y la RLS le rechaza el insert. Además: dos *Alma misionera* de autores distintos conviven, el mismo título con el mismo autor se bloquea con un mensaje que dice qué hacer, y corregir la posición de un acorde en *El Alfarero* se reflejó en la vista de lectura |
 
 | **H9 · Pegar del cancionero** ✅ **hecho** (2026-08-06) | Motores `latinaAAmericana` y `aChordPro` (+ su composición `desdeElCancionero`), con detección y aviso en el editor | El director pega un canto **tal como está en el cancionero** —acordes en línea aparte y en notación latina— y la app lo convierte a ChordPro americano conservando la columna de cada acorde; un cifrado que ya está en ChordPro pasa intacto; si no se reconoce ningún acorde, el editor lo dice antes de guardar — **verificado con el primer canto que un usuario real cargó** («Escojo la vida»): estaba guardado como texto plano, sin un solo acorde; tras convertir quedó con 121 acordes pulsables, 8 diagramas y transposición funcionando |
 
-| **H10 · Estado del canto** ✅ **hecho** (2026-08-07) | Columna `estado` en `cantos` (`en_ensayo` · `listo`, default `listo`), motor `estadoCanto` con test, selector en el formulario de alta y edición, y la marca en el listado y en la vista de lectura | `director@` pone un canto **en ensayo** desde el formulario y el listado lo muestra **marcado, en su mismo grupo de momento y sin cambiar de lugar**; el resto del repertorio sigue sin marca; el músico ve la marca al abrir el canto, así sabe que se está sacando; y **no puede cambiarla ni por interfaz ni por acción directa** — las dos capas de §15-4. **Los cuatro verificados en la app a 360 px**: se puso *Escojo la vida* en ensayo desde «Editar» y volvió a quedar **segunda dentro de Entrada, el mismo lugar que ocupaba antes** (el listado se capturó antes y después), con la marca «EN ENSAYO» bajo el título y el pie pasando de «13 cantos» a «13 cantos · 1 en ensayo»; **1 de 13 marcado**, el resto intacto; `musico@` ve la marca en el listado y al abrir el canto, no ve el `+` ni «Editar», por URL recibe "No tienes permiso", y la RLS le rechaza el `update` sin política nueva. Además: `scrollWidth` 360 = `clientWidth` 360, sin scroll horizontal; y **ni el director puede escribir `archivado`** — el `check` de la migración lo rechaza |
+| **H10 · Estado del canto** ✅ **hecho** (2026-08-07) | Columna `estado` en `cantos` (`en_ensayo` · `listo`, default `listo`), motor `estadoCanto` con test, selector en el formulario de alta y edición, y la marca en el listado y en la vista de lectura | `director@` pone un canto **en ensayo** desde el formulario y el listado lo muestra **marcado, en su mismo grupo de momento y sin cambiar de lugar**; el resto del repertorio sigue sin marca; el miembro ve la marca al abrir el canto, así sabe que se está sacando; y **no puede cambiarla ni por interfaz ni por acción directa** — las dos capas de §15-4. **Los cuatro verificados en la app a 360 px**: se puso *Escojo la vida* en ensayo desde «Editar» y volvió a quedar **segunda dentro de Entrada, el mismo lugar que ocupaba antes** (el listado se capturó antes y después), con la marca «EN ENSAYO» bajo el título y el pie pasando de «13 cantos» a «13 cantos · 1 en ensayo»; **1 de 13 marcado**, el resto intacto; `musico@` ve la marca en el listado y al abrir el canto, no ve el `+` ni «Editar», por URL recibe "No tienes permiso", y la RLS le rechaza el `update` sin política nueva. Además: `scrollWidth` 360 = `clientWidth` 360, sin scroll horizontal; y **ni el director puede escribir `archivado`** — el `check` de la migración lo rechaza |
 
-| **H11 · Modo solo letra** ✅ **hecho** (2026-08-07) | Tabla `preferencias_perfil` (clase C, una fila por persona) con `mostrar_acordes`, `renderizarCifrado` con la opción de omitir acordes, control en la cabecera del canto, y sin diagramas ni transposición cuando están apagados | `musico@` apaga los acordes en un canto y queda la letra sola —**sin acordes en la pantalla y sin acordes en el HTML**, sin la barra de diagramas de H5—; abre **otro** canto y **sigue apagado**, porque la preferencia es de la persona y no del canto; `director@` abre el mismo canto y lo ve **con** acordes; y nadie ve ni escribe la preferencia de otro, ni el director ni el admin — las dos capas de §15-4. **Los cuatro verificados en la app a 360 px**, midiendo el DOM y no la impresión: *Escojo la vida* pasó de **121 `.acorde-tocable` a 0**, `innerText` dejó de contener `[D]`, los `<svg>` bajaron de 9 a 1 (el ícono del auto scroll) y el bloque de transponer desapareció, mientras auto scroll y tamaño de letra siguieron ahí; con los acordes apagados, *Abre tu jardín* abrió también en **0 acordes**; `director@` abrió *ese mismo canto* y lo vio con **39 acordes y 7 diagramas**, su interruptor en `aria-pressed=true`; y `npm run verificar:rls` da **28/28** con cuatro comprobaciones nuevas: el músico guarda y ve la suya, el director ve **0 filas**, el admin también **0**, y escribir la de otro lo rechaza la RLS. Además: `scrollWidth` 360 = `clientWidth` 360 |
+| **H11 · Modo solo letra** ✅ **hecho** (2026-08-07) | Tabla `preferencias_perfil` (clase C, una fila por persona) con `mostrar_acordes`, `renderizarCifrado` con la opción de omitir acordes, control en la cabecera del canto, y sin diagramas ni transposición cuando están apagados | `musico@` apaga los acordes en un canto y queda la letra sola —**sin acordes en la pantalla y sin acordes en el HTML**, sin la barra de diagramas de H5—; abre **otro** canto y **sigue apagado**, porque la preferencia es de la persona y no del canto; `director@` abre el mismo canto y lo ve **con** acordes; y nadie ve ni escribe la preferencia de otro, ni el director ni el admin — las dos capas de §15-4. **Los cuatro verificados en la app a 360 px**, midiendo el DOM y no la impresión: *Escojo la vida* pasó de **121 `.acorde-tocable` a 0**, `innerText` dejó de contener `[D]`, los `<svg>` bajaron de 9 a 1 (el ícono del auto scroll) y el bloque de transponer desapareció, mientras auto scroll y tamaño de letra siguieron ahí; con los acordes apagados, *Abre tu jardín* abrió también en **0 acordes**; `director@` abrió *ese mismo canto* y lo vio con **39 acordes y 7 diagramas**, su interruptor en `aria-pressed=true`; y `npm run verificar:rls` da **28/28** con cuatro comprobaciones nuevas: el miembro guarda y ve la suya, el director ve **0 filas**, el admin también **0**, y escribir la de otro lo rechaza la RLS. Además: `scrollWidth` 360 = `clientWidth` 360 |
 
 | **H13 · Historial y métricas por canto** ✅ **hecho** (2026-08-07) | Motor puro `historial` (veces cantado, cuándo fue la última, cada cuánto se repite, en qué momento), el resumen con su detalle en la vista del canto, la pantalla `/historial` con el repertorio ordenado, y **cuatro misas de ejemplo en la semilla** — sin las cuales no hay historial que leer | `director@` abre un canto y ve **cuántas veces se cantó y hace cuánto fue la última**; al desplegar, **en qué misa y en qué momento** fue cada vez; `/historial` lista el repertorio del más al menos cantado y **los que nunca se cantaron aparecen dichos así**, no como un `0` perdido al final; y **una misa con fecha futura y una lista sin fecha no suman en ninguno de los dos números** — se cuenta lo que ya ocurrió, no lo que está agendado |
 
-| **H14 · Ficha del miembro** ✅ **hecho** (2026-09-02) | Tabla `ficha_miembro` (clase C, una fila por persona×coro) con `fecha_nacimiento`, `tesitura` y `disponibilidad`; motor `ficha` con test (edad calculada, nunca guardada); pantalla `/mi-perfil` para el músico y la ficha del coro dentro de `/coro/miembros` para el director | `musico@` completa su ficha —nacimiento, tesitura, disponibilidad— y al recargar la ve guardada, **con su edad calculada al leer y no almacenada**; `director@` ve la ficha de todos los miembros de Misión País, incluida la de `musico@`; `musico@` **no** ve la ficha de otro ni por pantalla ni por URL, y la RLS le rechaza escribirla; `ajeno@` no ve ninguna ficha de Misión País; y **escribir la ficha no puede tocar `rol_local`**, porque vive en otra tabla — verificado en la app a 360 px y con `npm run verificar:rls` — **verificado en la app a 360 px** (`scrollWidth` 360 = `clientWidth` 360): `musico@` guardó nacimiento 1990-12-15, contralto y «a veces», y al recargar los tres seguían ahí con **«Hoy tienes 35 años»** —no 36: el cumpleaños de este año todavía no llegó, que es el caso que el motor existe para no errar—; `director@` abrió `/coro/miembros` y vio «Músico · Contralto · A veces · 35 años», con el que no cargó nada listado igual como «Sin declarar · —» y el pie diciendo «1 miembro todavía no cargó su ficha»; y las dos capas de §15-4: `musico@` por URL recibe «No tienes permiso para administrar los miembros», no ve la sección ni la edad ajena, y `npm run verificar:rls` da **42/42** con seis comprobaciones nuevas —incluida la que prueba que la ficha no abrió la puerta a `rol_local`: el músico intenta ascenderse y la RLS le devuelve cero filas |
+| **H14 · Ficha del miembro** ✅ **hecho** (2026-09-02) | Tabla `ficha_miembro` (clase C, una fila por persona×coro) con `fecha_nacimiento`, `tesitura` y `disponibilidad`; motor `ficha` con test (edad calculada, nunca guardada); pantalla `/mi-perfil` para el miembro y la ficha del coro dentro de `/coro/miembros` para el director | `musico@` completa su ficha —nacimiento, tesitura, disponibilidad— y al recargar la ve guardada, **con su edad calculada al leer y no almacenada**; `director@` ve la ficha de todos los miembros de Misión País, incluida la de `musico@`; `musico@` **no** ve la ficha de otro ni por pantalla ni por URL, y la RLS le rechaza escribirla; `ajeno@` no ve ninguna ficha de Misión País; y **escribir la ficha no puede tocar `rol_local`**, porque vive en otra tabla — verificado en la app a 360 px y con `npm run verificar:rls` — **verificado en la app a 360 px** (`scrollWidth` 360 = `clientWidth` 360): `musico@` guardó nacimiento 1990-12-15, contralto y «a veces», y al recargar los tres seguían ahí con **«Hoy tienes 35 años»** —no 36: el cumpleaños de este año todavía no llegó, que es el caso que el motor existe para no errar—; `director@` abrió `/coro/miembros` y vio «Miembro · Contralto · A veces · 35 años», con el que no cargó nada listado igual como «Sin declarar · —» y el pie diciendo «1 miembro todavía no cargó su ficha»; y las dos capas de §15-4: `musico@` por URL recibe «No tienes permiso para administrar los miembros», no ve la sección ni la edad ajena, y `npm run verificar:rls` da **42/42** con seis comprobaciones nuevas —incluida la que prueba que la ficha no abrió la puerta a `rol_local`: el miembro intenta ascenderse y la RLS le devuelve cero filas |
 
 | **H16 · Ingesta del cancionero** ✅ **hecho** (2026-09-02) | Motor `dos-columnas` con test (corte de columnas por página, reparto de acordes sobre inicios de palabra, lectura del índice a dos columnas) y el script `importar:cancionero`, separado de la semilla porque esto es repertorio real y `db:reset` no debe llevárselo | El repertorio pasa de 13 a 87 cantos con los once momentos poblados; **los curados a mano no se tocan** —«Abre tu jardín» conserva su `[E]Abre tu [F#m]jardín,` con el acorde sobre la sílaba—; un canto importado abre, transpone y muestra diagramas; y reejecutar el import no duplica nada — **verificado en la app a 360 px**: «87 cantos en San José de la Familia», *Alma misionera* (nº 52, Comunión, original en E) con 59 acordes pulsables y 5 diagramas, y la segunda corrida dice «A importar: 0 · Ya existen: 85». 271 tests y 42/42 de RLS en verde |
 
-**Los ocho hitos del PRD están hechos y verificados corriendo la app (2026-08-06), más el
-H9 que §18-7 dejaba condicionado a "si estorba". H10, H11 y H13 salen del backlog de §19 —
-y H12 se descartó con la medición en la mano, ver B8.**
+| **Archivar un canto** ✅ **hecho** (2026-09-03) — cierra §16, no es un hito del backlog | Tercer estado `archivado` en `cantos`, capacidad `archivar_canto` (del **director**), la acción con su confirmación en «Editar» y la vista `/repertorio/archivados` para devolverlo. `ESTADOS_EDITABLES` separa lo que el formulario alterna de lo que la columna acepta | `director@` archiva un canto y **desaparece del repertorio y de la búsqueda**, y el contador del pie baja en uno; **sigue apareciendo en la misa pasada donde se cantó y en su historial** —lo que se cantó, se cantó—; puede devolverlo desde `/repertorio/archivados` y vuelve a su grupo de momento; el miembro no ve la acción, por URL no entra a la vista de archivados, y la RLS le rechaza el `update`; y **ni el director puede inventar un estado**: el `check` de la columna lo frena — **verificado en la app a 360 px**: `director@` archivó *Pescador de hombres*, la confirmación dijo **«Este canto está en 4 misas. Va a seguir apareciendo ahí y en el historial»**, el pie del repertorio pasó de «87 cantos» a «86 cantos · 1 archivado», la búsqueda de «Pescador» dejó de encontrarlo (`false`) y **el historial y la misa del 3 de mayo lo siguieron mostrando** (`true` en los dos); «Devolver» lo trajo de vuelta y el pie volvió a 87 con el enlace de archivados apagado; `musico@` por URL recibe «No tienes permiso para ver los cantos archivados». **Y la comprobación de H10 que decía «ni el director puede escribir `archivado`» se puso en rojo sola**, que es exactamente para lo que estaba escrita: avisó de que el dominio se movió |
+
+| **H15 · Inscripción a la misa** ✅ **hecho** (2026-09-03) | Tabla `misa_participante` con `coro_id` denormalizado y **foránea compuesta contra `(misa_id, coro_id)`**; el aporte como campo condicional (`vocal`/`instrumental` + cuál) con su `check`; motor `inscripcion` con test; dos capacidades nuevas en §8.2 y la sección «Quién va» en la misa | `musico@` marca «Toco · guitarra» en una misa próxima, guarda y **al recargar sigue ahí**; `director@` abre esa misma misa y lo ve con su instrumento, más el resumen por tesitura tomado de los perfiles de H14; **`musico@` ve a los demás inscritos** —la diferencia deliberada con H11 y H14, donde no veía nada ajeno—; quien no se anotó aparece en «Faltan» con su disponibilidad y, al anotarse, **desaparece de ahí**: la inscripción mandando sobre la predicción (§18-11); y las dos capas de §15-4 — nadie inscribe a otro, **tampoco el director**, `ajeno@` no ve ninguna inscripción, y la foránea compuesta rechaza el caso construido a mano: `coro_id` propio con la misa de otro coro — **verificado en la app a 360 px** (`scrollWidth` 360 = `clientWidth` 360): `musico@` abrió «Ejemplo · Misa agendada», cambió de «Toco · guitarra» a «Canto» y **el selector de instrumento desapareció solo** —la condicionalidad de B2 dibujada—, recargó y seguía; el resumen pasó de «2 anotados · 1 canta · 1 guitarra» a «2 anotados · 2 cantan»; se retiró con «No voy» y quedó «1 anotado»; en la misa del 2 de agosto —pasada— no hay controles, solo «Fuiste a esta misa a cantar». `director@` abrió la misma misa y vio **«1 barítono · 1 guitarra»** donde el miembro veía «1 canta»: la tesitura sale del perfil de H14, y por eso el miembro no la ve. **Y el caso que cierra §18-11 se vio en pantalla**: mientras el director estaba anotado, su disponibilidad no aparecía; al retirarse apareció **«Faltan 1 · Director (casi siempre)»**. `npm run verificar:rls` da **53/53** |
+
+**Los quince hitos están hechos y verificados corriendo la app.** H9 salió de §18-7, que lo dejaba
+condicionado a "si estorba"; H10, H11, H13, H14 y H15 salen del backlog de §19; H16 salió de §16,
+donde el parser de dos columnas estaba anotado como *«un hito propio»*. H12 se descartó — y su
+medición envejeció, ver B8.
+
+### Cómo entró H15, y qué tuvo de distinto
+
+Es **B2**, y es el hito que §19.5 estaba esperando. Hasta acá el miembro solo escribía filas
+invisibles para el resto: su transposición (H3), su preferencia de lectura (H11), su perfil (H14).
+Esta es la primera vez que escribe algo **que el coro entero lee**, y por eso §19.5 —decidida el
+2026-08-06— dejó dicho que la política se escribía *«el día que se construya H15, no antes»*.
+
+**Lo que decidió el dueño el 2026-09-03:**
+
+| Se preguntó | Se decidió | Consecuencia |
+| --- | --- | --- |
+| Quién ve las inscripciones | **Todo el coro** | Es lo contrario de H14, y a propósito: la ficha es un dato sobre la persona; esto es un dato sobre la misa. Ver que hay tres anotados empuja a anotarse, y ver que no hay nadie avisa a tiempo |
+| Qué manda entre inscripción y disponibilidad | **La inscripción, siempre** | Cierra §18-11. No compiten: la disponibilidad solo se muestra para quien todavía no se anotó |
+
+**Un agujero que hubo que cerrar antes de abrir la escritura, y que no existía en ningún hito
+anterior.** `coro_id` va denormalizado en toda tabla que cuelga a dos saltos (decisión 8), y hasta
+hoy esas filas las escribía **el director**. Estas las escribe el miembro, con la petición que él
+arma. Con la política sola —`perfil_id = auth.uid() and puede_ver_coro(coro_id)`— un miembro podía
+mandar su propio `coro_id` junto con la `misa_id` de **otro coro**: los dos predicados pasan, la
+fila entra, y el coro ajeno ve un inscrito que no es suyo. Se cerró con una **foránea compuesta**
+contra `(misas.id, misas.coro_id)`, que lo vuelve imposible sin un trigger y sin tocar la RLS.
+
+**Queda declarado, no corregido:** `misa_cantos` tiene la misma grieta. Hoy es inofensiva porque
+solo escribe el director, y por eso no entró en este hito — pero la foránea compuesta le
+corresponde igual.
+
+**Y la foránea compuesta cobró un peaje que conviene anotar, porque va a volver a pasar.** Al
+dejarla junto a la referencia simple de la columna, `misa_participante` quedó con **dos** caminos
+hacia `misas`, y PostgREST no puede resolver un embed con dos relaciones: devolvió
+`PGRST201 · Could not embed because more than one relationship was found` y el listado de misas
+—que cuenta los anotados— dejó de cargar. Se arregló por los dos lados: la consulta **nombra la
+foránea explícitamente**, que es correcto haya una o dos, y una migración elimina la simple, que
+era redundante (ambas columnas son `not null`, así que la compuesta ya garantizaba la existencia de
+la misa, y además que fuera la del coro correcto). La lección es del mecanismo, no de este hito:
+**agregar una foránea compuesta sobre una tabla que ya tiene la simple rompe los embeds de
+PostgREST**, y el error aparece en la pantalla, no en la migración.
+
+### 17.1-nonies Lo que quedó pendiente de H15 (declarado, no recortado en silencio)
+
+| Del backlog | Cómo quedó | Por qué / cuándo se revisa |
+| --- | --- | --- |
+| **Nadie inscribe a nadie**, tampoco el director | No hay capacidad ni política | La inscripción es una declaración de una persona sobre sí misma. Si el coro pide inscribir al que no tiene teléfono, es otra decisión y otra política — no una excepción del rol |
+| **El resumen por tesitura solo lo ve el director** | El miembro ve «4 anotados · 3 cantan · 1 guitarra» | No es una carencia de este hito: es la decisión de privacidad de H14 sostenida. La tesitura vive en `ficha_miembro`, que leen su dueño y el director. El aporte y el instrumento, que salen de la propia inscripción, sí los ve todo el coro |
+| **«Faltan N» tampoco** | Solo el director | Listar quién falta pide leer `coro_acceso`, que es del director desde H1 |
+| **No hay confirmación post-misa ni asistencia real** | La inscripción es una intención | El mismo riesgo aceptado de B1, por la misma razón: no crear una tarea semanal para nadie |
+| **Inscribirse el mismo día de la misa se puede** | `sePuedeInscribir` acepta `fecha >= hoy` | Y acá el criterio **se separa** del de `agenda.ts` y el historial, que cuentan hoy como ya ocurrido. Esos preguntan «¿se cantó?»; este pregunta «¿todavía puedo decir que voy?», y el domingo a las nueve la respuesta es sí |
+| **La foránea compuesta de `misa_cantos`** | No se aplicó | Misma grieta, hoy sin explotar porque solo escribe el director. Va cuando se toque esa tabla |
 
 ### Cómo entró H13, y qué le faltaba a la base
 
-Viene de **B1 (piezas A y B)**. La recomendación al armar —B1-C— sigue siendo H17 y no entra acá:
+Viene de **B1 (piezas A y B)**. La recomendación al armar —B1-C— sigue pendiente (H18 desde el
+renumerado del 2026-09-03) y no entra acá:
 necesita este hito construido para tener de dónde recomendar.
 
-B1 decía **«cero tablas nuevas: la celebración armada en H6 ya es el historial»**, y es cierto. Pero
-al ir a leerlo había **cero celebraciones**: la única que existió se armó a mano para verificar H6 y
+B1 decía **«cero tablas nuevas: la misa armada en H6 ya es el historial»**, y es cierto. Pero
+al ir a leerlo había **cero misas**: la única que existió se armó a mano para verificar H6 y
 se la llevó el incidente de §18-17. §17.1-ter ya lo había anticipado —*«sembrar una misa de ejemplo
 haría el hito verificable sin pasos manuales; se puede agregar a `sembrar.ts` cuando estorbe»*— y
 acá estorbó: **un hito sobre el historial no se puede verificar sin historial.**
@@ -654,7 +731,7 @@ para que dentro de seis meses nadie las confunda con misas que cantó el coro de
 | Dónde se ve | **En el canto y en `/historial`** | Un solo motor alimenta las dos: el resumen contesta "¿sirve este canto?" y la pantalla contesta "¿qué estamos dejando morir?" |
 
 **El riesgo que B1 ya había aceptado sigue aceptado, y conviene repetirlo:** si el domingo se cambia
-un canto sobre la marcha y nadie corrige la celebración, **el historial miente**. Se acepta a cambio
+un canto sobre la marcha y nadie corrige la misa, **el historial miente**. Se acepta a cambio
 de no crear una tarea semanal para nadie.
 
 **Verificado corriendo la app a 360 px** (`scrollWidth` 360 = `clientWidth` 360):
@@ -680,7 +757,7 @@ concluye que la app perdió su trabajo. Por eso `HistorialCanto` expone `agendad
 
 | Del backlog | Cómo quedó | Por qué / cuándo se revisa |
 | --- | --- | --- |
-| **B1-C · la recomendación al armar** | **No entra.** Sigue siendo H17 | Es la pieza que §19.3 pone después de H10, H13 y H16 justamente porque necesita este hito construido para tener de dónde recomendar |
+| **B1-C · la recomendación al armar** | **No entra.** Sigue siendo el último de la fila — **H18** desde el renumerado del 2026-09-03 | Es la pieza que §19.3 pone después de H10, H13 y las sugerencias justamente porque necesita este hito construido para tener de dónde recomendar |
 | **`/historial` se alcanza desde el pie del repertorio** | Un enlace «ver historial» junto al contador, no un ítem en la cabecera | Esa barra declara que *«no hay navegación que ofrecer mientras se toca»*, y a 360 px un director ya tiene Misas, Miembros y Salir. El historial se consulta al **planificar**, y se planifica mirando el repertorio. Si cuesta encontrarlo, el arreglo es la cabecera |
 | **La zona horaria del servidor decide qué día es "hoy"** | ✅ **Resuelto el 2026-09-02**, al desplegar | El contenedor de producción corre en **UTC**, así que el caso previsto dejó de ser hipotético. Se extrajo `fechaEnZona` a `lib/motores/fecha.ts` —función pura, con la constante `ZONA_DEL_CORO = America/Santiago`— y `hoyISO()` pasó a ser solo la lectura del reloj. **Verificado con el reloj falseado a las 22:10 de Chile en un contenedor UTC**: antes `hoyISO()` devolvía `2026-09-03` y una misa agendada para mañana se contaba como cantada; ahora devuelve `2026-09-02` y sigue agendada. Seis casos en `fecha.test.ts`, incluido el horario de verano (UTC-3 en enero). El día que Cantoral sirva a un coro de otro huso, esto pasa a ser una columna en `coros` |
 | **El historial no distingue coros en `/historial`** | Se ve el del coro activo | Correcto y consistente con el resto: el selector de coro ya cambia el alcance de todas las pantallas |
@@ -732,7 +809,7 @@ eligió el corte mínimo en las cuatro decisiones que §19.2 había dejado abier
 | Cuántos estados | **Dos**: `en_ensayo` y `listo` | `archivado` **no entra** — ver abajo |
 | Quién los cambia | **Solo el director** | Reusa `editar_canto` y `cantos_write` (`es_director_de`): **cero cambios de RLS**, §8 no se toca |
 | Cómo se ve | **Marca por fila**, sin mover el canto de su grupo | No hay "segmento" aparte: el listado sigue agrupado por momento como en H1 |
-| Si el armador avisa | **No**, queda para después | El armado de celebración de H6 no se toca |
+| Si el armador avisa | **No**, queda para después | El armado de misa de H6 no se toca |
 
 **El borrado de §16 sigue sin resolverse, y hay que decirlo.** B10 argumentaba que el estado lo
 cerraba —*«archivar es un estado más, y borrar deja de hacer falta»*—. Con dos estados eso **no
@@ -747,7 +824,7 @@ línea (el `check` de la columna), no un rediseño.
 | **`archivado` y el borrado de §16** | **No entra.** Dos estados | Decisión del dueño (arriba). §16 sigue esperando su definición |
 | **El estado se cambia solo desde «Editar»** | Abrir el canto → Editar → Estado → Guardar: **cuatro toques** | El estado es del canto y por eso vive donde se edita el canto. Pero se mueve **durante el ensayo**, con la guitarra puesta, que es justo cuando cuatro toques molestan. Si estorba, el atajo natural es un control en la vista de lectura, visible solo para el director — el mismo lugar donde H5 puso los diagramas |
 | **La marca no filtra ni ordena** | Se ve la marca y el total al pie; no hay "mostrar solo los que están en ensayo" | Con 13 cantos la lista se escanea de un vistazo. Con los ~470 del cancionero (§16) deja de servir, y ahí el filtro se vuelve el hito, no el adorno |
-| **El armador de celebración no avisa** | Se puede meter un canto en ensayo a una misa sin que nada lo diga | Decidido arriba. El dato ya está disponible para cuando se quiera: `celebracion_cantos` llega al canto y el canto trae su estado |
+| **El armador de misa no avisa** | Se puede meter un canto en ensayo a una misa sin que nada lo diga | Decidido arriba. El dato ya está disponible para cuando se quiera: `misa_cantos` llega al canto y el canto trae su estado |
 | **La semilla no siembra ningún canto en ensayo** | Los 12 sembrados nacen `listo` | Correcto: son los que el coro canta. La consecuencia es que **la marca no se ve hasta que alguien la pone**, y la verificación de este hito la puso y la volvió a sacar |
 
 **Un arreglo colateral, para que no aparezca como misterio.** El pie del listado decía *«como
@@ -773,10 +850,10 @@ auto scroll, el coro ya puede tocar una misa completa con el repertorio sembrado
 el problema de §1. De H5 en adelante es mejora, no habilitación.
 
 Lo que hay hoy, corriendo: **los 8 hitos + H9 + H10 + H11 + H13** · 13 cantos sembrados —12 del
-cancionero con su fuente, más *Escojo la vida*, que no sale de él— · **6 celebraciones de ejemplo**,
+cancionero con su fuente, más *Escojo la vida*, que no sale de él— · **6 misas de ejemplo**,
 4 ya ocurridas · **11 tablas** con RLS · **14 motores puros con 210 tests** · **36/36**
 comprobaciones de RLS con sesiones reales — las 7 de H6 **ya no se omiten**, porque desde H13 la
-semilla trae celebraciones.
+semilla trae misas.
 
 **Y una instancia de Supabase propia, que antes no lo era.** Ver §18-17.
 
@@ -829,30 +906,30 @@ Otros pendientes de H8:
 ### 17.1-ter Lo que quedó pendiente de H6, y cómo se hereda el funcional
 
 Al construir H6 se revisó `docs/FUNCIONAL.md` §3.2 (RF-09 a RF-12, listas de reproducción). La
-celebración **reemplaza** a la lista genérica (decisión 2), así que no se hereda todo — pero lo que
+misa **reemplaza** a la lista genérica (decisión 2), así que no se hereda todo — pero lo que
 no se hereda se escribe acá en vez de descubrirse después.
 
 | Del funcional | Cómo quedó en H6 | Por qué |
 | --- | --- | --- |
-| **RF-09 / RN-07 · el nombre de la lista es obligatorio y ÚNICO** | Obligatorio sí (`check btrim(nombre) <> ''`); **único no** | Dos misas *sí* pueden llamarse "Misa del domingo" en domingos distintos, y es el caso normal. La unicidad tenía sentido en una playlist sin fecha; una celebración tiene fecha, y el par nombre+fecha es lo que la identifica. **Divergencia deliberada del funcional** |
-| **RF-10 · añadir y quitar cantos «desde la propia lista o desde la vista de lectura»** | Solo desde el armador (`/celebraciones/[id]/editar`) | La mitad del requisito **no está construida**. §12 no le asigna esa capacidad a la vista de lectura, así que no se adelantó; pero es una capacidad del funcional heredado y no un olvido. Se salda agregando un control a la vista de lectura, si el director lo pide |
-| **RF-11 · ordenar por título, por autor o arrastrando** | Orden litúrgico automático + mover ↑↓ una posición | La celebración no es una lista libre (decisión 2): el orden lo propone la liturgia y el director lo ajusta. Ordenar por título no tiene sentido en una misa. **Sin arrastre**: mover de a una posición alcanza para cinco cantos y no pide una librería de drag |
+| **RF-09 / RN-07 · el nombre de la lista es obligatorio y ÚNICO** | Obligatorio sí (`check btrim(nombre) <> ''`); **único no** | Dos misas *sí* pueden llamarse "Misa del domingo" en domingos distintos, y es el caso normal. La unicidad tenía sentido en una playlist sin fecha; una misa tiene fecha, y el par nombre+fecha es lo que la identifica. **Divergencia deliberada del funcional** |
+| **RF-10 · añadir y quitar cantos «desde la propia lista o desde la vista de lectura»** | Solo desde el armador (`/misas/[id]/editar`) | La mitad del requisito **no está construida**. §12 no le asigna esa capacidad a la vista de lectura, así que no se adelantó; pero es una capacidad del funcional heredado y no un olvido. Se salda agregando un control a la vista de lectura, si el director lo pide |
+| **RF-11 · ordenar por título, por autor o arrastrando** | Orden litúrgico automático + mover ↑↓ una posición | La misa no es una lista libre (decisión 2): el orden lo propone la liturgia y el director lo ajusta. Ordenar por título no tiene sentido en una misa. **Sin arrastre**: mover de a una posición alcanza para cinco cantos y no pide una librería de drag |
 | **RF-12 · compartir la lista como `.openchord`** | No entra | Ya estaba en §16: el servidor es el mecanismo de intercambio |
-| **RN-08 · una canción puede pertenecer a varias listas** | Se respeta: el único es `(celebracion_id, canto_id)` | Un canto está en todas las misas que haga falta, una vez en cada una |
+| **RN-08 · una canción puede pertenecer a varias listas** | Se respeta: el único es `(misa_id, canto_id)` | Un canto está en todas las misas que haga falta, una vez en cada una |
 
 Otros pendientes de H6:
 
 | Pendiente | Por qué | Cuándo se salda |
 | --- | --- | --- |
-| **No hay celebraciones en la semilla** | Se armó una a mano para verificar el hito. Las comprobaciones de H6 en `npm run verificar:rls` se **omiten solas** si no hay ninguna armada, en vez de fallar | Sembrar una misa de ejemplo haría el hito verificable sin pasos manuales; se puede agregar a `sembrar.ts` cuando estorbe |
-| **La celebración no se puede renombrar ni borrar** | RF-09 pedía las tres (crear, renombrar, eliminar). Crear está; el borrado va contra la decisión 7 (sin borrado en el prototipo) y renombrar no lo pide §12 | Renombrar es un formulario y una action; el borrado espera la decisión de §16 |
-| **El reordenamiento escribe fila por fila, en dos pasadas** | El índice único `(celebracion_id, orden)` no admite empates ni una actualización masiva sin colisión. Con cinco cantos es imperceptible | Si una celebración creciera a decenas, conviene una función `security definer` que renumere en una transacción |
+| **No hay misas en la semilla** | Se armó una a mano para verificar el hito. Las comprobaciones de H6 en `npm run verificar:rls` se **omiten solas** si no hay ninguna armada, en vez de fallar | Sembrar una misa de ejemplo haría el hito verificable sin pasos manuales; se puede agregar a `sembrar.ts` cuando estorbe |
+| **La misa no se puede renombrar ni borrar** | RF-09 pedía las tres (crear, renombrar, eliminar). Crear está; el borrado va contra la decisión 7 (sin borrado en el prototipo) y renombrar no lo pide §12 | Renombrar es un formulario y una action; el borrado espera la decisión de §16 |
+| **El reordenamiento escribe fila por fila, en dos pasadas** | El índice único `(misa_id, orden)` no admite empates ni una actualización masiva sin colisión. Con cinco cantos es imperceptible | Si una misa creciera a decenas, conviene una función `security definer` que renumere en una transacción |
 
 ### 17.1-bis Lo que quedó pendiente de H5 (declarado, no recortado en silencio)
 
 | Pendiente | Por qué | Cuándo se salda |
 | --- | --- | --- |
-| **Los acordes con bajo (`X/Y`) no tienen digitación** y muestran el mensaje de §14 | Afecta a 3 de los 12 cantos (7 acordes: `G/B`, `D/A`, `A9/C#`, `Bm/A`, `D/F#`, `C/G`, `Am/G`). Caer al acorde base sería **peor**: `G/B` resolvería en 0 y `A/C#` no en +2, o sea que el comportamiento cambiaría al transponer. Cubrirlos de verdad son 84 entradas más de dato musical a mano | Se salda con un `if` de caída al acorde base marcado como *aproximado* y dos tests, si algún músico del coro lo reclama |
+| **Los acordes con bajo (`X/Y`) no tienen digitación** y muestran el mensaje de §14 | Afecta a 3 de los 12 cantos (7 acordes: `G/B`, `D/A`, `A9/C#`, `Bm/A`, `D/F#`, `C/G`, `Am/G`). Caer al acorde base sería **peor**: `G/B` resolvería en 0 y `A/C#` no en +2, o sea que el comportamiento cambiaría al transponer. Cubrirlos de verdad son 84 entradas más de dato musical a mano | Se salda con un `if` de caída al acorde base marcado como *aproximado* y dos tests, si algún miembro del coro lo reclama |
 | **El catálogo tiene 48 entradas: 12 raíces × `""`, `m`, `7`, `m7`** | Son exactamente los sufijos que el repertorio usa sin bajo, y bastan para cubrirlo entero en las 23 transposiciones. `sus4`, `maj7`, `dim` y `aug` no aparecen en ningún cifrado sembrado | Cuando H8 permita escribirlos: el test de cobertura se pone rojo solo y avisa cuál falta |
 | **Las 48 digitaciones no fueron revisadas con una guitarra en la mano** | Los tests verifican la **forma** (seis cuerdas, trastes dibujables, cejilla coherente) y la **cobertura**, pero no que cada forma suene bien: un dato musical equivocado pasaría en verde | Revisión a oído por alguien que toque, contra el cancionero. Corregir una entrada es cambiar seis caracteres |
 | **El estado "canto sin acordes" se verificó con un `UPDATE` local temporal** | Los 12 cantos sembrados tienen acordes, así que no hay instancia natural del estado de §14 | No requiere acción; si algún día se siembra un canto solo con letra, el caso pasa a ser natural |
@@ -864,7 +941,7 @@ Otros pendientes de H6:
 | --- | --- | --- |
 | **La semilla tiene 12 cantos, no 30** | Decisión del dueño al arrancar, siguiendo la recomendación de §18-5: uno por momento litúrgico alcanza para cerrar H1 y para armar una misa completa en H6 | durante H2–H4, ampliando `supabase/seed/cantos.ts` |
 | ~~Los acordes van al comienzo de su línea~~ → **posicionados con criterio musical** (2026-08-02) | El cancionero no dice sobre qué sílaba cae cada acorde. Se repartieron sobre la métrica del verso para que el cifrado sirva para tocar. **Qué acordes y en qué orden es dato de la fuente; dónde caen es una estimación**, declarada en la cabecera de `supabase/seed/cantos.ts` | corregir a oído es trabajo esperable: mover un corchete no rompe nada, porque la transposición se calcula al leer |
-| **El tamaño de letra es un máximo, no un valor fijo** | En pantalla angosta el ajuste al ancho puede achicar la letra por debajo de lo pedido. Pedir letra más grande reduce las columnas por línea, así que el efecto se nota — pero el número exacto no se respeta al pie | se revisa si algún músico lo reporta como raro |
+| **El tamaño de letra es un máximo, no un valor fijo** | En pantalla angosta el ajuste al ancho puede achicar la letra por debajo de lo pedido. Pedir letra más grande reduce las columnas por línea, así que el efecto se nota — pero el número exacto no se respeta al pie | se revisa si algún miembro lo reporta como raro |
 | **El canto n.º 42 *Santo Español* se reemplazó por el n.º 43 *Santo Gen Rosso*** | El 42 tiene erratas en el PDF de origen (`Sol Le`, `Si Fo` no son acordes). Ambos están en la lista de §13.2 | no requiere acción; si alguien reconstruye el 42, hay que corregirlo a oído |
 | **La vista de canto muestra el cifrado en texto plano** | El render con acordes sobre la sílaba es H2 y no se adelanta | H2 |
 | **El admin no pertenece a ningún coro** | Crear coros y asignar miembros es H7; hasta entonces el admin ve el vacío legítimo con su motivo | H7 |
@@ -879,15 +956,15 @@ Otros pendientes de H6:
 | 1 | El *Cancionero Misionero* declara "Prohibida su reproducción para usos comerciales" | Uso privado del coro, sin publicación abierta ni registro libre; cada canto muestra su fuente en pantalla. Antes de cualquier apertura pública, pedir permiso al Coro Misión País | el dueño | despliegue **público**; ningún hito interno |
 | 2 | Nombre del producto sin definir | Nombre de trabajo **Cantoral**; el esquema `cantoral` puede nacer con él y renombrarlo después cuesta una migración de esquema | el dueño | nada |
 | 3 | Una persona en varios coros necesita un **coro activo** | Selector en la barra superior; el coro activo vive en la sesión y toda ruta lo respeta. Si el usuario está en un solo coro, se elige solo y el selector no aparece | el dueño | H1 |
-| 4 | ¿Enlace público de solo lectura para un canto o una celebración? | No en el prototipo: primero hay que resolver el riesgo 1 | el dueño | nada |
+| 4 | ¿Enlace público de solo lectura para un canto o una misa? | No en el prototipo: primero hay que resolver el riesgo 1 | el dueño | nada |
 | 5 | Transcribir 30 cantos a ChordPro es trabajo manual medido en horas, no en minutos | Empezar por los 12 que cubren una misa completa (uno por momento) y crecer; el seed declara cuántos hay en cada corrida, así que el número nunca es una sorpresa | el dueño | H1 (con 12 se puede cerrar H1; los 30 pueden completarse durante H2–H4) |
-| 6 | La celebración sin fecha como sustituto de una lista libre puede sentirse forzada | Construir H6 como está y evaluarlo con el coro; si estorba, agregar `tipo` a `celebraciones` (`misa` / `ensayo` / `lista`) es una columna, no un rediseño | el dueño, después de H6 | nada |
+| 6 | La misa sin fecha como sustituto de una lista libre puede sentirse forzada | Construir H6 como está y evaluarlo con el coro; si estorba, agregar `tipo` a `misas` (`misa` / `ensayo` / `lista`) es una columna, no un rediseño. **Más urgente desde el 2026-09-03**: mientras se llamó «celebración sin fecha» la frase se sostenía; «una misa sin fecha» ya no. El renombre de §5 no crea el problema, lo hace audible | el dueño, después de H6 | nada |
 | 7 | ~~La notación americana puede ser fricción real~~ → **CONFIRMADO y resuelto en H9** (2026-08-06) | Se midió con el primer canto que cargó un usuario real: vino en latina y en formato de cancionero, y se guardó como texto plano sin que nada avisara. Se construyeron los dos motores y el aviso del editor | decidido | nada |
 | 8 | El catálogo de momentos es **global a la instalación** (decisión 6): un segundo coro con otra nomenclatura la comparte | Aceptar mientras haya un solo coro real. Si entra un segundo con nomenclatura distinta, el catálogo pasa a colgar del coro — es una columna `coro_id` nullable y un cambio en una política | el dueño | nada, pero se revisa antes de sumar el segundo coro real |
 | 9 | Los dos cancioneros comparten títulos con acordes distintos | No deduplicar por título: un canto pertenece a un coro (decisión 5) y las versiones distintas son legítimas | decidido | nada |
 | 10 | **Rastrear cancioneros católicos en internet y proponer versiones** (§19-B4) | **No construir todavía.** Choca con cuatro cosas escritas: §16 dos veces (búsqueda online, IA), §18-1 (rastrear terceros *amplía* la superficie legal, no la reduce) y §18-9 (si las versiones distintas son legítimas, lo hallado **no actualiza** un canto: entra como canto aparte). Antes hay que definir qué significa "agente" —proceso determinista o modelo—. **Alternativa barata que cubre buena parte: que el director pegue una URL o un texto a mano** y los motores de H9 (`desdeElCancionero`) conviertan. Sin cron, sin un adaptador por sitio, sin rastreo | el dueño | §19-B4; nada de lo construido |
-| 11 | **Datos personales de los miembros** (§19-B5) y **grabaciones de su voz** (§19-B6/B7) | Hasta hoy el único dato de persona es el correo de la cuenta. Edad y sexo suben el nivel, y una grabación de voz identifica a alguien que puede ser menor de edad. Decisión tomada: **se guardan los cuatro campos tal cual** (edad, sexo, tesitura, disponibilidad) **con visibilidad declarada** — el director ve la ficha completa del coro que dirige, el músico no ve datos ajenos. Falta resolver: consentimiento para las grabaciones y qué pasa cuando alguien deja el coro | el dueño | §19-B5, §19-B6, §19-B7 |
-| 12 | **El ranking y la recomendación le dan consejos opuestos al director** | El historial dice *"hace ocho meses que no cantan este"*; el ranking dice *"la gente quiere este"* — y la gente quiere siempre los mismos. Uno empuja a rotar, el otro a repetir. No es un defecto: es una decisión de qué se muestra primero al armar la celebración | el dueño, al construir H17 (§19.3) | §19-B9 y §19-B1-C conviviendo |
+| 11 | **Datos personales de los miembros** (§19-B5) y **grabaciones de su voz** (§19-B6/B7) | Hasta hoy el único dato de persona es el correo de la cuenta. Edad y sexo suben el nivel, y una grabación de voz identifica a alguien que puede ser menor de edad. Decisión tomada: **se guardan los cuatro campos tal cual** (edad, sexo, tesitura, disponibilidad) **con visibilidad declarada** — el director ve la ficha completa del coro que dirige, el miembro no ve datos ajenos. Falta resolver: consentimiento para las grabaciones y qué pasa cuando alguien deja el coro. **La tensión inscripción/disponibilidad quedó cerrada el 2026-09-03 al construir H15: manda la inscripción, siempre — y la disponibilidad solo habla de quien NO se inscribió.** No se contradicen nunca, porque no opinan sobre la misma persona a la vez: al anotarse, la predicción deja de mostrarse | el dueño | §19-B5, §19-B6, §19-B7 |
+| 12 | **El ranking y la recomendación le dan consejos opuestos al director** | El historial dice *"hace ocho meses que no cantan este"*; el ranking dice *"la gente quiere este"* — y la gente quiere siempre los mismos. Uno empuja a rotar, el otro a repetir. No es un defecto: es una decisión de qué se muestra primero al armar la misa | el dueño, al construir H18 (§19.3) | §19-B9 y §19-B1-C conviviendo |
 | 13 | **No hay versionado del cifrado** | Con repertorio compartido, una corrección equivocada es silenciosa e irreversible: no se sabe quién cambió qué ni se puede volver atrás. Hoy no molesta porque solo el director edita, desde una pantalla, a conciencia (H8). Corregir acordes *en el lugar* multiplica las ediciones pequeñas y lo vuelve necesario | el dueño | §19-B8 **no debería construirse sin esto** |
 | 14 | **Audio: peso, cuota y el navegador del teléfono** | El repertorio entero en texto pesa menos que un solo canto grabado a cuatro voces: hay que declarar cuota y qué pasa al llenarse. Y grabar desde el navegador móvil tiene a **Safari en iPhone como punto frágil** —soporte y formatos que no coinciden con Android—. Se declara ahora para que no se descubra construyendo | el dueño | §19-B6, §19-B7 |
 | 15 | **Pulsar un acorde ya hace algo** | H5 dejó verificado que pulsar un acorde abre la barra de diagramas centrada en él. Editar en el lugar necesita **otro gesto** —modo de edición explícito, pulsación larga, u otra cosa—, no puede colgar del mismo | el dueño | §19-B8 |
@@ -907,8 +984,8 @@ hitos que agreguen datos que un usuario carga a mano —y H15, H16 y H20 del ord
 necesitan decidir **antes** si eso se siembra, se exporta o se asume perdible. Hoy la semilla es la
 única copia.
 
-**Cerrado en esta captura (2026-08-06):** el músico **sí escribe**, y escribe **solo filas suyas** —
-su inscripción a una celebración, su sugerencia de canto. Nunca repertorio, nunca celebraciones
+**Cerrado en esta captura (2026-08-06):** el miembro **sí escribe**, y escribe **solo filas suyas** —
+su inscripción a una misa, su sugerencia de canto. Nunca repertorio, nunca misas
 ajenas, nunca datos de otra persona. Ver §19.5.
 
 ---
@@ -940,7 +1017,7 @@ alguien lo sugiere  →  entra en ensayo  →  se aprende escuchándolo  →  qu
                                              y se corrige a oído (B8)
 ```
 
-Cantoral tiene construido **solo el tramo de abajo**: armar la celebración y cantarla (H6). Todo lo
+Cantoral tiene construido **solo el tramo de abajo**: armar la misa y cantarla (H6). Todo lo
 capturado es el tramo de arriba — **cómo un canto llega al repertorio**. Por eso las entradas se
 enganchan tanto entre sí, y por qué B10 (una columna) desbloquea a casi todas.
 
@@ -951,8 +1028,8 @@ decisiones escritas. Eso, por sí solo, es una señal de prioridad — ver §18-
 
 | ID | Qué pide | Cuelga de | Costo |
 | --- | --- | --- | :---: |
-| **B1** | Historial de qué se cantó y recomendación por frecuencia | §3, §9, pantalla | ✅ **A+B → H13** · C sigue en H17 |
-| **B2** | Cada músico se inscribe a la misa donde va a cantar | tabla nueva, **§8** | medio |
+| **B1** | Historial de qué se cantó y recomendación por frecuencia | §3, §9, pantalla | ✅ **A+B → H13** · C sigue pendiente, ahora H18 |
+| **B2** | Cada miembro se inscribe a la misa donde va a cantar | tabla nueva, **§8** | medio |
 | **B3** | Modo solo letra: ocultar los acordes | columna + control | ✅ **construida** → H11 |
 | **B4** | Rastrear cancioneros online y proponer versiones | — | **alto** → §18-10 |
 | **B5** | Ficha del miembro: edad, sexo, tesitura, disponibilidad | §7, **§8** | bajo |
@@ -971,8 +1048,8 @@ decisiones escritas. Eso, por sí solo, es una señal de prioridad — ver §18-
 > parte de la misa. Para poder medir cuántas veces hemos cantado ese canto, en cuánto tiempo y cómo
 > lo hemos repetido a través del tiempo. Para que después nos haga recomendaciones."*
 
-**Cero tablas nuevas.** `celebraciones` tiene fecha y `celebracion_cantos` tiene momento, canto y
-orden: **la celebración armada en H6 ya es el historial**. Falta el motor que lo lee y la pantalla.
+**Cero tablas nuevas.** `misas` tiene fecha y `misa_cantos` tiene momento, canto y
+orden: **la misa armada en H6 ya es el historial**. Falta el motor que lo lee y la pantalla.
 
 | Pieza | Qué es |
 | --- | --- |
@@ -980,31 +1057,36 @@ orden: **la celebración armada en H6 ya es el historial**. Falta el motor que l
 | B · Métricas por canto | Motor puro §9: veces cantado, hace cuánto, con qué espaciado |
 | C · Recomendación al armar | Ordenar por recencia y frecuencia. **Determinista, ver §10** |
 
-**Decidido:** el dato sale de la celebración armada. Sin registro retroactivo ni confirmación
+**Decidido:** el dato sale de la misa armada. Sin registro retroactivo ni confirmación
 post-misa. **Riesgo aceptado:** si el domingo se cambia un canto sobre la marcha y nadie corrige la
-celebración, el historial miente. Se acepta a cambio de no crear una tarea semanal para nadie.
+misa, el historial miente. Se acepta a cambio de no crear una tarea semanal para nadie.
 
 > **A y B construidas el 2026-08-07 → H13.** Cuenta solo lo que ya ocurrió —fecha declarada y no
 > futura—, se ve en el canto y en `/historial`, y lo agendado se informa aparte para que nadie crea
-> que la app perdió su trabajo. **C (la recomendación) sigue pendiente y es H17.** Los pendientes
+> que la app perdió su trabajo. **C (la recomendación) sigue pendiente y es H18** (era H17 hasta el renumerado del 2026-09-03). Los pendientes
 > están en §17.1-octies.
 
 ---
 
-**B2 · Inscripción de integrantes a la celebración**
+**B2 · Inscripción de integrantes a la misa**
 
 > *"Un segmento donde cada integrante del coro puede inscribirse en la misa donde va a querer cantar
 > o va a poder cantar, para poder ordenar el coro con las voces y con los instrumentos."*
 > *"Se inclinan también con voz, instrumento, y si es con instrumento, tiene que definir cuál."*
 
-Tabla `celebracion_participante` con `coro_id` denormalizado, como manda decisión 8. Cada fila
+Tabla `misa_participante` con `coro_id` denormalizado, como manda decisión 8. Cada fila
 declara **voz o instrumento, y si es instrumento, cuál** — un campo condicional, no dos sueltos.
 
-**Es la primera escritura de un músico en dato compartido.** Ver §19.5.
+**Es la primera escritura de un miembro en dato compartido.** Ver §19.5.
 
 **Tensión con B5:** son dos respuestas al mismo problema. La inscripción es una declaración **por
-misa** que hace el músico; la disponibilidad de B5 es una predicción **general** que carga el
+misa** que hace el miembro; la disponibilidad de B5 es una predicción **general** que carga el
 director. Si conviven, hay que decir qué manda cuando se contradicen — §18-11.
+
+> **Construida el 2026-09-03 → H15.** La tensión se cerró: **manda la inscripción**, y la
+> disponibilidad solo se muestra para quien todavía no se anotó. El aporte quedó como un campo
+> condicional (`vocal` / `instrumental` + cuál), y la **tesitura no se pide**: ya está en el perfil
+> de H14, y pedirla dos veces sería crear dos verdades. Lo que este corte dejó afuera está en §17.
 
 ---
 
@@ -1048,7 +1130,7 @@ decisiones escritas y porque el freno principal es legal, no técnico.
 Normalizar cualquier cifrado externo al formato interno **ya está hecho**.
 
 **El conflicto de fondo es de producto:** `PRODUCT.md` define el éxito como *"que la corrección que
-hace un músico le llegue a los demás"*. Este repertorio es curado y corregido a oído. Si el director
+hace un miembro le llegue a los demás"*. Este repertorio es curado y corregido a oído. Si el director
 corrigió un acorde porque en la iglesia sonaba mal, una versión de internet "más nueva" no es mejor:
 es peor.
 
@@ -1063,10 +1145,10 @@ es peor.
 Los cuatro campos cuelgan de `coro_acceso`, no de `perfiles`: son atributos de la persona **en ese
 coro**. H7 ya construyó la pantalla `/coro/miembros` donde se cargarían.
 
-**Corregido el 2026-09-02 al construir H14:** el dueño decidió que **cada uno carga su propia ficha** y que el director la ve. Eso invierte lo de abajo en dos puntos: (a) los campos **no** cuelgan de `coro_acceso` sino de una tabla propia —esa fila tiene `rol_local`, y dejar al músico escribirla para poner su tesitura es la puerta por la que se escribe `rol_local = director`, el mismo razonamiento que H11 aplicó a `perfiles`—; y (b) **el sexo no se guarda**: queda solo la tesitura, tal como la nota de abajo ya sugería. La edad se guarda como **fecha de nacimiento** y se calcula al leer.
+**Corregido el 2026-09-02 al construir H14:** el dueño decidió que **cada uno carga su propia ficha** y que el director la ve. Eso invierte lo de abajo en dos puntos: (a) los campos **no** cuelgan de `coro_acceso` sino de una tabla propia —esa fila tiene `rol_local`, y dejar al miembro escribirla para poner su tesitura es la puerta por la que se escribe `rol_local = director`, el mismo razonamiento que H11 aplicó a `perfiles`—; y (b) **el sexo no se guarda**: queda solo la tesitura, tal como la nota de abajo ya sugería. La edad se guarda como **fecha de nacimiento** y se calcula al leer.
 
 **Decisión original (2026-08-06):** se guardan **los cuatro tal cual**, con visibilidad declarada — el director ve
-la ficha completa del coro que dirige, el músico no ve datos ajenos. Es una política más fina que
+la ficha completa del coro que dirige, el miembro no ve datos ajenos. Es una política más fina que
 las de §8 y hay que escribirla, no descubrirla. Ver §18-11.
 
 **Queda anotado, sin cambiar la decisión:** la tesitura ya dice qué voz canta una persona con más
@@ -1115,7 +1197,7 @@ grabado **contra una misma referencia**.
 > mismo lugar y cambiar alguna nota manualmente."*
 
 **La entrada más alineada con el propósito escrito** — `PRODUCT.md`: *"que la corrección que hace un
-músico le llegue a los demás"*.
+miembro le llegue a los demás"*.
 
 **Probablemente nace de H9:** ese hito dejó *Escojo la vida* con **121 acordes pulsables**. Un
 conversor de cancionero produce repeticiones, porque en el papel el acorde se escribe una vez y se
@@ -1124,6 +1206,14 @@ sostiene.
 | Pieza | Qué es | Costo |
 | --- | --- | --- |
 | **A · Colapsar repetidos consecutivos** | Motor puro §9. **Arregla la salida de H9 en todos los cantos de una vez** | bajo |
+
+> **REABIERTO el 2026-09-03, con la medición rehecha.** H12 se descartó el 2026-08-07 *«con la
+> medición hecha: 0 repetidos en 13 de 13 cantos»* — pero esa medición era sobre los **13 curados a
+> mano**. Medido sobre los **90 del cancionero importado en H16: 94 acordes repetidos consecutivos,
+> en 44 cantos, un 2,7 % del total.** No es cero. Sigue siendo poco para levantar un hito, y por eso
+> no entra todavía; lo que ya no vale es el argumento con el que se descartó. La próxima vez que se
+> discuta, se discute contra este número.
+
 | B · Editar un acorde en el lugar | Choca con el gesto de H5 — §18-15 | medio |
 | C · Borrar un acorde suelto | Va con B | — |
 
@@ -1159,10 +1249,10 @@ sostiene.
 > *"Un ranking donde cada miembro sugiere alguna canción para determinado momento de la misa, y el
 > director puede escoger la que más se repite o la que más se quiere cantar."*
 
-Tabla `sugerencia` (perfil, canto, momento, coro) y un recuento ordenado al armar la celebración.
+Tabla `sugerencia` (perfil, canto, momento, coro) y un recuento ordenado al armar la misa.
 Contar y ordenar: determinista.
 
-Segunda escritura del músico en dato compartido — ver §19.5. Y da consejos opuestos a B1: §18-12.
+Segunda escritura del miembro en dato compartido — ver §19.5. Y da consejos opuestos a B1: §18-12.
 
 ---
 
@@ -1178,14 +1268,14 @@ falta antes definir si se archiva, se borra en lógico o se prohíbe"*. **El est
 definición**: archivar es un estado más, y borrar deja de hacer falta.
 
 **Y le da orden a casi todo lo demás:** B1 no recomienda cantos que el coro todavía no sabe cantar;
-armar la celebración avisa si se mete uno que está en ensayo; y el audio de B6/B11 tiene
+armar la misa avisa si se mete uno que está en ensayo; y el audio de B6/B11 tiene
 destinatario obvio — se sube y se enlaza **lo que está en ensayo**, no lo que ya se canta.
 
 **Abierto:** cuántos estados y cuáles (¿sugerido · en ensayo · listo · archivado?), y si solo el
 director los cambia.
 
 > **Cerrado el 2026-08-07 → H10.** Dos estados (`en_ensayo`, `listo`), los cambia solo el director,
-> marca por fila sin mover el canto de su grupo, y el armador de celebración no avisa. Lo que este
+> marca por fila sin mover el canto de su grupo, y el armador de misa no avisa. Lo que este
 > recorte dejó afuera está en §17 y en §17.1-sexies — incluido que **el borrado de §16 sigue sin
 > resolverse**, al revés de lo que esta entrada suponía.
 
@@ -1218,19 +1308,25 @@ construido y verificado.
 
 | # | Qué entrega | De | Por qué ahí |
 | --- | --- | :---: | --- |
-| ~~**H10**~~ ✅ | Estado del canto: en ensayo / listo | B10 | **Hecho el 2026-08-07** (ver §17). Salió recortado a dos estados, así que **no** cerró el borrado de §16 — eso sigue abierto |
+| ~~**H10**~~ ✅ | Estado del canto: en ensayo / listo | B10 | **Hecho el 2026-08-07** (ver §17). Salió recortado a dos estados; el tercero —`archivado`— entró el 2026-09-03 y con él **se cerró el borrado de §16** |
 | ~~**H11**~~ ✅ | Modo solo letra | B3 | **Hecho el 2026-08-07** (ver §17). Costó **una tabla**, no una columna: se decidió por persona, y `perfiles` no se podía abrir sin tocar §8 |
-| ~~**H12**~~ ⊘ | Colapsar acordes repetidos | B8-A | **Descartado el 2026-08-07, con la medición hecha**: 0 repetidos en 13 de 13 cantos. No limpia nada. Ver la nota en B8 |
+| ~~**H12**~~ ⊘ | Colapsar acordes repetidos | B8-A | **Descartado el 2026-08-07** con la medición de entonces: 0 repetidos en 13 de 13 cantos. **Ese número ya no vale**: sobre los 90 importados en H16 hay 94 repetidos en 44 cantos (2,7 %). Sigue sin entrar, pero por poca ganancia, no por cero — ver la nota en B8 |
 | ~~**H13**~~ ✅ | Historial y métricas por canto | B1 A+B | **Hecho el 2026-08-07** (ver §17). Cero tablas nuevas, como decía B1 — pero hubo que **sembrar misas**: el dato existía en el esquema y no en la base |
-| **H14** | Ficha del miembro | B5 | Extiende H7, que ya tiene la pantalla |
-| **H15** | Inscripción a la celebración | B2 | **Acá recién se toca §8**: primera escritura del músico |
-| **H16** | Sugerencias y ranking | B9 | Reusa la política que abre H15 |
-| **H17** | Recomendación al armar | B1-C | Necesita H10, H13 y H16 |
-| **H18** | Corrección en el lugar + versionado | B8 B/C | No debería construirse sin el versionado de §18-13 |
-| **H19** | Enlaces a versiones (YouTube / Spotify) | B11 | **Antes del audio propio**: puede reducirle el alcance |
-| **H20** | Audio propio de referencia | B6 | Infraestructura nueva: almacenamiento de binarios |
-| **H21** | Grabar encima de lo grabado | B7 | Depende de H20 |
+| ~~**H14**~~ ✅ | Ficha del miembro | B5 | **Hecho el 2026-09-02** (ver §17). Tabla propia y no columnas en `coro_acceso`: la carga cada uno, y esa fila tiene `rol_local` |
+| ~~**H16**~~ ✅ | Ingesta del cancionero | — | **Hecho el 2026-09-02** (ver §17). No estaba en este orden: salió de §16, donde el parser de dos columnas quedó anotado como *«un hito propio»* si algún día se ingestaban los cantos |
+| ~~**H15**~~ ✅ | Inscripción a la misa | B2 | **Hecho el 2026-09-03** (ver §17). **Acá se tocó §8 por primera vez desde el lado del miembro**, y §19.5 dejó de ser propuesta |
+| **H17** | Sugerencias y ranking | B9 | Reusa la política que abrió H15 |
+| **H18** | Recomendación al armar | B1-C | Necesita H10, H13 y H17 |
+| **H19** | Corrección en el lugar + versionado | B8 B/C | No debería construirse sin el versionado de §18-13 |
+| **H20** | Enlaces a versiones (YouTube / Spotify) | B11 | **Antes del audio propio**: puede reducirle el alcance |
+| **H21** | Audio propio de referencia | B6 | Infraestructura nueva: almacenamiento de binarios |
+| **H22** | Grabar encima de lo grabado | B7 | Depende de H21 |
 | — | Rastreo de cancioneros online | B4 | Fuera del orden: §18-10 |
+
+**Los números se corrieron el 2026-09-03, y conviene decir por qué.** Este orden le daba el H16 a
+las sugerencias, pero ese número se lo llevó la **ingesta del cancionero**, que se construyó fuera
+del orden porque el dueño la pidió. Un número usado dos veces es peor que un orden desprolijo: los
+pendientes corren un lugar y las referencias viejas —«B1-C sigue siendo H17»— quedan corregidas.
 
 ### 19.4 Vocabulario que introduciría
 
@@ -1241,9 +1337,9 @@ fijarla antes de construir nada, porque §5 dice **"no hay sinónimos"** y acá 
 | --- | --- | --- |
 | **estado** | En qué punto está un canto en el coro: en ensayo, listo, archivado | no es el momento litúrgico |
 | **tesitura** | La voz de una **persona**: en qué tono canta | **no es "voz"**: esa palabra queda tomada, ver abajo |
-| **instrumento** | Qué toca una persona en una celebración | no es la tesitura; una persona puede aportar una u otro |
-| **disponibilidad** | Qué tan probable es que alguien pueda, en general | no es la inscripción: eso es por celebración y lo declara el propio músico |
-| **inscripción** | Una persona declarando que va a una celebración, con su aporte | no es asistencia confirmada |
+| **instrumento** | Qué toca una persona en una misa | no es la tesitura; una persona puede aportar una u otro |
+| **disponibilidad** | Qué tan probable es que alguien pueda, en general | no es la inscripción: eso es por misa y lo declara el propio miembro |
+| **inscripción** | Una persona declarando que va a una misa, con su aporte | no es asistencia confirmada |
 | **sugerencia** | Una persona proponiendo un canto para un momento | no es una asignación: asignar sigue siendo del director |
 | **pista** | Un audio grabado o enlazado de un canto | **no es una "voz"** aunque en la conversación se le diga así |
 
@@ -1251,22 +1347,28 @@ fijarla antes de construir nada, porque §5 dice **"no hay sinónimos"** y acá 
 segunda voz"* (tesitura) y *"sube la voz que grabaste"* (pista)—. En el código no puede: **tesitura**
 para la persona, **pista** para el audio, y la palabra "voz" no se usa como nombre de nada.
 
-### 19.5 La regla nueva de §8: el músico aporta
+### 19.5 La regla nueva de §8: el miembro aporta
 
 Tres entradas del backlog —B2 (me inscribo), B9 (sugiero) y B8 (corrijo)— traen lo mismo: **el
-músico escribiendo en dato compartido**, que hoy §8.2 no contempla. No son tres excepciones: es una
+miembro escribiendo en dato compartido**, que hoy §8.2 no contempla. No son tres excepciones: es una
 categoría que falta.
 
-**Decidido (2026-08-06):** el músico **escribe solo filas suyas**.
+**Decidido (2026-08-06):** el miembro **escribe solo filas suyas**.
 
 | Puede | No puede |
 | --- | --- |
-| Crear y borrar **su** inscripción a una celebración del coro al que pertenece | Inscribir o desinscribir a otra persona |
-| Crear y retirar **su** sugerencia | Borrar la sugerencia de otro, o asignar un canto a una celebración |
-| — | Editar cantos, celebraciones, miembros ni datos de nadie |
+| Crear y borrar **su** inscripción a una misa del coro al que pertenece | Inscribir o desinscribir a otra persona |
+| Crear y retirar **su** sugerencia | Borrar la sugerencia de otro, o asignar un canto a una misa |
+| — | Editar cantos, misas, miembros ni datos de nadie |
 
 Es aporte **no destructivo**: agrega sin pisar. Se escribe en §8.2 —y en la política de RLS, que es
 donde de verdad se hace cumplir, según §15-4— el día que se construya H15, no antes.
+
+> **Escrita el 2026-09-03, al construir H15.** §8.2 tiene sus dos filas y `misa_participante_write`
+> es literalmente la regla: `perfil_id = auth.uid()`. Lo que la construcción agregó a la regla es un
+> mecanismo que la captura no había previsto: con `coro_id` denormalizado, «escribe solo filas
+> suyas» **no alcanza** —hay que asegurar además que la fila cuelgue de la misa correcta—, y eso lo
+> hace una foránea compuesta, no la política. Vale para B9 cuando entre.
 
 **Nota:** B8 (corregir acordes) **no queda cubierta por esta regla.** Corregir un acorde modifica el
 canto de todos, no una fila propia. Sigue siendo del director, como dejó verificado H8, hasta que
@@ -1276,12 +1378,80 @@ exista el versionado de §18-13.
 
 - **La búsqueda online de cifrados de §16 sigue descartada.** B4 y B11 no la reviven: B4 está
   frenada en §18-10 y B11 busca **grabaciones**, no cifrados.
-- **§16 no perdió ninguna fila.** La única que cambió es la del borrado, y solo para decir que ya
-  tiene candidato de respuesta.
-- **§18-6 sigue abierto** —si la celebración sin fecha se siente forzada como sustituto de una lista
+- **§16 no perdió ninguna fila.** La única que cambió es la del borrado, y el 2026-09-03 pasó de
+  «sin decidir» a decidida y construida: **se archiva, no se borra**.
+- **§18-6 sigue abierto** —si la misa sin fecha se siente forzada como sustituto de una lista
   libre—. La captura no lo respondió, y B10 no lo reemplaza: son cosas distintas.
 
 ---
 
+## 20. Inventario de lo solicitado
+
+Escrito el 2026-09-03 porque la pregunta *«¿cuál es la lista completa de lo que pedí?»* no tenía una
+respuesta en un solo lugar, y buscarla en `FUNCIONAL.md` lleva al documento equivocado: ese es el
+análisis por ingeniería inversa de **OpenChord** —el antecedente del que este producto se separa—,
+no un registro de pedidos. Los pedidos propios viven en §19.2 y en la conversación.
+
+### 20.1 Lo heredado de OpenChord (`FUNCIONAL.md`, 33 requisitos)
+
+No son pedidos: son el catálogo del antecedente, y §16 ya decidió cuáles no se traen.
+
+| # | Qué | En Cantoral |
+| --- | --- | --- |
+| RF-01 · RF-02 | Listar y buscar canciones | ✅ H1 — agrupadas por momento, no alfabético; la búsqueda ignora acentos |
+| RF-03 · RF-04 | Crear y editar canción | ✅ H8 |
+| RF-05 | Eliminar canción | ✅ **como archivar**, el 2026-09-03. Ver §16 |
+| RF-06 · RF-08 | Listar artistas y navegar a su ficha | ❌ **No está y no está decidido.** El autor existe como dato y se muestra, pero no hay pantalla de autor. Nadie lo pidió; se anota para que no parezca olvido |
+| RF-07 | Eliminar artista en cascada | ⊘ §16 |
+| RF-09 – RF-12 | Listas de reproducción y compartirlas | ⊘ Reemplazadas por **misas** (decisión 2) |
+| RF-13 – RF-16 | Buscar cifrados en internet | ⊘ §16 |
+| RF-17 – RF-19 | Renderizar, transponer, tamaño de letra | ✅ H2 y H3 |
+| RF-20 | Mostrar/ocultar tablaturas | ⊘ §16 — no hay tablatura en estos cancioneros. **H11 hizo el equivalente con acordes** |
+| RF-21 | Auto scroll | ✅ H4 |
+| RF-22 | Pasar página táctil | ⊘ §16 |
+| RF-23 | Diagramas de acorde | ✅ H5 |
+| RF-24 | Recordar preferencias por canción | ✅ H3, y H11 por persona |
+| RF-25 – RF-28 | Editar en ChordPro y en acordes sobre letra | ✅ H8 y H9, **con una diferencia**: H9 convierte al pegar; no hay pestaña que vaya y vuelva entre formatos |
+| RF-29 · RF-30 | Copia de seguridad e importar `.openchord` | ⊘ §16 — acá el servidor es el mecanismo |
+| RF-31 | Inglés y portugués | ⊘ El producto es en español |
+| RF-32 · RF-33 | Tamaño y valores por defecto globales | ⚠️ **Parcial.** H11 hizo «acordes sí/no» por persona; el tamaño de letra sigue siendo por canto, sin valor por defecto |
+| §8.2 de OpenChord | Deslizar con el toque · botón de volumen · múltiples columnas · diccionario de acordes · modo presentación | ❌ Ninguno pedido ni construido; «modo proyección» está en §16 |
+
+**Los dos únicos huecos de esta fuente que no están en §16: RF-06/RF-08 y RF-32.**
+
+### 20.2 Lo pedido el 2026-08-06 (§19.2)
+
+| # | Estado |
+| --- | --- |
+| **B1** Historial y recomendación | ✅ A+B → **H13**. C pendiente (**H18**) |
+| **B2** Inscripción a la misa | ✅ **H15** (2026-09-03) |
+| **B3** Modo solo letra | ✅ **H11** |
+| **B4** Scraping de cancioneros | ⛔ Frenado en **§18-10** — el freno es legal, no técnico |
+| **B5** Ficha del miembro | ✅ **H14**, sin el sexo y con carga propia |
+| **B6** Audio de las voces | ⏳ Pendiente. Cantoral no guarda un solo binario |
+| **B7** Grabar encima | ⏳ Pendiente, depende de B6 |
+| **B8** Corregir acordes en el lugar | ⚠️ **A reabierto** con medición nueva; **B y C** bloqueados sin versionado (§18-13) |
+| **B9** Ranking de sugerencias | ⏳ Pendiente (**H17**). Reusa la política que abrió H15 |
+| **B10** Estado del canto | ✅ **H10** |
+| **B11** YouTube / Spotify | ⏳ Pendiente (**H20**). §18-16 pide decidir antes lo de las claves de API |
+
+### 20.3 Lo pedido después, por conversación
+
+| Qué | Estado |
+| --- | --- |
+| Empaquetar en Docker y desplegar en servidor propio | ✅ |
+| Dominio propio para Supabase | ✅ `supabase.cenitlab.cl` |
+| *«El resto del cancionero»* | ✅ **H16** — de 13 a 87 cantos |
+| «Mi ficha» debe decir **Mi perfil** | ✅ Texto y URL; la tabla sigue siendo `ficha_miembro` a propósito |
+| El coro es **Coro San José de la Familia** | ✅ 2026-09-03 |
+| *«Está muy apretado el menú»* | ✅ Cabecera en dos filas, objetivos de 40 px |
+| Separar las misas por lo que viene y lo ya cantado | ✅ `agenda.ts` |
+| **Dos tipos de persona: director y miembro** | ✅ 2026-09-03. Ver §5 y §8.2 |
+| **No son celebraciones: son misas** | ✅ 2026-09-03. Ver §5 |
+| **Poder eliminar un canto** | ✅ 2026-09-03, como archivar. Ver §16 |
+
+---
+
 *Documento vivo. §1–§18 describen lo construido y verificado; §19 es el backlog capturado y sin
-comprometer. El eslabón para construir sigue siendo `prd-a-codigo`, y toma de §17, no de §19.*
+comprometer; §20 es el inventario de lo pedido. El eslabón para construir sigue siendo
+`prd-a-codigo`, y toma de §17, no de §19.*

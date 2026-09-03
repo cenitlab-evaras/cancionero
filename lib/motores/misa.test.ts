@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { ordenDeInsercion, reordenar, recorrido } from './celebracion'
+import { ordenDeInsercion, reordenar, recorrido } from './misa'
 
 /**
  * H6 · docs/PRD.md §5 y §17.
@@ -9,9 +9,9 @@ import { ordenDeInsercion, reordenar, recorrido } from './celebracion'
  *   · el orden de la misa sigue al orden litúrgico, para que el director no
  *     tenga que acomodar a mano lo que la liturgia ya ordenó;
  *   · el recorrido va de un canto al siguiente sin volver al listado, que es
- *     literalmente lo que el músico hace con el teléfono en la mano.
+ *     literalmente lo que el miembro hace con el teléfono en la mano.
  *
- * `orden` es la posición dentro de la celebración, y NO es el momento: dos
+ * `orden` es la posición dentro de la misa, y NO es el momento: dos
  * cantos pueden compartir momento y su orden los separa (§5).
  */
 
@@ -23,7 +23,7 @@ const SANTO = 7
 const COMUNION = 9
 
 describe('ordenDeInsercion', () => {
-  test('en una celebración vacía, el primer canto va a la posición 0', () => {
+  test('en una misa vacía, el primer canto va a la posición 0', () => {
     expect(ordenDeInsercion([], ENTRADA)).toBe(0)
   })
 
@@ -133,7 +133,7 @@ describe('recorrido', () => {
     expect(recorrido(misa, 'a').posicion).toBe(1)
   })
 
-  test('un canto que no está en la celebración no inventa vecinos', () => {
+  test('un canto que no está en la misa no inventa vecinos', () => {
     expect(recorrido(misa, 'zzz')).toEqual({
       anterior: null,
       siguiente: null,
@@ -142,7 +142,7 @@ describe('recorrido', () => {
     })
   })
 
-  test('en una celebración de un solo canto no hay a dónde ir', () => {
+  test('en una misa de un solo canto no hay a dónde ir', () => {
     expect(recorrido([{ id: 'unico', orden: 0 }], 'unico')).toEqual({
       anterior: null,
       siguiente: null,

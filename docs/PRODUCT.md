@@ -11,8 +11,9 @@ manda sobre todo lo demás: **de pie, con el instrumento puesto, en la luz baja 
 una mano libre a lo sumo y a veces sin poder mirar la pantalla**. Buena parte del coro es gente
 joven de misión; hay al menos una persona que ve poco y necesita letra grande de verdad.
 
-Dos roles: el **músico** lee y toca; el **director** además arma el repertorio y las celebraciones,
-casi siempre sentado y con tiempo.
+Dos roles, y son los dos únicos: el **miembro** lee y toca; el **director** además arma el
+repertorio y las misas, casi siempre sentado y con tiempo. (El `admin` del código no es un
+tercero: es la cuenta de instalación, y no aparece en ninguna pantalla del coro.)
 
 El trabajo a resolver: *encontrar el canto del momento litúrgico que viene, verlo en la tonalidad
 que puedo cantar, y tocarlo sin tener que soltar la guitarra para pasar de página.*
