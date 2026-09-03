@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
-import { esRolValido, type RolLocal, type Sujeto } from '@/lib/permisos'
+import { esRolValido, type Rol, type RolLocal, type Sujeto } from '@/lib/permisos'
 
 /**
  * El sujeto se arma UNA VEZ, del lado del servidor, y se pasa a los componentes.
@@ -22,6 +22,8 @@ export type SesionCantoral = {
   email: string
   nombre: string | null
   sujeto: Sujeto
+  /** Si `perfiles.rol` traía un valor que ESTA versión conoce. Ver `porQueNoEntra`. */
+  rolReconocido: boolean
   coros: CoroDelUsuario[]
   /** El coro activo: el de la cookie si es válido, si no el primero. */
   coroActivo: CoroDelUsuario | null
@@ -49,7 +51,14 @@ export async function obtenerSesion(): Promise<SesionCantoral | null> {
 
   // Sin perfil (el trigger no alcanzó a correr) se trata como no aprobado:
   // el portón cierra hacia el NO.
-  const rol = perfil && esRolValido(perfil.rol) ? perfil.rol : 'externo'
+  //
+  // Y SE GUARDA SI EL ROL ERA RECONOCIBLE, que es distinto de cuál quedó. Sin
+  // este dato, un rol que la app no conoce se vuelve indistinguible de un
+  // `externo` legítimo, y la pantalla de espera termina afirmando que falta una
+  // aprobación que ya está — pasó el 2026-09-03, al migrar `miembro` a
+  // `usuario` sin desplegar. Cerrar hacia el NO está bien; perder el motivo, no.
+  const rolReconocido = !!perfil && esRolValido(perfil.rol)
+  const rol = rolReconocido ? (perfil!.rol as Rol) : 'externo'
   const aprobado = perfil?.aprobado ?? false
 
   // Los coros salen de coro_acceso, filtrando SIEMPRE por el perfil propio.
@@ -88,6 +97,7 @@ export async function obtenerSesion(): Promise<SesionCantoral | null> {
     email: perfil?.email ?? user.email ?? '',
     nombre: perfil?.nombre ?? null,
     sujeto: { rol, aprobado, rolLocal: coroActivo?.rolLocal ?? null },
+    rolReconocido,
     coros,
     coroActivo,
   }

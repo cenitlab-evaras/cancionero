@@ -188,6 +188,38 @@ export function capacidadesDe(sujeto: Sujeto): Capacidad[] {
 }
 
 /** A dónde va este usuario al entrar. Una sola fuente para el enrutamiento. */
+/**
+ * Por qué esta persona no está viendo la app — y **solo la razón verdadera**.
+ *
+ * NACE DE UN ERROR CONCRETO, el 2026-09-03. La base migró el rol global de
+ * `miembro` a `usuario` y la versión desplegada todavía no conocía ese valor.
+ * `sesion.ts` hizo lo correcto —cerrar hacia el NO, tratando el rol
+ * irreconocible como `externo`—, pero la pantalla de espera afirmaba «todavía
+ * nadie habilitó tu cuenta» cuando la cuenta **estaba aprobada**. El sistema se
+ * comportó bien y la pantalla mintió, que es la peor combinación: manda a la
+ * persona a pedir algo que ya tiene.
+ *
+ * Por eso la razón se calcula acá, en una función pura con test, y no se deduce
+ * del destino de la ruta.
+ *
+ * EL ORDEN NO ES ARBITRARIO: si falta la aprobación, eso es lo que se dice
+ * aunque además el rol sea desconocido. Es lo único sobre lo que la persona
+ * puede hacer algo —pedir que la aprueben—; lo otro lo arregla un despliegue.
+ */
+export type MotivoSinAcceso = 'sin_aprobar' | 'rol_desconocido' | 'sin_coro'
+
+export function porQueNoEntra(estado: {
+  aprobado: boolean
+  /** Si `perfiles.rol` trae un valor que ESTA versión de la app conoce. */
+  rolReconocido: boolean
+  tieneCoro: boolean
+}): MotivoSinAcceso | null {
+  if (!estado.aprobado) return 'sin_aprobar'
+  if (!estado.rolReconocido) return 'rol_desconocido'
+  if (!estado.tieneCoro) return 'sin_coro'
+  return null
+}
+
 export function rutaInicial(sujeto: Sujeto): string {
   if (!sujeto.aprobado) return '/esperando-aprobacion'
   if (puede(sujeto, 'ver_repertorio')) return '/repertorio'

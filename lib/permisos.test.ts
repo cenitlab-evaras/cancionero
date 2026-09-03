@@ -3,6 +3,7 @@ import {
   CAPACIDADES,
   capacidadesDe,
   esRolValido,
+  porQueNoEntra,
   puede,
   rutaInicial,
   type Sujeto,
@@ -118,5 +119,39 @@ describe('esRolValido', () => {
     expect(esRolValido('director')).toBe(false) // director es rol_local, no rol global
     expect(esRolValido('admin')).toBe(true)
     expect(esRolValido('usuario')).toBe(true)
+  })
+})
+
+describe('porQueNoEntra', () => {
+  test('sin aprobar, el portón manda por encima de todo', () => {
+    expect(porQueNoEntra({ aprobado: false, rolReconocido: true, tieneCoro: true })).toBe(
+      'sin_aprobar'
+    )
+  })
+
+  test('aprobado pero con un rol que esta versión no conoce', () => {
+    // El caso real del 2026-09-03: la base migró `miembro` a `usuario` y la app
+    // desplegada todavía no lo conocía. `sesion.ts` cerró hacia el NO —bien— y
+    // la pantalla dijo «nadie habilitó tu cuenta», que era FALSO: estaba
+    // aprobada. Un motivo propio existe para no volver a afirmar eso.
+    expect(porQueNoEntra({ aprobado: true, rolReconocido: false, tieneCoro: true })).toBe(
+      'rol_desconocido'
+    )
+  })
+
+  test('aprobado y con rol conocido, pero sin coro todavía', () => {
+    expect(porQueNoEntra({ aprobado: true, rolReconocido: true, tieneCoro: false })).toBe('sin_coro')
+  })
+
+  test('sin nada que impida entrar devuelve null', () => {
+    expect(porQueNoEntra({ aprobado: true, rolReconocido: true, tieneCoro: true })).toBe(null)
+  })
+
+  test('el portón gana aunque además el rol sea desconocido', () => {
+    // Los dos son ciertos, pero el que hay que decir es el que la persona puede
+    // hacer algo al respecto: pedir que la aprueben.
+    expect(porQueNoEntra({ aprobado: false, rolReconocido: false, tieneCoro: false })).toBe(
+      'sin_aprobar'
+    )
   })
 })
