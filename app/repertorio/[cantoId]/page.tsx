@@ -4,6 +4,9 @@ import { obtenerSesion } from '@/lib/sesion'
 import { puede } from '@/lib/permisos'
 import { obtenerCanto, obtenerPreferencia, mostrarAcordesDelPerfil } from '@/lib/datos/repertorio'
 import { historialDelCanto, hoyISO } from '@/lib/datos/historial'
+import { misSugerencias } from '@/lib/datos/sugerencias'
+import { misasDelCoro } from '@/lib/datos/misas'
+import { agruparMisas } from '@/lib/motores/agenda'
 import { transponer, transponerAcorde } from '@/lib/motores/transponer'
 import { acordesDeCanto } from '@/lib/motores/acordes-de-canto'
 import { buscarDigitacion } from '@/lib/motores/buscar-digitacion'
@@ -15,6 +18,7 @@ import CartaAcorde from '@/app/componentes/carta-acorde'
 import Controles from './controles'
 import SoloLetra from './solo-letra'
 import HistorialDelCanto from './historial-canto'
+import Sugerir from './sugerir'
 import {
   CascaronCarta,
   HojaDiagramas,
@@ -41,14 +45,25 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
   if (!sesion.sujeto.aprobado) redirect('/esperando-aprobacion')
 
   const { cantoId } = await params
-  const [canto, preferencia, mostrarAcordes, historial] = await Promise.all([
+  // H17 · sólo se consulta si hay a quién ofrecerle proponer.
+  const puedeSugerir = puede(sesion.sujeto, 'sugerir_canto')
+  const coroId = sesion.coroActivo?.id ?? ''
+
+  const [canto, preferencia, mostrarAcordes, historial, mias, misas] = await Promise.all([
     obtenerCanto(cantoId),
     obtenerPreferencia(cantoId),
     // H11 · Es de la PERSONA, no del canto: por eso no lleva `cantoId`.
     mostrarAcordesDelPerfil(),
     // H13 · Cero tablas nuevas: esto lee las misas que armó H6.
-    historialDelCanto(sesion.coroActivo?.id ?? '', cantoId),
+    historialDelCanto(coroId, cantoId),
+    puedeSugerir ? misSugerencias(coroId) : Promise.resolve([]),
+    puedeSugerir ? misasDelCoro(coroId) : Promise.resolve([]),
   ])
+
+  // Proponer para una misa que ya pasó no tiene sentido; la lista sin fecha sí,
+  // porque es una lista de trabajo abierta (§18-6).
+  const agenda = agruparMisas(misas, hoyISO())
+  const misasProximas = [...agenda.proximas, ...agenda.sinFecha]
 
   if (!canto) {
     return (
@@ -152,7 +167,7 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
           )}
           <span>
             {canto.autor ?? 'Autor no declarado en la fuente'}
-            {canto.momentos.length > 0 && <> · {canto.momentos.join(', ')}</>}
+            {canto.momentos.length > 0 && <> · {canto.momentos.map((m) => m.nombre).join(', ')}</>}
             {canto.tonalidadOriginal && <> · original en {canto.tonalidadOriginal}</>}
           </span>
         </p>
@@ -160,6 +175,19 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
         {/* H13 · Lo que el director necesita saber ANTES de volver a meterlo:
             cuánto hace que se cantó y cada cuánto vuelve. */}
         <HistorialDelCanto historial={historial} anioActual={hoyISO().slice(0, 4)} />
+
+        {/* H17 · Proponerlo. Va acá y no en la barra inferior porque eso se
+            decide planificando, no mientras se canta. */}
+        {puedeSugerir && (
+          <div className="px-4">
+            <Sugerir
+              cantoId={canto.id}
+              momentos={canto.momentos}
+              misasProximas={misasProximas}
+              mias={mias}
+            />
+          </div>
+        )}
 
         {/* A sangre: el fondo es el papel. */}
         <div className="mt-6">

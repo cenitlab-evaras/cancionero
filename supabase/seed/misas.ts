@@ -136,3 +136,33 @@ export const MISA_CONTROL: MisaSemilla = {
   fecha: '2026-07-05',
   cantos: [{ titulo: 'Canto de prueba del coro de control', momento: 'entrada' }],
 }
+
+/**
+ * Sugerencias de ejemplo — H17.
+ *
+ * §18-17 dejó la regla escrita: el dato que no está en la semilla no existe. Un
+ * ranking sin nada que rankear no se puede verificar, y `db:reset` se lleva lo
+ * que se cargue a mano.
+ *
+ * EL DISEÑO NO ES DECORATIVO. Cubre los tres casos que el hito tiene que
+ * mostrar:
+ *   · dos personas sobre la MISMA propuesta → el ranking ordena por cuántas
+ *   · una propuesta con una sola persona    → el caso de abajo de la lista
+ *   · una propuesta PARA UNA MISA concreta  → el segundo bloque, el que no se
+ *                                             suma con el general
+ */
+export type SugerenciaSemilla = {
+  email: string
+  titulo: string
+  momento: string
+  /** La fecha de la misa, o null para la propuesta general del coro. */
+  misaFecha: string | null
+}
+
+export const SUGERENCIAS: SugerenciaSemilla[] = [
+  { email: 'musico@cantoral.local', titulo: 'Nada te turbe', momento: 'comunion', misaFecha: null },
+  { email: 'director@cantoral.local', titulo: 'Nada te turbe', momento: 'comunion', misaFecha: null },
+  { email: 'musico@cantoral.local', titulo: 'Donde hay amor', momento: 'antifona', misaFecha: null },
+  // Para el domingo 20. NO se suma con las de arriba: es la otra pregunta.
+  { email: 'musico@cantoral.local', titulo: 'El Alfarero', momento: 'ofertorio', misaFecha: '2026-09-20' },
+]

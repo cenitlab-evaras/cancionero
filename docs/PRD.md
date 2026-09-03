@@ -319,6 +319,9 @@ altas, crea coros— y no se nombra en ninguna pantalla del coro.
 | ver el perfil de otro del coro (H14) | **no** | sí | **no** |
 | **inscribirse a una misa** (H15) | sí | sí | **sí** |
 | **ver quién se inscribió** (H15) | sí | sí | **sí** |
+| **proponer un canto para un momento** (H17) | sí | sí | **sí** |
+| **ver el ranking de propuestas** (H17) | sí | sí | **sí** |
+| retirar la propuesta de **otro** | **no** | **no** | **no** |
 | inscribir o retirar a **otra** persona | **no** | **no** | **no** |
 | crear o editar un canto | sí | sí | **no** |
 | **archivar un canto** (§16) | sí | sí | **no** |
@@ -334,11 +337,15 @@ altas, crea coros— y no se nombra en ninguna pantalla del coro.
 Un usuario **sin vínculo** con el coro: **no** a todo, incluido ver. Un usuario **no aprobado**: no
 a todo, sin excepción, cualquiera sea su rol.
 
-**Las dos filas de H15 son la primera vez que la columna del miembro dice «sí» en dato
+**Las filas de H15 y H17 son las únicas donde la columna del miembro dice «sí» en dato
 compartido**, y con eso §19.5 deja de ser una propuesta y pasa a estar construida. La regla es la
 que se decidió el 2026-08-06 y no se movió: **escribe solo filas suyas**. Por eso la tercera fila
 —inscribir a otro— dice «no» en las tres columnas, incluida la del director: la inscripción es una
 declaración de una persona sobre sí misma, y eso no es un privilegio que un rol pueda saltarse.
+
+**Y ojo con lo que H17 NO agregó:** no hay «asignar un canto a la misa» para el miembro, y eso es
+el hito entero. **Proponer no es asignar.** El coro pide, el director decide — es el límite que
+§19.5 puso el 2026-08-06 y que cada escritura nueva del miembro tiene que volver a respetar.
 
 **Y la fila de archivar cierra §16.** No hay «borrar un canto» en esta matriz porque no hay borrado:
 se archiva. El motivo está en §16.
@@ -655,10 +662,55 @@ en §19; cuando lo tienen, la fila lo dice y nombra qué cambiaría. Mientras ta
 
 | **H15 · Inscripción a la misa** ✅ **hecho** (2026-09-03) | Tabla `misa_participante` con `coro_id` denormalizado y **foránea compuesta contra `(misa_id, coro_id)`**; el aporte como campo condicional (`vocal`/`instrumental` + cuál) con su `check`; motor `inscripcion` con test; dos capacidades nuevas en §8.2 y la sección «Quién va» en la misa | `musico@` marca «Toco · guitarra» en una misa próxima, guarda y **al recargar sigue ahí**; `director@` abre esa misma misa y lo ve con su instrumento, más el resumen por tesitura tomado de los perfiles de H14; **`musico@` ve a los demás inscritos** —la diferencia deliberada con H11 y H14, donde no veía nada ajeno—; quien no se anotó aparece en «Faltan» con su disponibilidad y, al anotarse, **desaparece de ahí**: la inscripción mandando sobre la predicción (§18-11); y las dos capas de §15-4 — nadie inscribe a otro, **tampoco el director**, `ajeno@` no ve ninguna inscripción, y la foránea compuesta rechaza el caso construido a mano: `coro_id` propio con la misa de otro coro — **verificado en la app a 360 px** (`scrollWidth` 360 = `clientWidth` 360): `musico@` abrió «Ejemplo · Misa agendada», cambió de «Toco · guitarra» a «Canto» y **el selector de instrumento desapareció solo** —la condicionalidad de B2 dibujada—, recargó y seguía; el resumen pasó de «2 anotados · 1 canta · 1 guitarra» a «2 anotados · 2 cantan»; se retiró con «No voy» y quedó «1 anotado»; en la misa del 2 de agosto —pasada— no hay controles, solo «Fuiste a esta misa a cantar». `director@` abrió la misma misa y vio **«1 barítono · 1 guitarra»** donde el miembro veía «1 canta»: la tesitura sale del perfil de H14, y por eso el miembro no la ve. **Y el caso que cierra §18-11 se vio en pantalla**: mientras el director estaba anotado, su disponibilidad no aparecía; al retirarse apareció **«Faltan 1 · Director (casi siempre)»**. `npm run verificar:rls` da **53/53** |
 
-**Los quince hitos están hechos y verificados corriendo la app.** H9 salió de §18-7, que lo dejaba
+| **H17 · Sugerencias y ranking** ✅ **hecho** (2026-09-03) | Tabla `sugerencia` (perfil × canto × momento, con `misa_id` **nullable**: sin misa es una propuesta general, con misa es para ese domingo); motor `sugerencia` con test; el control en la vista del canto, el ranking en `/sugerencias` y los dos bloques al armar la misa | `musico@` propone un canto para un momento **y también para una misa concreta**, y las dos quedan; el coro entero ve el ranking **con quién propuso qué**, y una segunda persona sumándose a la misma propuesta la sube en la lista; `musico@` retira su sugerencia y el conteo baja; al armar la misa el director ve **dos bloques que no se mezclan** —«para esta misa» y «del coro, en general»— y puede asignar un canto desde ahí; y las dos capas de §15-4: nadie retira la sugerencia de otro, `ajeno@` no ve ninguna, y la RLS rechaza sugerir en un coro ajeno o con un canto de otro coro — **verificado en la app a 360 px** (`scrollWidth` 360 = `clientWidth` 360): `/sugerencias` ordenó **«Nada te turbe 2 · Comunión · Miembro, Director»** arriba de dos propuestas de 1, y entre esas dos puso primero la más reciente; `musico@` propuso «Abre tu jardín» desde el canto y el botón pasó a «Retirar»; al cambiar el alcance a la misa del 20 el botón volvió a decir «Proponer» **con el aviso «Ya lo propusiste en general»** —la confusión inevitable de haber pedido las dos cosas, dicha en vez de escondida—; la misa mostró **«Pedidos para esta misa: Abre tu jardín · El Alfarero»** y esos dos **no aparecieron** en el ranking general; y al armar, el director vio los dos bloques separados, con «ya está» en lo que ya estaba asignado, y al tocar `+` sobre «Nada te turbe» el motor de H6 lo dejó **en orden litúrgico** (Antífonas → Comunión → María). `npm run verificar:rls` da **62/62**, incluida la que comprueba que **proponer no le abrió al miembro la puerta a asignar** |
+
+**Los dieciséis hitos están hechos y verificados corriendo la app.** H9 salió de §18-7, que lo dejaba
 condicionado a "si estorba"; H10, H11, H13, H14 y H15 salen del backlog de §19; H16 salió de §16,
 donde el parser de dos columnas estaba anotado como *«un hito propio»*. H12 se descartó — y su
 medición envejeció, ver B8.
+
+### Cómo entró H17, y qué costó el «las dos cosas»
+
+Viene de **B9**, y §19.3 lo puso después de H15 justamente porque *«reusa la política que abre
+H15»*. Eso se cumplió: `sugerencia_write` es el calco exacto de `misa_participante_write`.
+
+**Lo que decidió el dueño el 2026-09-03:**
+
+| Se preguntó | Se decidió | Consecuencia |
+| --- | --- | --- |
+| Si la propuesta es para un momento en general o para una misa concreta | **Las dos**, con `misa_id` nullable | Se avisó que duplicaba pantallas y que obligaba a decidir qué manda cuando se contradicen. Se pidió igual, y la respuesta fue **no arbitrar**: no se suman, se muestran en dos bloques |
+| Quién ve el ranking | **Todo el coro, con nombres** | *«La que más se quiere cantar»* es un dato social: esconder quién propuso qué lo convierte en un buzón |
+
+**Por qué las dos listas no se suman, y no es una comodidad.** §18-12 anticipó que el ranking y la
+recomendación darían consejos opuestos. Acá aparece la misma forma dentro del propio hito: «qué
+quiere cantar el coro» y «qué pedimos para el domingo» son preguntas distintas, y un número que las
+mezclara no contestaría ninguna de las dos. Sumarlas habría dado un 3 que no significa nada.
+
+**El nullable cobró un peaje que hay que dejar escrito, porque no se ve venir.** Un
+`unique (perfil_id, canto_id, momento_id, misa_id)` **no sirve**: en Postgres dos `NULL` no son
+iguales entre sí, así que la misma persona podría proponer lo mismo en general infinitas veces —el
+caso más usado— e inflar el ranking sin que nadie lo notara. Van **dos índices únicos parciales**,
+uno `where misa_id is null` y otro `where misa_id is not null`.
+
+**Y la lección de H15 se aplicó de entrada, no después.** Las columnas `canto_id` y `misa_id` **no**
+declaran su foránea simple: solo la compuesta contra `(id, coro_id)`. Declarar las dos habría
+dejado dos relaciones entre las mismas tablas y PostgREST habría vuelto a devolver `PGRST201` al
+embeber. Esta vez no hubo que descubrirlo en la pantalla.
+
+**El límite de §19.5 quedó comprobado en la base, no solo en la interfaz:** hay una comprobación de
+RLS que intenta, como miembro, insertar en `misa_cantos` después de haber propuesto. Proponer no es
+asignar, y que siga sin serlo es lo que hay que verificar cada vez que se le abre una escritura al
+miembro.
+
+### 17.1-decies Lo que quedó pendiente de H17 (declarado, no recortado en silencio)
+
+| Del backlog | Cómo quedó | Por qué / cuándo se revisa |
+| --- | --- | --- |
+| **Un canto sin momento asignado no se puede proponer** | El control no se dibuja | La propuesta ES para un momento. Dibujar un control que no puede funcionar es peor que no dibujarlo. Hoy todo canto sembrado o importado tiene momento |
+| **Solo se propone para las misas que no ocurrieron** | Las próximas y las que no tienen fecha | Pedir algo para un domingo que ya pasó no significa nada. La lista sin fecha (§18-6) sí acepta: es una lista de trabajo abierta |
+| **El ranking no distingue «en ensayo»** | Un canto en ensayo se puede proponer como cualquiera | §19.2-B10 decía que el estado *«le da orden a casi todo lo demás»* y que la recomendación no debería sugerir lo que el coro no sabe cantar. Eso corresponde a **H18**, que es la recomendación; el ranking es lo que la gente pide, y pedir algo que se está sacando es legítimo |
+| **Retirar una sugerencia no avisa a nadie** | Desaparece del ranking | Sin notificaciones en el producto, avisar sería una superficie nueva entera |
+| **Los duplicados de la sincronización** | `.gitignore` los frena | No es del hito, se descubrió acá: el repo vive en una carpeta sincronizada que crea copias «archivo 2.ts» con fecha vieja. `sembrar 2.ts` y `PRD 2.md` eran eso, y las dos veces costó descubrir por qué había dos verdades |
 
 ### Cómo entró H15, y qué tuvo de distinto
 
@@ -1038,7 +1090,7 @@ decisiones escritas. Eso, por sí solo, es una señal de prioridad — ver §18-
 | **B6** | Subir audio para que el coro aprenda las voces | **infraestructura nueva** | alto |
 | **B7** | Cada uno graba su voz y el director las escucha juntas | depende de B6 | alto |
 | **B8** | Corregir acordes en el lugar y colapsar repetidos | §9 + **§18-13** | bajo (A) / medio (B, C) |
-| **B9** | Ranking de sugerencias por momento | tabla nueva, **§8** | bajo |
+| **B9** | Ranking de sugerencias por momento | tabla nueva, **§8** | ✅ **construida** → H17 |
 | **B10** | Estado del canto: en ensayo / listo | **una columna** | ✅ **construida** → H10 |
 | **B11** | Buscar versiones en YouTube o Spotify | API externa | medio |
 
@@ -1317,7 +1369,7 @@ construido y verificado.
 | ~~**H14**~~ ✅ | Ficha del miembro | B5 | **Hecho el 2026-09-02** (ver §17). Tabla propia y no columnas en `coro_acceso`: la carga cada uno, y esa fila tiene `rol_local` |
 | ~~**H16**~~ ✅ | Ingesta del cancionero | — | **Hecho el 2026-09-02** (ver §17). No estaba en este orden: salió de §16, donde el parser de dos columnas quedó anotado como *«un hito propio»* si algún día se ingestaban los cantos |
 | ~~**H15**~~ ✅ | Inscripción a la misa | B2 | **Hecho el 2026-09-03** (ver §17). **Acá se tocó §8 por primera vez desde el lado del miembro**, y §19.5 dejó de ser propuesta |
-| **H17** | Sugerencias y ranking | B9 | Reusa la política que abrió H15 |
+| ~~**H17**~~ ✅ | Sugerencias y ranking | B9 | **Hecho el 2026-09-03** (ver §17). Reusó la política de H15 tal cual; lo que costó fue el `misa_id` nullable — dos índices parciales, porque dos NULL no son iguales |
 | **H18** | Recomendación al armar | B1-C | Necesita H10, H13 y H17 |
 | **H19** | Corrección en el lugar + versionado | B8 B/C | No debería construirse sin el versionado de §18-13 |
 | **H20** | Enlaces a versiones (YouTube / Spotify) | B11 | **Antes del audio propio**: puede reducirle el alcance |

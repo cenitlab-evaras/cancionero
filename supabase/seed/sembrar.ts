@@ -15,7 +15,7 @@
  */
 import { createClient } from '@supabase/supabase-js'
 import { CANTOS, CANTO_CONTROL, FUENTE, MOMENTOS, type CantoSemilla } from './cantos.ts'
-import { MISAS, MISA_CONTROL, type MisaSemilla } from './misas.ts'
+import { MISAS, MISA_CONTROL, SUGERENCIAS, type MisaSemilla } from './misas.ts'
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SECRET = process.env.SUPABASE_SECRET_KEY
@@ -304,6 +304,52 @@ async function main() {
   // La misa del coro de control, para que el aislamiento se pueda PROBAR (H15).
   await upsertMisa(MISA_CONTROL, coroControl, momentos, perfiles)
 
+  // 5-bis · Sugerencias de ejemplo (H17). Sin ellas no hay ranking que verificar.
+  //
+  // Se reescriben enteras, como los cantos de la misa. La semilla usa la clave
+  // de servicio y pasa por encima de la RLS: es el ÚNICO lugar donde una
+  // sugerencia se escribe sin ser la propia. En la app nadie propone por nadie
+  // —`sugerencia_write` es `perfil_id = auth.uid()`— y `verificar-rls.ts` lo
+  // comprueba.
+  await db.from('sugerencia').delete().eq('coro_id', coroPrincipal)
+
+  for (const g of SUGERENCIAS) {
+    const perfilId = perfiles.get(g.email)
+    afirmar(!!perfilId, `El usuario "${g.email}" de una sugerencia no está sembrado.`)
+
+    const momentoId = momentos.get(g.momento)
+    afirmar(!!momentoId, `El momento "${g.momento}" de una sugerencia no existe.`)
+
+    const { data: canto } = await db
+      .from('cantos')
+      .select('id')
+      .eq('coro_id', coroPrincipal)
+      .eq('titulo', g.titulo)
+      .maybeSingle()
+    afirmar(!!canto, `El canto "${g.titulo}" de una sugerencia no está sembrado.`)
+
+    let misaId: string | null = null
+    if (g.misaFecha) {
+      const { data: misa } = await db
+        .from('misas')
+        .select('id')
+        .eq('coro_id', coroPrincipal)
+        .eq('fecha', g.misaFecha)
+        .maybeSingle()
+      afirmar(!!misa, `No hay misa del ${g.misaFecha} para colgarle una sugerencia.`)
+      misaId = misa!.id
+    }
+
+    const { error } = await db.from('sugerencia').insert({
+      perfil_id: perfilId!,
+      canto_id: canto!.id,
+      momento_id: momentoId!,
+      coro_id: coroPrincipal,
+      misa_id: misaId,
+    })
+    if (error) throw error
+  }
+
   // 6 · ASSERTS — fallan, no avisan (PRD §13.4)
   const cuenta = async (tabla: string, filtro?: { col: string; val: string }) => {
     let q = db.from(tabla).select('*', { count: 'exact', head: true })
@@ -375,6 +421,13 @@ async function main() {
     `Se esperaban ${inscritosEsperados} inscripciones y hay ${nInscritos}.`
   )
 
+  // H17 · el ranking también tiene que sobrevivir a dos corridas.
+  const nSugerencias = await cuenta('sugerencia')
+  afirmar(
+    nSugerencias === SUGERENCIAS.length,
+    `Se esperaban ${SUGERENCIAS.length} sugerencias y hay ${nSugerencias}.`
+  )
+
   const pasadas = MISAS.filter((c) => c.fecha !== null && c.fecha <= '2026-08-07').length
   console.log(
     `✓ ${nMomentos} momentos · ${nPrincipal} cantos en ${CORO_PRINCIPAL} (${sembrados} de la semilla) · ${nControl} en ${CORO_CONTROL}`
@@ -383,7 +436,7 @@ async function main() {
   console.log(
     `✓ ${nMisas} misas de ejemplo · ${pasadas} ya ocurridas (las otras no cuentan como cantadas)`
   )
-  console.log(`✓ ${nInscritos} inscripciones de ejemplo (H15)`)
+  console.log(`✓ ${nInscritos} inscripciones (H15) · ${nSugerencias} sugerencias (H17)`)
 }
 
 main().catch((e) => {

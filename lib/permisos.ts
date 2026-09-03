@@ -60,6 +60,8 @@ export const CAPACIDADES = [
   'asignar_momentos',
   'inscribirse_a_misa',
   'ver_inscripciones',
+  'sugerir_canto',
+  'ver_sugerencias',
   'editar_misa',
   'asignar_cantos_misa',
   'quitar_canto_misa',
@@ -99,6 +101,8 @@ const MATRIZ: Record<Rol, Record<Capacidad, Celda>> = {
     // vínculo no hay nada que declarar.
     inscribirse_a_misa: 'solo_vinculado',
     ver_inscripciones: 'solo_vinculado',
+    sugerir_canto: 'solo_vinculado',
+    ver_sugerencias: 'solo_vinculado',
     editar_canto: true,
     // Archivar es del coro, y el admin no dirige ninguno: la capacidad la
     // resuelve el vínculo, igual que editar.
@@ -130,6 +134,11 @@ const MATRIZ: Record<Rol, Record<Capacidad, Celda>> = {
     // inscripción es una declaración de la persona sobre sí misma.
     inscribirse_a_misa: 'solo_vinculado',
     ver_inscripciones: 'solo_vinculado',
+    // H17 · la SEGUNDA escritura del miembro en dato compartido (§19.5). El
+    // director propone como cualquiera: proponer no es asignar, y asignar
+    // sigue siendo suyo y solo suyo.
+    sugerir_canto: 'solo_vinculado',
+    ver_sugerencias: 'solo_vinculado',
     editar_canto: 'solo_director',
     // Sacar un canto de circulación es del director: con el admin fuera del
     // coro, él es la máxima autoridad dentro de él. Y no borra nada — §16.
@@ -155,6 +164,8 @@ const MATRIZ: Record<Rol, Record<Capacidad, Celda>> = {
     ver_ficha_del_coro: false,
     inscribirse_a_misa: false,
     ver_inscripciones: false,
+    sugerir_canto: false,
+    ver_sugerencias: false,
     editar_canto: false,
     archivar_canto: false,
     asignar_momentos: false,

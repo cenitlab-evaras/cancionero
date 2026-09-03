@@ -69,6 +69,9 @@ describe('lectura del repertorio', () => {
     // H15 · la primera escritura del miembro en dato que el coro entero lee.
     expect(puede(miembro, 'inscribirse_a_misa')).toBe(true)
     expect(puede(miembro, 'ver_inscripciones')).toBe(true)
+    // H17 · la segunda: proponer un canto. Proponer no es asignar.
+    expect(puede(miembro, 'sugerir_canto')).toBe(true)
+    expect(puede(miembro, 'ver_sugerencias')).toBe(true)
   })
 
   test('un externo aprobado no ve el repertorio', () => {
@@ -91,6 +94,9 @@ describe('gobierno', () => {
     // Pero no puede inscribirse a un coro del que no es parte, ni ver quién va.
     expect(puede(sinVinculo, 'inscribirse_a_misa')).toBe(false)
     expect(puede(sinVinculo, 'ver_inscripciones')).toBe(false)
+    expect(puede(sinVinculo, 'sugerir_canto')).toBe(false)
+    // Y proponer NO es asignar: el miembro sigue sin poder meter el canto.
+    expect(puede(miembro, 'asignar_cantos_misa')).toBe(false)
   })
 
   test('solo el admin edita los catálogos globales', () => {

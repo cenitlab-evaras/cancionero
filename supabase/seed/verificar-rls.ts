@@ -801,6 +801,167 @@ async function main() {
     }
   }
 
+  // --- Acto 10: H17 · la segunda escritura del miembro en dato compartido -----
+  {
+    const { data: unCanto } = await musico
+      .from('cantos')
+      .select('id')
+      .eq('coro_id', coroSanJose)
+      .limit(1)
+      .single()
+    const { data: unMomento2 } = await musico
+      .from('momentos_liturgicos')
+      .select('id')
+      .limit(1)
+      .single()
+    const { data: miMisa } = await director
+      .from('misas')
+      .select('id')
+      .eq('coro_id', coroSanJose)
+      .limit(1)
+      .single()
+
+    const base = {
+      perfil_id: idMusico,
+      canto_id: unCanto!.id,
+      momento_id: unMomento2!.id,
+      coro_id: coroSanJose,
+    }
+
+    await musico
+      .from('sugerencia')
+      .delete()
+      .eq('perfil_id', idMusico)
+      .eq('canto_id', unCanto!.id)
+      .eq('momento_id', unMomento2!.id)
+
+    const { data: propuesta } = await musico
+      .from('sugerencia')
+      .insert({ ...base, misa_id: null })
+      .select('canto_id')
+      .maybeSingle()
+    comprobar(
+      'musico@ propone un canto de su coro (§19.5, segunda escritura)',
+      !!propuesta,
+      propuesta ? 'la propuesta entró' : 'no se pudo'
+    )
+
+    // La misma propuesta dos veces no infla el ranking: lo frena el índice
+    // único PARCIAL, que existe porque en Postgres dos NULL no son iguales y un
+    // único normal habría dejado pasar infinitas propuestas generales.
+    const { error: errDoble } = await musico
+      .from('sugerencia')
+      .insert({ ...base, misa_id: null })
+    comprobar(
+      'la misma propuesta general no se puede repetir (índice parcial sobre misa_id nulo)',
+      !!errDoble,
+      errDoble ? 'la base la rechazó' : 'SE DUPLICÓ: el índice parcial falta'
+    )
+
+    // Pero la general y la de misa SON distintas: pedir algo en general no es
+    // pedirlo para el domingo. Es la consecuencia de haber pedido las dos cosas.
+    const { data: paraLaMisa } = await musico
+      .from('sugerencia')
+      .insert({ ...base, misa_id: miMisa!.id })
+      .select('misa_id')
+      .maybeSingle()
+    comprobar(
+      'la propuesta para una misa convive con la general: son dos preguntas',
+      !!paraLaMisa,
+      paraLaMisa ? 'las dos filas coexisten' : 'se rechazó: el índice parcial está de más'
+    )
+
+    const { data: veDirector } = await director
+      .from('sugerencia')
+      .select('canto_id')
+      .eq('perfil_id', idMusico)
+    comprobar(
+      'el coro ve las propuestas de sus compañeros, con quién las hizo',
+      (veDirector?.length ?? 0) >= 1,
+      `${veDirector?.length ?? 0} filas visibles`
+    )
+
+    const { error: errAjena2 } = await musico.from('sugerencia').insert({
+      ...base,
+      perfil_id: idDirector,
+      misa_id: null,
+    })
+    comprobar(
+      'musico@ no puede proponer en nombre de otro',
+      !!errAjena2,
+      errAjena2 ? 'la RLS rechazó el insert' : 'SE ESCRIBIÓ: la política está mal'
+    )
+
+    // PROPONER NO ES ASIGNAR: el límite de §19.5, comprobado en la base y no
+    // solo en la pantalla.
+    const { error: errAsignar } = await musico.from('misa_cantos').insert({
+      misa_id: miMisa!.id,
+      canto_id: unCanto!.id,
+      momento_id: unMomento2!.id,
+      orden: 99,
+      coro_id: coroSanJose,
+    })
+    comprobar(
+      'proponer no le abrió la puerta a asignar: el canto lo mete el director',
+      !!errAsignar,
+      errAsignar ? 'la RLS le rechaza misa_cantos' : 'SE ASIGNÓ: H17 abrió una puerta'
+    )
+
+    // El agujero entre coros, otra vez: canto ajeno con el coro propio.
+    const { data: cantoAjeno } = await ajeno.from('cantos').select('id').limit(1).maybeSingle()
+    if (!cantoAjeno) {
+      comprobar(
+        'musico@ no puede proponer un canto de otro coro',
+        false,
+        'NO SE PUDO PROBAR: el coro de control no tiene cantos'
+      )
+    } else {
+      const { error: errCruzada2 } = await musico.from('sugerencia').insert({
+        ...base,
+        canto_id: cantoAjeno.id,
+        misa_id: null,
+      })
+      comprobar(
+        'musico@ no puede proponer un canto de otro coro con su propio coro_id',
+        !!errCruzada2,
+        errCruzada2 ? 'la foránea compuesta lo rechazó' : 'SE ESCRIBIÓ: falta la foránea compuesta'
+      )
+    }
+
+    const { data: veAjeno2 } = await ajeno.from('sugerencia').select('canto_id')
+    comprobar(
+      'ajeno@ no ve ninguna propuesta de este coro',
+      (veAjeno2?.length ?? 0) === 0,
+      `${veAjeno2?.length ?? 0} filas`
+    )
+
+    const { error: errRetirarAjena } = await director
+      .from('sugerencia')
+      .delete()
+      .eq('perfil_id', idMusico)
+      .eq('canto_id', unCanto!.id)
+    const { data: sigue } = await musico
+      .from('sugerencia')
+      .select('canto_id')
+      .eq('perfil_id', idMusico)
+      .eq('canto_id', unCanto!.id)
+    comprobar(
+      'ni el director puede retirar la propuesta de otro',
+      (sigue?.length ?? 0) > 0,
+      errRetirarAjena || (sigue?.length ?? 0) > 0
+        ? 'las propuestas siguen ahí'
+        : 'SE BORRARON: la política está mal'
+    )
+
+    // Se deja el coro como estaba: la semilla vuelve a poner las suyas.
+    await musico
+      .from('sugerencia')
+      .delete()
+      .eq('perfil_id', idMusico)
+      .eq('canto_id', unCanto!.id)
+      .eq('momento_id', unMomento2!.id)
+  }
+
   const fallidos = resultados.filter((r) => !r.ok)
   console.log(`\n${resultados.length - fallidos.length}/${resultados.length} comprobaciones en verde`)
   if (fallidos.length > 0) process.exit(1)

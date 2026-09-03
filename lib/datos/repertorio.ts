@@ -125,7 +125,11 @@ export type CantoCompleto = {
   autor: string | null
   cifrado: string
   tonalidadOriginal: string | null
-  momentos: string[]
+  /**
+   * Con su id, no solo el nombre: H17 propone un canto PARA UN MOMENTO, y sin
+   * el id la pantalla tendría que volver a buscar el momento por su texto.
+   */
+  momentos: { id: string; nombre: string }[]
   /** H10. El miembro lo ve para saber que el canto todavía se está sacando. */
   estado: EstadoCanto
   fuenteTitulo: string | null
@@ -173,7 +177,7 @@ export async function obtenerCanto(cantoId: string): Promise<CantoCompleto | nul
   const { data, error } = await supabase
     .from('cantos')
     .select(
-      'id, titulo, cifrado, tonalidad_original, estado, fuente_titulo, fuente_numero, fuente_pagina, autores(nombre), canto_momentos(momentos_liturgicos(nombre, orden))'
+      'id, titulo, cifrado, tonalidad_original, estado, fuente_titulo, fuente_numero, fuente_pagina, autores(nombre), canto_momentos(momentos_liturgicos(id, nombre, orden))'
     )
     .eq('id', cantoId)
     .maybeSingle()
@@ -191,7 +195,7 @@ export async function obtenerCanto(cantoId: string): Promise<CantoCompleto | nul
     fuente_numero: number | null
     fuente_pagina: number | null
     autores: { nombre: string } | null
-    canto_momentos: { momentos_liturgicos: { nombre: string; orden: number } | null }[]
+    canto_momentos: { momentos_liturgicos: { id: string; nombre: string; orden: number } | null }[]
   }
 
   const fila = data as unknown as FilaCantoCompleto
@@ -205,9 +209,9 @@ export async function obtenerCanto(cantoId: string): Promise<CantoCompleto | nul
     estado: normalizarEstado(fila.estado),
     momentos: fila.canto_momentos
       .map((v) => v.momentos_liturgicos)
-      .filter((m): m is { nombre: string; orden: number } => m !== null)
+      .filter((m): m is { id: string; nombre: string; orden: number } => m !== null)
       .sort((a, b) => a.orden - b.orden)
-      .map((m) => m.nombre),
+      .map((m) => ({ id: m.id, nombre: m.nombre })),
     fuenteTitulo: fila.fuente_titulo,
     fuenteNumero: fila.fuente_numero,
     fuentePagina: fila.fuente_pagina,

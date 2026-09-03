@@ -172,6 +172,16 @@ export default async function RepertorioPage({
             <Link href="/historial" className="text-acento underline underline-offset-2">
               ver historial
             </Link>
+            {/* H17 · El ranking se consulta al planificar, igual que el
+                historial, y por eso vive en este pie y no en la cabecera. */}
+            {puede(sesion.sujeto, 'ver_sugerencias') && (
+              <>
+                {' · '}
+                <Link href="/sugerencias" className="text-acento underline underline-offset-2">
+                  ver sugerencias
+                </Link>
+              </>
+            )}
             {/* Los archivados se ofrecen solo a quien puede traerlos de vuelta,
                 y solo si hay alguno: un enlace a una papelera vacía es ruido en
                 una pantalla que se mira de reojo. */}

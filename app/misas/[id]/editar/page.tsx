@@ -5,6 +5,8 @@ import { puede } from '@/lib/permisos'
 import { cantosDisponibles, obtenerMisa } from '@/lib/datos/misas'
 import Cabecera from '@/app/componentes/cabecera'
 import Armador from './armador'
+import { sugerenciasDeMisa, sugerenciasGenerales } from '@/lib/datos/sugerencias'
+import { rankear } from '@/lib/motores/sugerencia'
 
 export const metadata = { title: 'Armar la misa · Cantoral' }
 
@@ -63,6 +65,11 @@ export default async function EditarMisaPage({
     )
   }
 
+  const [deEstaMisa, generales] = await Promise.all([
+    sugerenciasDeMisa(id),
+    sugerenciasGenerales(misa.coroId),
+  ])
+
   const disponibles = await cantosDisponibles(
     misa.coroId,
     misa.cantos.map((c) => c.cantoId)
@@ -93,6 +100,8 @@ export default async function EditarMisaPage({
           misaId={misa.id}
           asignados={misa.cantos}
           disponibles={disponibles}
+          sugerenciasDeEstaMisa={rankear(deEstaMisa)}
+          sugerenciasGenerales={rankear(generales)}
         />
       </main>
     </>

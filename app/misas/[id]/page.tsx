@@ -4,6 +4,8 @@ import { obtenerSesion } from '@/lib/sesion'
 import { puede } from '@/lib/permisos'
 import { obtenerMisa } from '@/lib/datos/misas'
 import { inscritosDeMisa } from '@/lib/datos/inscripciones'
+import { sugerenciasDeMisa } from '@/lib/datos/sugerencias'
+import { rankear } from '@/lib/motores/sugerencia'
 import { fichasDelCoro } from '@/lib/datos/ficha'
 import { hoyISO } from '@/lib/datos/historial'
 import {
@@ -69,10 +71,16 @@ export default async function MisaPage({
   // director). Sin ellas, `resumirCoro` agrupa las voces bajo `null` y la
   // pantalla dice «3 cantan» en vez de desglosar por tesitura — que es la
   // decisión de privacidad de H14 sostenida, no una carencia de este hito.
-  const [inscritos, fichas] = await Promise.all([
+  const [inscritos, fichas, pedidos] = await Promise.all([
     puedeVerQuienVa ? inscritosDeMisa(misa.id) : Promise.resolve([]),
     puede(sesion.sujeto, 'ver_ficha_del_coro') ? fichasDelCoro(misa.coroId) : Promise.resolve([]),
+    // H17 · lo que el coro pidió PARA ESTA misa. Lo general vive en
+    // /sugerencias: son dos preguntas distintas y no se suman.
+    puede(sesion.sujeto, 'ver_sugerencias')
+      ? sugerenciasDeMisa(misa.id)
+      : Promise.resolve([]),
   ])
+  const pedidosRankeados = rankear(pedidos)
 
   const miInscripcion = inscritos.find((i) => i.perfilId === sesion.usuarioId) ?? null
   const resumen = resumirCoro(inscritos, fichas)
@@ -154,6 +162,38 @@ export default async function MisaPage({
               Empezar la misa
             </Link>
           </>
+        )}
+
+        {/* H17 · Lo que el coro pidió para este domingo. Va antes de «Quién va»
+            porque habla de la misa; quién va habla de las personas. Y solo
+            aparece si alguien pidió algo: un bloque vacío en cada misa sería
+            ruido en la pantalla que se abre para tocar. */}
+        {pedidosRankeados.length > 0 && (
+          <section className="mt-10 border-t border-borde pt-6">
+            <h2 className="text-[0.8125rem] font-semibold text-texto-tenue uppercase">
+              Pedidos para esta misa
+            </h2>
+            <ul className="mt-2 divide-y divide-borde border-t border-borde">
+              {pedidosRankeados.map((f) => (
+                <li key={`${f.cantoId}·${f.momentoId}`} className="py-2">
+                  <div className="flex items-baseline gap-3">
+                    <Link href={`/repertorio/${f.cantoId}`} className="min-w-0 flex-1 truncate text-sm">
+                      {f.titulo}
+                    </Link>
+                    <span className="shrink-0 font-cifrado text-sm text-acorde">{f.cuantas}</span>
+                  </div>
+                  <p className="text-xs text-texto-tenue">
+                    {f.momentoNombre} · {f.quienes.join(', ')}
+                  </p>
+                </li>
+              ))}
+            </ul>
+            {puedeEditar && (
+              <p className="mt-2 text-xs text-texto-tenue">
+                Pedir no es asignar: los metes tú desde «Armar».
+              </p>
+            )}
+          </section>
         )}
 
         {/* H15 · Quién va. Debajo de los cantos porque la misa es lo primero;

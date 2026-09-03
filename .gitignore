@@ -42,3 +42,11 @@ next-env.d.ts
 
 # artefactos de playwright-cli (snapshots de verificación)
 .playwright-cli/
+
+# Copias que crea la sincronización del Escritorio («archivo 2.ts»).
+# No son versiones ni respaldos: son duplicados con fecha vieja del mismo
+# archivo. Ya se colaron dos veces al repositorio —`sembrar 2.ts` apuntaba a un
+# esquema borrado y `PRD 2.md` estaba 160 líneas atrás del PRD vivo— y las dos
+# veces costó descubrir por qué había dos verdades.
+* 2.*
+* [0-9].*

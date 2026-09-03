@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { agregarCanto, moverCanto, quitarCanto } from '../../acciones'
 import type { CantoDeMisa } from '@/lib/datos/misas'
+import type { FilaDelRanking } from '@/lib/motores/sugerencia'
 
 type Disponible = {
   id: string
@@ -23,10 +24,18 @@ export default function Armador({
   misaId,
   asignados,
   disponibles,
+  sugerenciasDeEstaMisa,
+  sugerenciasGenerales,
 }: {
   misaId: string
   asignados: CantoDeMisa[]
   disponibles: Disponible[]
+  /* H17 · DOS listas y no una. Lo que el coro pidió PARA ESTE DOMINGO y lo que
+     el coro quiere cantar EN GENERAL contestan preguntas distintas; sumarlas
+     daría un número que no responde ninguna (§17, §18-12). Van separadas, y
+     primero la concreta: alguien la pidió para esta misa. */
+  sugerenciasDeEstaMisa: FilaDelRanking[]
+  sugerenciasGenerales: FilaDelRanking[]
 }) {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
@@ -105,6 +114,61 @@ export default function Armador({
             </li>
           ))}
         </ol>
+      )}
+
+      {[
+        { titulo: 'Pedido para esta misa', filas: sugerenciasDeEstaMisa },
+        { titulo: 'Lo que el coro propone', filas: sugerenciasGenerales },
+      ].map(
+        ({ titulo, filas }) =>
+          filas.length > 0 && (
+            <section key={titulo} className="mt-10">
+              <h2 className="text-[0.8125rem] font-semibold text-texto-tenue uppercase">
+                {titulo}
+              </h2>
+              <ul className="mt-2 divide-y divide-borde border-t border-borde">
+                {filas.map((f) => {
+                  const yaEsta = asignados.some((a) => a.cantoId === f.cantoId)
+                  return (
+                    <li key={`${f.cantoId}·${f.momentoId}`} className="py-2">
+                      <div className="flex items-baseline gap-3">
+                        <span className="min-w-0 flex-1 truncate text-sm">{f.titulo}</span>
+                        <span className="shrink-0 font-cifrado text-sm text-acorde">
+                          {f.cuantas}
+                        </span>
+                        {yaEsta ? (
+                          // No se ofrece agregar lo que ya está: la acción
+                          // fallaría con «ese canto ya está en la misa», y un
+                          // botón que se sabe que va a fallar no se dibuja.
+                          <span className="shrink-0 text-xs text-texto-tenue">ya está</span>
+                        ) : (
+                          <button
+                            onClick={() =>
+                              correr(() =>
+                                agregarCanto({
+                                  misaId,
+                                  cantoId: f.cantoId,
+                                  momentoId: f.momentoId,
+                                })
+                              )
+                            }
+                            disabled={pendiente}
+                            aria-label={`Agregar ${f.titulo} en ${f.momentoNombre}`}
+                            className="tactil shrink-0 px-2 text-acento disabled:opacity-40"
+                          >
+                            +
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-xs text-texto-tenue">
+                        {f.momentoNombre} · {f.quienes.join(', ')}
+                      </p>
+                    </li>
+                  )
+                })}
+              </ul>
+            </section>
+          )
       )}
 
       <h2 className="mt-10 text-[0.8125rem] font-semibold text-texto-tenue uppercase">
