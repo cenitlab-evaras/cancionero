@@ -629,6 +629,8 @@ en §19; cuando lo tienen, la fila lo dice y nombra qué cambiaría. Mientras ta
 | Sincronización sin conexión / PWA instalable | La vista de lectura llega pintada desde el servidor; medir primero si hace falta |
 | Múltiples afinaciones y digitaciones alternativas | Guitarra en afinación estándar, como el antecedente |
 | Integración continua | Despliegue a mano, comando documentado en §15 paso 8 |
+| **Audio de referencia y grabación de voces** (§19-B6, §19-B7) | **Descartado por el dueño el 2026-09-03.** Traía almacenamiento de binarios con políticas propias, grabación desde el navegador del teléfono —con Safari en iPhone como punto frágil— y una cuota que administrar (§18-14). Con esto Cantoral queda cerrado como producto de **solo texto**: el repertorio entero pesa menos que un canto grabado a cuatro voces |
+| **Enlaces a versiones en YouTube o Spotify** (§19-B11) | **Descartado por el dueño el 2026-09-03.** Cerraba además la pregunta de §18-16 sobre claves de API de terceros |
 | **IA en cualquier forma** | Ni carpeta, ni cliente de modelo, ni clave en el ejemplo de entorno |
 
 ---
@@ -1018,9 +1020,9 @@ Otros pendientes de H6:
 | 11 | **Datos personales de los miembros** (§19-B5) y **grabaciones de su voz** (§19-B6/B7) | Hasta hoy el único dato de persona es el correo de la cuenta. Edad y sexo suben el nivel, y una grabación de voz identifica a alguien que puede ser menor de edad. Decisión tomada: **se guardan los cuatro campos tal cual** (edad, sexo, tesitura, disponibilidad) **con visibilidad declarada** — el director ve la ficha completa del coro que dirige, el miembro no ve datos ajenos. Falta resolver: consentimiento para las grabaciones y qué pasa cuando alguien deja el coro. **La tensión inscripción/disponibilidad quedó cerrada el 2026-09-03 al construir H15: manda la inscripción, siempre — y la disponibilidad solo habla de quien NO se inscribió.** No se contradicen nunca, porque no opinan sobre la misma persona a la vez: al anotarse, la predicción deja de mostrarse | el dueño | §19-B5, §19-B6, §19-B7 |
 | 12 | **El ranking y la recomendación le dan consejos opuestos al director** | El historial dice *"hace ocho meses que no cantan este"*; el ranking dice *"la gente quiere este"* — y la gente quiere siempre los mismos. Uno empuja a rotar, el otro a repetir. No es un defecto: es una decisión de qué se muestra primero al armar la misa | el dueño, al construir H18 (§19.3) | §19-B9 y §19-B1-C conviviendo |
 | 13 | **No hay versionado del cifrado** | Con repertorio compartido, una corrección equivocada es silenciosa e irreversible: no se sabe quién cambió qué ni se puede volver atrás. Hoy no molesta porque solo el director edita, desde una pantalla, a conciencia (H8). Corregir acordes *en el lugar* multiplica las ediciones pequeñas y lo vuelve necesario | el dueño | §19-B8 **no debería construirse sin esto** |
-| 14 | **Audio: peso, cuota y el navegador del teléfono** | El repertorio entero en texto pesa menos que un solo canto grabado a cuatro voces: hay que declarar cuota y qué pasa al llenarse. Y grabar desde el navegador móvil tiene a **Safari en iPhone como punto frágil** —soporte y formatos que no coinciden con Android—. Se declara ahora para que no se descubra construyendo | el dueño | §19-B6, §19-B7 |
+| 14 | **Audio: peso, cuota y el navegador del teléfono** | El repertorio entero en texto pesa menos que un solo canto grabado a cuatro voces: hay que declarar cuota y qué pasa al llenarse. Y grabar desde el navegador móvil tiene a **Safari en iPhone como punto frágil** —soporte y formatos que no coinciden con Android—. Se declara ahora para que no se descubra construyendo. → **CERRADO el 2026-09-03: el dueño descartó B6 y B7.** El riesgo desaparece porque desaparece lo que lo causaba; queda escrito por si algún día vuelve | decidido | nada |
 | 15 | **Pulsar un acorde ya hace algo** | H5 dejó verificado que pulsar un acorde abre la barra de diagramas centrada en él. Editar en el lugar necesita **otro gesto** —modo de edición explícito, pulsación larga, u otra cosa—, no puede colgar del mismo | el dueño | §19-B8 |
-| 16 | **Claves de API de terceros** (§19-B11) | §16 dice "ni clave en el ejemplo de entorno", pero esa frase era **sobre IA**. YouTube y Spotify piden clave y no son un modelo. Hay que decidir explícitamente si el veto las alcanza o si era específico de la integración de modelos | el dueño | §19-B11 |
+| 16 | **Claves de API de terceros** (§19-B11) | §16 dice "ni clave en el ejemplo de entorno", pero esa frase era **sobre IA**. YouTube y Spotify piden clave y no son un modelo. Hay que decidir explícitamente si el veto las alcanza o si era específico de la integración de modelos. → **CERRADO el 2026-09-03: el dueño descartó B11**, así que la pregunta deja de tener consecuencia. Si algún día entra otra integración externa, se vuelve a abrir | decidido | nada |
 
 | 17 | **La base local era compartida con otro producto, y se perdió entera** → **resuelto el 2026-08-07** | `supabase/config.toml` decía `project_id = "app"`, el nombre de la carpeta. **PulsoCenit tenía exactamente el mismo**, así que la CLI levantaba **los mismos contenedores**: un `db reset` de ese producto borró el esquema `cantoral` completo —repertorio, usuarios y preferencias— sin tocar una línea de este repo. Se separó: `project_id = "cantoral"` y puertos propios (API 55321, base 55322, Studio 55323). **Lo que salvó el dato fue la semilla**, no un backup: los 12 cantos del cancionero volvieron con `npm run db:seed`. El único que no venía de ahí —*Escojo la vida*, cargado por una persona del coro— se reconstruyó desde los snapshots de la verificación de H10 y **ahora está sembrado** | decidido | nada, ya hecho |
 
@@ -1087,12 +1089,12 @@ decisiones escritas. Eso, por sí solo, es una señal de prioridad — ver §18-
 | **B3** | Modo solo letra: ocultar los acordes | columna + control | ✅ **construida** → H11 |
 | **B4** | Rastrear cancioneros online y proponer versiones | — | **alto** → §18-10 |
 | **B5** | Ficha del miembro: edad, sexo, tesitura, disponibilidad | §7, **§8** | bajo |
-| **B6** | Subir audio para que el coro aprenda las voces | **infraestructura nueva** | alto |
-| **B7** | Cada uno graba su voz y el director las escucha juntas | depende de B6 | alto |
+| **B6** | Subir audio para que el coro aprenda las voces | **infraestructura nueva** | ⊘ **descartada** (2026-09-03) |
+| **B7** | Cada uno graba su voz y el director las escucha juntas | depende de B6 | ⊘ **descartada** (2026-09-03) |
 | **B8** | Corregir acordes en el lugar y colapsar repetidos | §9 + **§18-13** | bajo (A) / medio (B, C) |
 | **B9** | Ranking de sugerencias por momento | tabla nueva, **§8** | ✅ **construida** → H17 |
 | **B10** | Estado del canto: en ensayo / listo | **una columna** | ✅ **construida** → H10 |
-| **B11** | Buscar versiones en YouTube o Spotify | API externa | medio |
+| **B11** | Buscar versiones en YouTube o Spotify | API externa | ⊘ **descartada** (2026-09-03) |
 
 ---
 
@@ -1372,10 +1374,17 @@ construido y verificado.
 | ~~**H17**~~ ✅ | Sugerencias y ranking | B9 | **Hecho el 2026-09-03** (ver §17). Reusó la política de H15 tal cual; lo que costó fue el `misa_id` nullable — dos índices parciales, porque dos NULL no son iguales |
 | **H18** | Recomendación al armar | B1-C | Necesita H10, H13 y H17 |
 | **H19** | Corrección en el lugar + versionado | B8 B/C | No debería construirse sin el versionado de §18-13 |
-| **H20** | Enlaces a versiones (YouTube / Spotify) | B11 | **Antes del audio propio**: puede reducirle el alcance |
-| **H21** | Audio propio de referencia | B6 | Infraestructura nueva: almacenamiento de binarios |
-| **H22** | Grabar encima de lo grabado | B7 | Depende de H21 |
+| ~~**H20**~~ ⊘ | Enlaces a versiones (YouTube / Spotify) | B11 | **Descartado por el dueño el 2026-09-03.** Pasa a §16 |
+| ~~**H21**~~ ⊘ | Audio propio de referencia | B6 | **Descartado por el dueño el 2026-09-03.** Pasa a §16 |
+| ~~**H22**~~ ⊘ | Grabar encima de lo grabado | B7 | **Descartado por el dueño el 2026-09-03.** Pasa a §16 |
 | — | Rastreo de cancioneros online | B4 | Fuera del orden: §18-10 |
+
+**Y el 2026-09-03 el dueño descartó los tres últimos: todo el audio (B6, B7) y los enlaces a
+versiones (B11).** Con eso el orden se termina en H19, y el producto queda cerrado sobre una
+decisión que vale la pena decir en voz alta: **Cantoral no guarda ni un solo binario.** Todo es
+texto ChordPro y SVG dibujado en el servidor. Eso no es una carencia — es lo que hace que el
+repertorio entero pese menos que un canto grabado, que el respaldo sea la semilla y que no haya
+cuota que administrar ni formato de audio que pelear con Safari.
 
 **Los números se corrieron el 2026-09-03, y conviene decir por qué.** Este orden le daba el H16 a
 las sugerencias, pero ese número se lo llevó la **ingesta del cancionero**, que se construyó fuera
