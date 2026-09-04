@@ -321,10 +321,13 @@ altas, crea coros— y no se nombra en ninguna pantalla del coro.
 | **ver quién se inscribió** (H15) | sí | sí | **sí** |
 | **proponer un canto para un momento** (H17) | sí | sí | **sí** |
 | **ver el ranking de propuestas** (H17) | sí | sí | **sí** |
+| **ver el historial de cambios de un canto** (H19-A) | sí | sí | **sí** |
 | retirar la propuesta de **otro** | **no** | **no** | **no** |
 | inscribir o retirar a **otra** persona | **no** | **no** | **no** |
 | crear o editar un canto | sí | sí | **no** |
 | **archivar un canto** (§16) | sí | sí | **no** |
+| **volver a una versión anterior del cifrado** (H19-A) | sí | sí | **no** |
+| **escribir en el historial de cambios** | **no** | **no** | **no** |
 | asignar momentos a un canto | sí | sí | **no** |
 | crear o editar una misa | sí | sí | **no** |
 | asignar cantos a una misa | sí | sí | **no** |
@@ -349,6 +352,17 @@ el hito entero. **Proponer no es asignar.** El coro pide, el director decide —
 
 **Y la fila de archivar cierra §16.** No hay «borrar un canto» en esta matriz porque no hay borrado:
 se archiva. El motivo está en §16.
+
+**La fila «escribir en el historial» dice no en las tres columnas, y es la primera de esta matriz
+que no tiene ningún sí.** No es una capacidad olvidada: `canto_version` la escribe un trigger de la
+base y no tiene política de escritura. Un historial que la parte interesada puede editar o borrar
+no es un historial, es una sugerencia — y el director es exactamente la parte interesada, porque es
+el único que edita cifrados. Está en la matriz para que se lea la ausencia, no para que se deduzca.
+
+**Y la fila de ver el historial vuelve a poner un «sí» en la columna del miembro**, esta vez sin que
+escriba nada. PRODUCT define el éxito como *«que la corrección que hace un músico le llegue a los
+demás»*: el que abre un canto y ve un acorde distinto al que recuerda es el que toca, no el que
+edita, y tiene derecho a saber que cambió ayer y quién lo cambió sin preguntarle a nadie.
 
 ### 8.3 Dónde vive la matriz y cómo se arbitra
 
@@ -668,12 +682,51 @@ en §19; cuando lo tienen, la fila lo dice y nombra qué cambiaría. Mientras ta
 
 | **H18 · Recomendación al armar** ✅ **hecho** (2026-09-03) — cierra B1 | Motor `recomendacion` con test: dentro de cada momento, primero lo que hace más tiempo que no se canta, y los **nunca cantados en su propio grupo**. Sin tablas nuevas: lee las misas de H6 igual que el historial de H13. Y `cantosDisponibles` deja de ofrecer los archivados, que era un hueco abierto desde que se cerró §16 | Al armar la misa, cada momento lista sus cantos **del más olvidado al más reciente, con hace cuánto se cantó cada uno**; los que nunca sonaron van abajo, dichos así, y no arriba tapando el consejo útil; un canto **archivado** no se ofrece; uno **ya asignado a esta misa** tampoco; y el orden es el mismo en cada recarga — **verificado en la app a 360 px** (`scrollWidth` 360 = `clientWidth` 360): en Entrada salió «Escojo la vida · hace 1 mes», «Abre tu jardín · hace 1 mes» y después seis «nunca se cantó»; en Perdón, «Hoy perdóname · hace 4 meses» primero; «Donde hay amor» y «Reina del Cielo» —los dos que ya estaban en la misa— no aparecieron; y al archivar *Pescador de hombres* desapareció de la lista y volvió al desarchivarlo |
 
-| **H19-A · Versionado del cifrado** 🔨 **en construcción** (2026-09-04) — desbloquea §18-13 | Tabla `canto_version` escrita por un **trigger**, no por la aplicación, y sin ninguna política de escritura: nadie puede fabricar ni borrar historial. Motor `version-cifrado` con test (diff por líneas y resumen del cambio), el historial en la vista del canto y «Volver a esta versión» para el director | El director corrige un acorde y el cambio queda registrado con **quién, cuándo y qué cambió** —las líneas que cambiaron, y si se tocó la letra o solo los acordes—, no dos bloques de texto para comparar a ojo en un teléfono; puede **volver a una versión anterior**, y volver **no borra nada**: la que estaba se guarda a su vez, así que se puede volver a ir; un canto que nunca se editó **lo dice así** en vez de mostrar una lista vacía; **el miembro ve el historial** —para eso existe: que la corrección que hace uno le llegue a los demás (PRODUCT)— pero no puede restaurar; y las dos capas de §15-4 más una tercera que es nueva: **ni el director ni el admin pueden escribir en `canto_version`**, porque la tabla no tiene política de escritura y el rastro lo pone la base |
+| **H19-A · Versionado del cifrado** ✅ **hecho** (2026-09-04) — cierra §18-13 | Tabla `canto_version` escrita por un **trigger**, no por la aplicación, y **sin ninguna política de escritura**: nadie puede fabricar ni borrar historial. Motor `version-cifrado` con test (diff por subsecuencia común y resumen del cambio), el historial en la vista del canto y «Volver a esta versión» para el director | El director corrige un acorde y el cambio queda registrado con **quién, cuándo y qué cambió** —las líneas que cambiaron, y si se tocó la letra o solo los acordes—, no dos bloques de texto para comparar a ojo en un teléfono; puede **volver a una versión anterior**, y volver **no borra nada**: la que estaba se guarda a su vez; un canto que nunca se editó **lo dice así**; **el miembro ve el historial** pero no puede restaurar; y **ni el director ni el admin pueden escribir en `canto_version`** — **verificado en la app a 360 px** (`scrollWidth` 360 = `clientWidth` 360): `musico@` abrió *Abre tu jardín* y vio «Se corrigió 2 veces · ver qué cambió», con **«Acordes corregidos · Director · hace 1 semana · es lo que se canta hoy»** y **«Cambió la letra · Sin identificar · hace 3 semanas»** —el caso del importador sin sesión, dicho y no inventado—, y **ningún botón de restaurar**; al desplegar, el diff mostró la única línea que cambió (`[B]vida` → `[B7]vida`) y «16 líneas sin cambios». `director@` sí vio «Volver a esta versión»: al usarlo el cifrado volvió, el enlace pasó a **«Se corrigió 3 veces»** —la vuelta atrás quedó registrada, no borró nada— y al volver a ir hacia adelante quedó en 4, con los cuatro diffs en la dirección correcta. Un canto nunca editado **no muestra el enlace** y por URL dice «Este canto no se editó nunca»; `ajeno@` por URL recibe «Ese canto no está acá». `npm run verificar:rls` da **71/71**, con las cuatro que dan sentido al hito: **ni el director puede fabricar, borrar ni reescribir una versión**, y editar el cifrado deja **una sola** fila con el texto anterior y su autor, mientras que guardar sin tocar el cifrado no deja ninguna |
 
-**Los diecisiete hitos están hechos y verificados corriendo la app.** H9 salió de §18-7, que lo dejaba
+**Los dieciocho hitos están hechos y verificados corriendo la app.** H9 salió de §18-7, que lo dejaba
 condicionado a "si estorba"; H10, H11, H13, H14 y H15 salen del backlog de §19; H16 salió de §16,
 donde el parser de dos columnas estaba anotado como *«un hito propio»*. H12 se descartó — y su
 medición envejeció, ver B8.
+
+### Cómo entró H19-A, y por qué se partió en dos
+
+El backlog tenía **H19 · Corrección en el lugar + versionado** como una sola entrada, y §19.3 le
+había puesto una nota: *«no debería construirse sin el versionado de §18-13»*. El 2026-09-04 se
+partió, y se construyó **solo el versionado**. La razón no es de tamaño: es que el versionado
+**vale por sí solo** —el director gana «quién cambió qué y volver atrás» sobre el H8 que ya
+existe— mientras que corregir en el lugar no vale nada sin él.
+
+**La decisión que costó pensarla: quién escribe la fila.** La opción obvia era la server action,
+que ya sabe quién es el usuario. Se descartó porque el rastro dependería de que cada camino que
+edite un cifrado se acuerde de escribirlo — y basta un `update` desde otra ruta, un script o la
+próxima función escrita con prisa para que una corrección no deje huella. **Lo escribe un trigger**,
+que no se olvida, y `auth.uid()` dentro del trigger dice quién fue sin que nadie lo pase: no hay
+campo de formulario que falsificar.
+
+**La segunda: nadie escribe en esa tabla.** Es la primera del producto con RLS activa y **cero
+políticas de escritura**, más un `revoke` explícito encima —porque la migración 00 concede las
+cuatro operaciones sobre toda tabla nueva por `alter default privileges`, y confiar en que «no hay
+policy» es confiar en que nadie agregue una sin pensar—. Incluye al director, que es exactamente
+la parte interesada: es el único que edita cifrados.
+
+**Y un detalle que se descubrió escribiendo el trigger y podría haber sido grave.**
+`reemplazado_por` tiene foránea contra `perfiles`. Con `auth.uid()` pelado, un uid sin perfil
+habría hecho fallar el insert — y como el trigger es `after update`, ese fallo **aborta el `update`
+de `cantos` que lo disparó**. Es decir: un dato de auditoría incompleto habría dejado al director
+sin poder editar ningún canto. Se resolvió con un subselect: sin perfil, se guarda nulo. **La regla
+que queda: el rastro nunca puede tener el poder de bloquear lo que registra.**
+
+### 17.1-duodecies Lo que quedó pendiente de H19-A (declarado, no recortado en silencio)
+
+| Del backlog | Cómo quedó | Por qué / cuándo se revisa |
+| --- | --- | --- |
+| **Solo se versiona el cifrado** | Título, autor, tonalidad y fuente se editan sin dejar rastro | Es lo que §18-13 pedía y lo único que se corrige a oído. Y restaurar un título chocaría con el índice único `(coro_id, lower(titulo))`: un «volver atrás» que a veces falla es peor que no ofrecerlo |
+| **No se comparan dos versiones cualesquiera** | Cada cambio se ve contra el siguiente | En un teléfono, elegir dos de una lista pide una interfaz de selección que no cabe. Encadenados se lee la historia igual |
+| **El diff es por líneas, no por acorde dentro de la línea** | La línea entera sale como quitada y agregada | Con cifrados el acorde va pegado a la sílaba; marcar el carácter exacto pediría un segundo diff dentro de cada línea. La línea corta ya cabe en 360 px |
+| **Nadie se entera de que un canto cambió** | Hay que abrir el canto | Sin notificaciones en el producto, avisar sería una superficie nueva entera — el mismo motivo que en H17 |
+| **No hay «qué cambió en el coro esta semana»** | El historial es por canto | Sería otra pantalla y otra pregunta. Se anota por si el coro la pide |
+| **La foránea compuesta de `misa_cantos`** | Sigue sin aplicarse | Heredado de H15. Misma grieta, hoy sin explotar porque solo escribe el director |
 
 ### Cómo entró H18, y la decisión que §18-12 tenía reservada
 
@@ -1061,7 +1114,7 @@ Otros pendientes de H6:
 | 10 | **Rastrear cancioneros católicos en internet y proponer versiones** (§19-B4) | **No construir todavía.** Choca con cuatro cosas escritas: §16 dos veces (búsqueda online, IA), §18-1 (rastrear terceros *amplía* la superficie legal, no la reduce) y §18-9 (si las versiones distintas son legítimas, lo hallado **no actualiza** un canto: entra como canto aparte). Antes hay que definir qué significa "agente" —proceso determinista o modelo—. **Alternativa barata que cubre buena parte: que el director pegue una URL o un texto a mano** y los motores de H9 (`desdeElCancionero`) conviertan. Sin cron, sin un adaptador por sitio, sin rastreo | el dueño | §19-B4; nada de lo construido |
 | 11 | **Datos personales de los miembros** (§19-B5) y **grabaciones de su voz** (§19-B6/B7) | Hasta hoy el único dato de persona es el correo de la cuenta. Edad y sexo suben el nivel, y una grabación de voz identifica a alguien que puede ser menor de edad. Decisión tomada: **se guardan los cuatro campos tal cual** (edad, sexo, tesitura, disponibilidad) **con visibilidad declarada** — el director ve la ficha completa del coro que dirige, el miembro no ve datos ajenos. Falta resolver: consentimiento para las grabaciones y qué pasa cuando alguien deja el coro. **La tensión inscripción/disponibilidad quedó cerrada el 2026-09-03 al construir H15: manda la inscripción, siempre — y la disponibilidad solo habla de quien NO se inscribió.** No se contradicen nunca, porque no opinan sobre la misma persona a la vez: al anotarse, la predicción deja de mostrarse | el dueño | §19-B5, §19-B6, §19-B7 |
 | 12 | **El ranking y la recomendación le dan consejos opuestos al director** | El historial dice *"hace ocho meses que no cantan este"*; el ranking dice *"la gente quiere este"* — y la gente quiere siempre los mismos. Uno empuja a rotar, el otro a repetir. No es un defecto: es una decisión de qué se muestra primero al armar la misa → **RESUELTO el 2026-09-03 al construir H18: manda ROTAR.** Al armar, los cantos se ordenan por hace cuánto no se cantan; las sugerencias siguen en su propio bloque, arriba, sin mezclarse en un puntaje | decidido | nada |
-| 13 | **No hay versionado del cifrado** | Con repertorio compartido, una corrección equivocada es silenciosa e irreversible: no se sabe quién cambió qué ni se puede volver atrás. Hoy no molesta porque solo el director edita, desde una pantalla, a conciencia (H8). Corregir acordes *en el lugar* multiplica las ediciones pequeñas y lo vuelve necesario | el dueño | §19-B8 **no debería construirse sin esto** |
+| 13 | ~~**No hay versionado del cifrado**~~ → **RESUELTO el 2026-09-04 con H19-A** | Se construyó antes que la corrección en el lugar y por separado, que es lo que este riesgo pedía. El rastro lo escribe un trigger de la base —no la aplicación, que se puede saltar— y **nadie tiene permiso de escritura sobre la tabla, tampoco el director**. Volver atrás no destruye: deja su propia versión. Con esto **B8 B/C deja de estar bloqueado**; lo que queda por decidir es §18-15, el gesto | decidido | ya no bloquea §19-B8 |
 | 14 | **Audio: peso, cuota y el navegador del teléfono** | El repertorio entero en texto pesa menos que un solo canto grabado a cuatro voces: hay que declarar cuota y qué pasa al llenarse. Y grabar desde el navegador móvil tiene a **Safari en iPhone como punto frágil** —soporte y formatos que no coinciden con Android—. Se declara ahora para que no se descubra construyendo. → **CERRADO el 2026-09-03: el dueño descartó B6 y B7.** El riesgo desaparece porque desaparece lo que lo causaba; queda escrito por si algún día vuelve | decidido | nada |
 | 15 | **Pulsar un acorde ya hace algo** | H5 dejó verificado que pulsar un acorde abre la barra de diagramas centrada en él. Editar en el lugar necesita **otro gesto** —modo de edición explícito, pulsación larga, u otra cosa—, no puede colgar del mismo | el dueño | §19-B8 |
 | 16 | **Claves de API de terceros** (§19-B11) | §16 dice "ni clave en el ejemplo de entorno", pero esa frase era **sobre IA**. YouTube y Spotify piden clave y no son un modelo. Hay que decidir explícitamente si el veto las alcanza o si era específico de la integración de modelos. → **CERRADO el 2026-09-03: el dueño descartó B11**, así que la pregunta deja de tener consecuencia. Si algún día entra otra integración externa, se vuelve a abrir | decidido | nada |
@@ -1133,7 +1186,7 @@ decisiones escritas. Eso, por sí solo, es una señal de prioridad — ver §18-
 | **B5** | Ficha del miembro: edad, sexo, tesitura, disponibilidad | §7, **§8** | bajo |
 | **B6** | Subir audio para que el coro aprenda las voces | **infraestructura nueva** | ⊘ **descartada** (2026-09-03) |
 | **B7** | Cada uno graba su voz y el director las escucha juntas | depende de B6 | ⊘ **descartada** (2026-09-03) |
-| **B8** | Corregir acordes en el lugar y colapsar repetidos | §9 + **§18-13** | bajo (A) / medio (B, C) |
+| **B8** | *«Editar las notas y borrar acordes repetidos, o editar en el mismo lugar»* | ⚠️ **A: reabierto** (94 repetidos en 44 de 90 cantos, 2,7 %) · **B y C: desbloqueados el 2026-09-04**, al construir H19-A. Falta el gesto (§18-15) |
 | **B9** | Ranking de sugerencias por momento | tabla nueva, **§8** | ✅ **construida** → H17 |
 | **B10** | Estado del canto: en ensayo / listo | **una columna** | ✅ **construida** → H10 |
 | **B11** | Buscar versiones en YouTube o Spotify | API externa | ⊘ **descartada** (2026-09-03) |
@@ -1415,7 +1468,8 @@ construido y verificado.
 | ~~**H15**~~ ✅ | Inscripción a la misa | B2 | **Hecho el 2026-09-03** (ver §17). **Acá se tocó §8 por primera vez desde el lado del miembro**, y §19.5 dejó de ser propuesta |
 | ~~**H17**~~ ✅ | Sugerencias y ranking | B9 | **Hecho el 2026-09-03** (ver §17). Reusó la política de H15 tal cual; lo que costó fue el `misa_id` nullable — dos índices parciales, porque dos NULL no son iguales |
 | ~~**H18**~~ ✅ | Recomendación al armar | B1-C | **Hecho el 2026-09-03** (ver §17). Cero tablas nuevas, como decía B1. Lo que costó fue la decisión de §18-12, no el código |
-| **H19** | Corrección en el lugar + versionado | B8 B/C | No debería construirse sin el versionado de §18-13 |
+| ~~**H19-A**~~ ✅ | Versionado del cifrado | B8, §18-13 | **Hecho el 2026-09-04** (ver §17). Se partió H19 en dos: el versionado vale solo —el director gana volver atrás sobre el H8 que ya existe—, mientras que corregir en el lugar no vale nada sin él |
+| **H19-B** | Corregir el acorde en el lugar | B8 B/C | **Ya no está bloqueado**: §18-13 se cerró. Lo que falta decidir es §18-15 — pulsar un acorde ya abre los diagramas de H5, así que editar necesita **otro gesto** |
 | ~~**H20**~~ ⊘ | Enlaces a versiones (YouTube / Spotify) | B11 | **Descartado por el dueño el 2026-09-03.** Pasa a §16 |
 | ~~**H21**~~ ⊘ | Audio propio de referencia | B6 | **Descartado por el dueño el 2026-09-03.** Pasa a §16 |
 | ~~**H22**~~ ⊘ | Grabar encima de lo grabado | B7 | **Descartado por el dueño el 2026-09-03.** Pasa a §16 |
