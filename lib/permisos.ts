@@ -57,6 +57,8 @@ export const CAPACIDADES = [
   'ver_ficha_del_coro',
   'editar_canto',
   'archivar_canto',
+  'ver_versiones_canto',
+  'restaurar_version_canto',
   'asignar_momentos',
   'inscribirse_a_misa',
   'ver_inscripciones',
@@ -107,6 +109,11 @@ const MATRIZ: Record<Rol, Record<Capacidad, Celda>> = {
     // Archivar es del coro, y el admin no dirige ninguno: la capacidad la
     // resuelve el vínculo, igual que editar.
     archivar_canto: true,
+    // H19-A. Ver el historial acompaña a ver el repertorio; volver atrás
+    // acompaña a editarlo. Ninguna de las dos permite ESCRIBIR en
+    // `canto_version`: eso no lo puede nadie, y lo hace cumplir la RLS.
+    ver_versiones_canto: true,
+    restaurar_version_canto: true,
     asignar_momentos: true,
     editar_misa: true,
     asignar_cantos_misa: true,
@@ -143,6 +150,14 @@ const MATRIZ: Record<Rol, Record<Capacidad, Celda>> = {
     // Sacar un canto de circulación es del director: con el admin fuera del
     // coro, él es la máxima autoridad dentro de él. Y no borra nada — §16.
     archivar_canto: 'solo_director',
+    // H19-A · LA ASIMETRÍA ES EL HITO. Ver el historial lo puede TODO EL CORO,
+    // porque PRODUCT define el éxito como «que la corrección que hace un músico
+    // le llegue a los demás»: el que abre un canto y ve un acorde distinto al
+    // que recuerda tiene derecho a ver que cambió ayer y quién lo cambió, sin
+    // preguntarle a nadie. Volver atrás, en cambio, es escribir el repertorio,
+    // y eso sigue siendo del director como desde H1.
+    ver_versiones_canto: 'solo_vinculado',
+    restaurar_version_canto: 'solo_director',
     asignar_momentos: 'solo_director',
     editar_misa: 'solo_director',
     asignar_cantos_misa: 'solo_director',
@@ -168,6 +183,8 @@ const MATRIZ: Record<Rol, Record<Capacidad, Celda>> = {
     ver_sugerencias: false,
     editar_canto: false,
     archivar_canto: false,
+    ver_versiones_canto: false,
+    restaurar_version_canto: false,
     asignar_momentos: false,
     editar_misa: false,
     asignar_cantos_misa: false,

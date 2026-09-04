@@ -50,6 +50,45 @@ describe('editar_canto — la celda que define el hito de edición', () => {
   })
 })
 
+describe('el versionado del cifrado — H19-A, y su asimetría deliberada', () => {
+  test('el MIEMBRO ve el historial: para eso existe', () => {
+    // No es una concesión. PRODUCT define el éxito como «que la corrección que
+    // hace un músico le llegue a los demás»; si solo el director pudiera ver
+    // que un acorde cambió, la corrección seguiría siendo invisible para quien
+    // la toca.
+    expect(puede(miembro, 'ver_versiones_canto')).toBe(true)
+  })
+
+  test('pero NO puede volver atrás: eso es escribir el repertorio', () => {
+    expect(puede(miembro, 'restaurar_version_canto')).toBe(false)
+  })
+
+  test('el director puede las dos', () => {
+    expect(puede(director, 'ver_versiones_canto')).toBe(true)
+    expect(puede(director, 'restaurar_version_canto')).toBe(true)
+  })
+
+  test('sin vínculo al coro no se ve ningún historial', () => {
+    expect(puede(sinVinculo, 'ver_versiones_canto')).toBe(false)
+  })
+
+  test('un externo no ve nada', () => {
+    const externo: Sujeto = { rol: 'externo', aprobado: true, rolLocal: null }
+    expect(puede(externo, 'ver_versiones_canto')).toBe(false)
+    expect(puede(externo, 'restaurar_version_canto')).toBe(false)
+  })
+
+  test('NADIE tiene capacidad de ESCRIBIR historial — no existe como capacidad', () => {
+    // La ausencia es deliberada y esta prueba la protege: si alguna vez alguien
+    // agrega `editar_version_canto` a la matriz, este test lo pone en rojo y
+    // obliga a leer la migración, que no tiene política de escritura.
+    expect(CAPACIDADES.filter((c) => c.includes('version'))).toEqual([
+      'ver_versiones_canto',
+      'restaurar_version_canto',
+    ])
+  })
+})
+
 describe('ver_preferencia_ajena — nadie, tampoco el admin', () => {
   test('los tres roles reciben false', () => {
     expect(puede(admin, 'ver_preferencia_ajena')).toBe(false)

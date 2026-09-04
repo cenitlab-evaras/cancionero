@@ -5,6 +5,7 @@ import { puede } from '@/lib/permisos'
 import { obtenerCanto, obtenerPreferencia, mostrarAcordesDelPerfil } from '@/lib/datos/repertorio'
 import { historialDelCanto, hoyISO } from '@/lib/datos/historial'
 import { misSugerencias } from '@/lib/datos/sugerencias'
+import { contarVersiones } from '@/lib/datos/versiones'
 import { misasDelCoro } from '@/lib/datos/misas'
 import { agruparMisas } from '@/lib/motores/agenda'
 import { transponer, transponerAcorde } from '@/lib/motores/transponer'
@@ -47,9 +48,11 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
   const { cantoId } = await params
   // H17 · sólo se consulta si hay a quién ofrecerle proponer.
   const puedeSugerir = puede(sesion.sujeto, 'sugerir_canto')
+  // H19-A · sólo se cuenta si esta persona puede abrir el historial.
+  const puedeVerVersiones = puede(sesion.sujeto, 'ver_versiones_canto')
   const coroId = sesion.coroActivo?.id ?? ''
 
-  const [canto, preferencia, mostrarAcordes, historial, mias, misas] = await Promise.all([
+  const [canto, preferencia, mostrarAcordes, historial, mias, misas, versiones] = await Promise.all([
     obtenerCanto(cantoId),
     obtenerPreferencia(cantoId),
     // H11 · Es de la PERSONA, no del canto: por eso no lleva `cantoId`.
@@ -58,6 +61,8 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
     historialDelCanto(coroId, cantoId),
     puedeSugerir ? misSugerencias(coroId) : Promise.resolve([]),
     puedeSugerir ? misasDelCoro(coroId) : Promise.resolve([]),
+    // H19-A · cuántas veces se corrigió el cifrado. Se calcula al leer.
+    puedeVerVersiones ? contarVersiones(cantoId) : Promise.resolve(0),
   ])
 
   // Proponer para una misa que ya pasó no tiene sentido; la lista sin fecha sí,
@@ -223,6 +228,23 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
                 se puede corregir a oído.
               </>
             )}
+          </p>
+        )}
+
+        {/* H19-A · El enlace SOLO aparece si hubo correcciones. Ofrecer un
+            historial vacío en la pantalla de lectura sería ruido en la única
+            superficie del producto donde cada píxel tiene que justificarse
+            (PRODUCT, principio 1). Y lo ve todo el coro, no solo el director:
+            el que toca es el que oye que el acorde cambió. */}
+        {versiones > 0 && (
+          <p className="mt-4 text-[0.6875rem] text-texto-tenue">
+            <Link
+              href={`/repertorio/${canto.id}/versiones`}
+              className="text-acento underline underline-offset-2"
+            >
+              {versiones === 1 ? 'Se corrigió 1 vez' : `Se corrigió ${versiones} veces`} · ver qué
+              cambió
+            </Link>
           </p>
         )}
       </main>

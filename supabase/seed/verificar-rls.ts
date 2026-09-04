@@ -962,6 +962,200 @@ async function main() {
       .eq('momento_id', unMomento2!.id)
   }
 
+  // --- Acto 15: el historial del cifrado (H19-A) ----------------------------
+  //
+  // ES UNA CLASE DE TABLA NUEVA en este producto: la leen todos y NO LA ESCRIBE
+  // NADIE. Las cuatro comprobaciones de abajo son la única prueba de que eso es
+  // cierto — la matriz de `permisos.ts` no tiene siquiera una capacidad para
+  // escribir acá, así que si la política estuviera floja nada en el código lo
+  // delataría.
+  {
+    const { data: versionesMusico } = await musico
+      .from('canto_version')
+      .select('id, canto_id, cifrado')
+    comprobar(
+      'musico@ VE el historial de cambios de su coro',
+      (versionesMusico?.length ?? 0) > 0,
+      `${versionesMusico?.length ?? 0} versiones — el miembro tiene que poder ver que un acorde cambió`
+    )
+
+    const { data: versionesAjeno } = await ajeno.from('canto_version').select('id')
+    comprobar(
+      'ajeno@ no ve ninguna versión de San José',
+      (versionesAjeno?.length ?? 0) === 0,
+      `${versionesAjeno?.length ?? 0} filas`
+    )
+
+    const unaVersion = versionesMusico?.[0]
+    if (!unaVersion) {
+      comprobar(
+        'el historial es de solo lectura para todos',
+        false,
+        'NO SE PUDO PROBAR: no hay ninguna versión sembrada'
+      )
+    } else {
+      // El miembro no escribe.
+      const { error: errInsertMiembro } = await musico.from('canto_version').insert({
+        canto_id: unaVersion.canto_id,
+        coro_id: (await musico.from('cantos').select('coro_id').eq('id', unaVersion.canto_id).maybeSingle()).data?.coro_id,
+        cifrado: 'inventado por el miembro',
+      })
+      comprobar(
+        'musico@ no puede fabricar una versión',
+        !!errInsertMiembro,
+        errInsertMiembro ? 'la RLS lo rechazó' : 'SE ESCRIBIÓ: la tabla tiene política de escritura'
+      )
+
+      // Y EL DIRECTOR TAMPOCO. Esta es la comprobación que da sentido al hito:
+      // un historial que la parte interesada puede editar o borrar no es un
+      // historial, es una sugerencia.
+      const { error: errInsertDirector } = await director.from('canto_version').insert({
+        canto_id: unaVersion.canto_id,
+        coro_id: (await director.from('cantos').select('coro_id').eq('id', unaVersion.canto_id).maybeSingle()).data?.coro_id,
+        cifrado: 'inventado por el director',
+      })
+      comprobar(
+        'NI EL DIRECTOR puede fabricar una versión',
+        !!errInsertDirector,
+        errInsertDirector ? 'la RLS lo rechazó' : 'SE ESCRIBIÓ: el historial no es confiable'
+      )
+
+      const { error: errBorrar } = await director
+        .from('canto_version')
+        .delete()
+        .eq('id', unaVersion.id)
+      const { data: sigueAhi } = await director
+        .from('canto_version')
+        .select('id')
+        .eq('id', unaVersion.id)
+      comprobar(
+        'ni el director puede borrar una versión',
+        (sigueAhi?.length ?? 0) === 1,
+        errBorrar || (sigueAhi?.length ?? 0) === 1
+          ? 'la versión sigue ahí'
+          : 'SE BORRÓ: el historial se puede reescribir'
+      )
+
+      const { error: errEditar } = await director
+        .from('canto_version')
+        .update({ cifrado: 'reescrito' })
+        .eq('id', unaVersion.id)
+      const { data: intacta } = await director
+        .from('canto_version')
+        .select('cifrado')
+        .eq('id', unaVersion.id)
+        .maybeSingle()
+      comprobar(
+        'ni el director puede reescribir una versión',
+        intacta?.cifrado === unaVersion.cifrado,
+        errEditar || intacta?.cifrado === unaVersion.cifrado
+          ? 'el texto guardado no cambió'
+          : 'SE REESCRIBIÓ: el historial no prueba nada'
+      )
+
+      // EL TRIGGER, que es la otra mitad del hito: el rastro no depende de que
+      // la aplicación se acuerde de escribirlo.
+      const { data: cantoPrueba } = await director
+        .from('cantos')
+        .select('id, cifrado')
+        .eq('id', unaVersion.canto_id)
+        .maybeSingle()
+      if (cantoPrueba) {
+        const original = cantoPrueba.cifrado
+        // Los ids que YA estaban. Es como se limpia después: se borran los que
+        // aparecieron, no los que no coinciden con una lista de fechas copiada
+        // de la semilla — dos verdades que algún día se separan.
+        const { data: previas } = await director
+          .from('canto_version')
+          .select('id')
+          .eq('canto_id', cantoPrueba.id)
+        const idsPrevios = new Set((previas ?? []).map((v) => v.id))
+        const antes = (
+          await director.from('canto_version').select('id', { count: 'exact', head: true }).eq('canto_id', cantoPrueba.id)
+        ).count ?? 0
+
+        await director
+          .from('cantos')
+          .update({ cifrado: `${original}\n[G]Línea de prueba de H19-A` })
+          .eq('id', cantoPrueba.id)
+
+        const { data: nueva } = await director
+          .from('canto_version')
+          .select('cifrado, reemplazado_por')
+          .eq('canto_id', cantoPrueba.id)
+          .order('reemplazado_en', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        const despues = (
+          await director.from('canto_version').select('id', { count: 'exact', head: true }).eq('canto_id', cantoPrueba.id)
+        ).count ?? 0
+
+        comprobar(
+          'editar el cifrado deja una versión SOLA, con el texto anterior y quién lo cambió',
+          despues === antes + 1 && nueva?.cifrado === original && !!nueva?.reemplazado_por,
+          `${antes} → ${despues} versiones · texto anterior ${nueva?.cifrado === original ? 'guardado' : 'PERDIDO'} · autor ${nueva?.reemplazado_por ? 'registrado' : 'NULO'}`
+        )
+
+        // Y que un update que NO toca el cifrado no ensucie el historial.
+        const antesRuido = despues
+        await director
+          .from('cantos')
+          .update({ updated_at: new Date().toISOString() })
+          .eq('id', cantoPrueba.id)
+        const ruido = (
+          await director.from('canto_version').select('id', { count: 'exact', head: true }).eq('canto_id', cantoPrueba.id)
+        ).count ?? 0
+        comprobar(
+          'guardar sin tocar el cifrado NO crea una versión',
+          ruido === antesRuido,
+          `${antesRuido} → ${ruido} versiones`
+        )
+
+        // Se deja el canto como estaba. Devolverlo deja SU PROPIA fila —es el
+        // comportamiento del hito, no un descuido— así que hay que barrer las
+        // dos: la de la prueba y la de la vuelta atrás.
+        await director.from('cantos').update({ cifrado: original }).eq('id', cantoPrueba.id)
+
+        // La clave de servicio es la única que puede borrar acá, y eso mismo es
+        // lo que las comprobaciones de arriba acaban de demostrar. Si falta, se
+        // dice: dejar basura en silencio haría fallar la semilla mañana por un
+        // motivo que nadie ataría a esto.
+        const SECRETA = process.env.SUPABASE_SECRET_KEY
+        if (!SECRETA) {
+          console.log(
+            '  ! sin SUPABASE_SECRET_KEY: quedan 2 versiones de prueba en el historial de ese canto'
+          )
+        } else {
+          const servicio = createClient(URL, SECRETA, {
+            auth: { autoRefreshToken: false, persistSession: false },
+          })
+          const { data: ahora } = await servicio
+            .from('canto_version')
+            .select('id')
+            .eq('canto_id', cantoPrueba.id)
+          const nuevas = (ahora ?? []).map((v) => v.id).filter((id) => !idsPrevios.has(id))
+          if (nuevas.length > 0) {
+            await servicio.from('canto_version').delete().in('id', nuevas)
+          }
+        }
+      }
+
+      // El miembro no restaura: restaurar es escribir `cantos`, y eso sigue
+      // siendo del director desde H1.
+      const { data: cantoMusico } = await musico.from('cantos').select('id, cifrado').limit(1).maybeSingle()
+      const { data: pisado } = await musico
+        .from('cantos')
+        .update({ cifrado: '[C]pisado por el miembro' })
+        .eq('id', cantoMusico!.id)
+        .select('id')
+      comprobar(
+        'musico@ no puede restaurar (ni escribir) un cifrado',
+        (pisado?.length ?? 0) === 0,
+        `${pisado?.length ?? 0} filas afectadas`
+      )
+    }
+  }
+
   const fallidos = resultados.filter((r) => !r.ok)
   console.log(`\n${resultados.length - fallidos.length}/${resultados.length} comprobaciones en verde`)
   if (fallidos.length > 0) process.exit(1)

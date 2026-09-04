@@ -16,6 +16,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { CANTOS, CANTO_CONTROL, FUENTE, MOMENTOS, type CantoSemilla } from './cantos.ts'
 import { MISAS, MISA_CONTROL, SUGERENCIAS, type MisaSemilla } from './misas.ts'
+import { VERSIONES } from './versiones.ts'
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL
 const SECRET = process.env.SUPABASE_SECRET_KEY
@@ -350,6 +351,45 @@ async function main() {
     if (error) throw error
   }
 
+  // 5-bis · Historial de cambios del cifrado (H19-A)
+  //
+  // SE INSERTA DIRECTO, y hay que decir por qué: en la aplicación esta tabla la
+  // escribe un trigger y NADIE tiene permiso de insert sobre ella. La semilla
+  // usa la clave de servicio, que salta la RLS — es el único lugar del proyecto
+  // que puede poner una fila acá, y lo hace para que la pantalla tenga qué
+  // mostrar sin pasos manuales (§18-17).
+  //
+  // La alternativa —editar el cifrado y dejar que el trigger actúe— daría todas
+  // las filas con `reemplazado_por` nulo, porque la semilla no tiene sesión, y
+  // el caso «con nombre» quedaría sin sembrar.
+  for (const v of VERSIONES) {
+    const { data: canto } = await db
+      .from('cantos')
+      .select('id')
+      .eq('coro_id', coroPrincipal)
+      .eq('titulo', v.cantoTitulo)
+      .maybeSingle()
+    afirmar(!!canto, `No existe «${v.cantoTitulo}» para colgarle una versión.`)
+
+    // Idempotente por (canto, instante): la semilla corre dos veces.
+    const { data: yaEsta } = await db
+      .from('canto_version')
+      .select('id')
+      .eq('canto_id', canto!.id)
+      .eq('reemplazado_en', v.cuando)
+      .maybeSingle()
+    if (yaEsta) continue
+
+    const { error } = await db.from('canto_version').insert({
+      canto_id: canto!.id,
+      coro_id: coroPrincipal,
+      cifrado: v.cifradoAnterior,
+      reemplazado_por: v.quienEmail ? perfiles.get(v.quienEmail)! : null,
+      reemplazado_en: v.cuando,
+    })
+    if (error) throw error
+  }
+
   // 6 · ASSERTS — fallan, no avisan (PRD §13.4)
   const cuenta = async (tabla: string, filtro?: { col: string; val: string }) => {
     let q = db.from(tabla).select('*', { count: 'exact', head: true })
@@ -428,6 +468,23 @@ async function main() {
     `Se esperaban ${SUGERENCIAS.length} sugerencias y hay ${nSugerencias}.`
   )
 
+  // H19-A · el historial también tiene que sobrevivir a dos corridas.
+  //
+  // SE CUENTAN LAS SEMBRADAS, NO EL TOTAL, y es la lección de H16 aplicada de
+  // entrada: en cuanto alguien corrija un cifrado desde la aplicación, el
+  // trigger va a agregar filas acá. Afirmar el total haría fallar la semilla
+  // por el uso normal del producto, que es exactamente lo que pasó con los 87
+  // cantos importados. Lo que hay que comprobar es que las sembradas están.
+  const { count: nVersiones, error: errVersiones } = await db
+    .from('canto_version')
+    .select('id', { count: 'exact', head: true })
+    .in('reemplazado_en', VERSIONES.map((v) => v.cuando))
+  if (errVersiones) throw errVersiones
+  afirmar(
+    nVersiones === VERSIONES.length,
+    `Se esperaban las ${VERSIONES.length} versiones de la semilla y hay ${nVersiones}: la semilla dejó de ser idempotente.`
+  )
+
   const pasadas = MISAS.filter((c) => c.fecha !== null && c.fecha <= '2026-08-07').length
   console.log(
     `✓ ${nMomentos} momentos · ${nPrincipal} cantos en ${CORO_PRINCIPAL} (${sembrados} de la semilla) · ${nControl} en ${CORO_CONTROL}`
@@ -437,6 +494,7 @@ async function main() {
     `✓ ${nMisas} misas de ejemplo · ${pasadas} ya ocurridas (las otras no cuentan como cantadas)`
   )
   console.log(`✓ ${nInscritos} inscripciones (H15) · ${nSugerencias} sugerencias (H17)`)
+  console.log(`✓ ${nVersiones} versiones del cifrado (H19-A)`)
 }
 
 main().catch((e) => {
