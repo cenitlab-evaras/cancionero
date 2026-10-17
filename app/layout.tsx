@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from "next";
+import { cookies } from "next/headers";
+import { COLOR_BARRA, COOKIE_TEMA, esTema, type Tema } from "./componentes/tema";
 import { Atkinson_Hyperlegible_Next, JetBrains_Mono, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
 
@@ -41,22 +43,30 @@ export const metadata: Metadata = {
   description: "El repertorio de tu coro, en tu teléfono.",
 };
 
-export const viewport: Viewport = {
-  // El tema oscuro también en la barra del navegador: al tocar de pie, una
-  // franja blanca arriba es un foco de luz en la cara. Es el --color-fondo
-  // (Nave); metadata no acepta variables CSS, por eso va repetido acá.
-  themeColor: "#15110d",
-  colorScheme: "dark",
-};
+/** El tema elegido con el sol y la luna (2026-10-17); sin elegir, el oscuro. */
+async function temaElegido(): Promise<Tema> {
+  const valor = (await cookies()).get(COOKIE_TEMA)?.value;
+  return esTema(valor) ? valor : "oscuro";
+}
 
-export default function RootLayout({
+export async function generateViewport(): Promise<Viewport> {
+  // La barra del navegador en el color del fondo: en el oscuro, una franja
+  // blanca arriba es un foco de luz en la cara al tocar de pie. Metadata no
+  // acepta variables CSS, por eso el color va repetido en `tema.ts`.
+  const tema = await temaElegido();
+  return { themeColor: COLOR_BARRA[tema], colorScheme: tema === "claro" ? "light" : "dark" };
+}
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const tema = await temaElegido();
   return (
     <html
       lang="es"
+      data-tema={tema}
       className={`${atkinson.variable} ${sourceSerif.variable} ${jetbrains.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>

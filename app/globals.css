@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* El tema claro (2026-10-17): `claro:` aplica cuando <html data-tema="claro">. */
+@custom-variant claro (&:where([data-tema="claro"], [data-tema="claro"] *));
+
 /*
  * Sistema visual de Cantoral — ver docs/DESIGN.md.
  * NINGÚN color escrito a mano fuera de este bloque.
@@ -31,6 +34,13 @@
   --color-sobre-acento: oklch(0.181 0.010 67.1);
   --color-peligro: oklch(0.664 0.162 32.5); /* #E5674F · 5,7:1 */
   --color-exito: oklch(0.734 0.134 145.1); /* #6FBF73 · 8,4:1 */
+  /* Las cuerdas (2026-10-17): el borde del círculo de cada anotado. Pedido del
+     dueño: rosado y rojo para las voces de mujer, dos azules para las de
+     hombre; la más aguda, la más clara. Todas ≥ 3:1 contra el fondo. */
+  --color-soprano: #f29bbb; /* rosado · 9,1:1 */
+  --color-contralto: #e0505f; /* rojo · 4,9:1 */
+  --color-tenor: #8cc8f2; /* celeste · 10,4:1 */
+  --color-bajo: #5e8be0; /* azul · 5,6:1 */
 
   --font-interfaz: var(--fuente-interfaz), system-ui, sans-serif;
   --font-titulo: var(--fuente-titulo), Georgia, serif;
@@ -51,6 +61,33 @@
   /* Alto de la barra de navegación inferior, para que el contenido no quede
      debajo. Incluye la zona segura del iPhone (el borde del gesto). */
   --alto-barra-nav: calc(4rem + env(safe-area-inset-bottom));
+}
+
+/*
+ * EL TEMA CLARO — a pedido del dueño (2026-10-17), con el sol y la luna de la
+ * cabecera. La misma iglesia, de día: el papel del cancionero y su tinta café.
+ * Los mismos tokens con otros valores; el halo es el dorado del logo, más
+ * hondo para que se lea sobre papel, y el acorde un ámbar quemado. Contraste
+ * medido contra el fondo, la superficie y la superficie alta (el peor caso).
+ */
+:root[data-tema="claro"] {
+  color-scheme: light;
+  --color-fondo: #faf6ee; /* Papel del cancionero */
+  --color-superficie: #f2ece1;
+  --color-superficie-alta: #e9e1d3;
+  --color-borde: #ddd3c3; /* separadores, no controles */
+  --color-borde-fuerte: #8f7d66; /* 3,7 / 3,4 / 3,1 : 1 */
+  --color-texto: #231b13; /* Tinta · 15,7 / 14,4 / 13,1 : 1 */
+  --color-texto-tenue: #62564a; /* 6,6 / 6,1 / 5,5 : 1 */
+  --color-acorde: #994700; /* Ámbar quemado · 6,0 / 5,5 / 5,0 : 1 */
+  --color-acento: #7f5d0e; /* Halo hondo · 5,6 / 5,1 / 4,7 : 1 */
+  --color-sobre-acento: #ffffff; /* sobre el halo hondo, 6,0 : 1 */
+  --color-peligro: #b3361f; /* 5,6 / 5,2 / 4,7 : 1 */
+  --color-exito: #2a7030; /* 5,6 / 5,2 / 4,7 : 1 */
+  --color-soprano: #c2457a; /* 4,4:1 */
+  --color-contralto: #b3202f; /* 6,2:1 */
+  --color-tenor: #2f86c4; /* 3,7:1 */
+  --color-bajo: #1e4c9c; /* 7,6:1 */
 }
 
 body {
@@ -229,6 +266,10 @@ body:has(.barra-nav) {
   margin-bottom: 0.5rem;
   overflow-x: auto;
   cursor: pointer;
+}
+/* En el tema claro, el papel blanco sobre el papel del cancionero se pierde: un filete. */
+:root[data-tema="claro"] .pagina-partitura {
+  box-shadow: 0 0 0 1px var(--color-borde);
 }
 .pagina-partitura svg {
   display: block;

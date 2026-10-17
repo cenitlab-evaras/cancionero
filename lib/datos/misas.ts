@@ -1,6 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { estaArchivado, normalizarEstado, type EstadoCanto } from '@/lib/motores/estado-canto'
 import { fechaEnZona } from '@/lib/motores/fecha'
+import { CUERDAS_DEL_CORO, cuerdaPorTesitura, type Cuerda } from '@/lib/motores/cuerdas'
+import { esTesituraValida } from '@/lib/motores/ficha'
+import { iniciales } from '@/lib/motores/iniciales'
 
 /**
  * Consultas de misas (H6).
@@ -18,6 +21,12 @@ export type MisaDeLista = {
   cantidadCantos: number
   /** H15 · cuántos se anotaron. Se cuenta al leer, no se guarda. */
   anotados: number
+  /**
+   * Quiénes, con sus iniciales y su cuerda (2026-10-17). La cuerda sale de la
+   * ficha, que desde H14 solo leen su dueño y el director: para el resto viene
+   * nula y el círculo va sin color. Es la RLS la que decide, no esta consulta.
+   */
+  quienes: { perfilId: string; iniciales: string; nombre: string; cuerda: Cuerda | null }[]
 }
 
 export type CantoDeMisa = {
@@ -78,13 +87,24 @@ export async function misasDelCoro(coroId: string): Promise<MisaDeLista[]> {
     // se elimina en `20260903000300`, pero nombrar la compuesta es correcto
     // antes y después de esa migración, y deja de depender de que haya una sola.
     .select(
-      'id, nombre, fecha, misa_cantos(id), misa_participante!participante_misa_del_mismo_coro(perfil_id)'
+      'id, nombre, fecha, misa_cantos(id), misa_participante!participante_misa_del_mismo_coro(perfil_id, perfiles(nombre, email))'
     )
     .eq('coro_id', coroId)
     .order('fecha', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false })
 
   if (error) throw error
+
+  // La cuerda de cada uno, de su ficha en este coro: la RLS devuelve todas al
+  // director y solo la propia a los demás (H14).
+  const { data: fichas } = await supabase.from('ficha_miembro').select('perfil_id, tesitura').eq('coro_id', coroId)
+  const cuerdaDe = new Map(
+    (fichas ?? []).map((f) => [
+      f.perfil_id as string,
+      esTesituraValida(f.tesitura) ? cuerdaPorTesitura(f.tesitura, [...CUERDAS_DEL_CORO]) : null,
+    ])
+  )
+  const ordenCuerda = (c: Cuerda | null) => (c ? CUERDAS_DEL_CORO.indexOf(c as never) : CUERDAS_DEL_CORO.length)
 
   return (data ?? []).map((c) => ({
     id: c.id,
@@ -96,6 +116,18 @@ export async function misasDelCoro(coroId: string): Promise<MisaDeLista[]> {
     // Cero para quien no puede verlos: la RLS no devuelve las filas y el
     // contador simplemente no aparece.
     anotados: (c.misa_participante as { perfil_id: string }[] | null)?.length ?? 0,
+    quienes: ((c.misa_participante ?? []) as unknown as {
+      perfil_id: string
+      perfiles: { nombre: string | null; email: string } | null
+    }[])
+      .map((p) => ({
+        perfilId: p.perfil_id,
+        iniciales: iniciales(p.perfiles?.nombre ?? null, p.perfiles?.email ?? null),
+        nombre: p.perfiles?.nombre?.trim() || p.perfiles?.email || 'Alguien',
+        cuerda: cuerdaDe.get(p.perfil_id) ?? null,
+      }))
+      // De agudo a grave, y al final las cuerdas que no se pueden ver.
+      .sort((a, b) => ordenCuerda(a.cuerda) - ordenCuerda(b.cuerda)),
   }))
 }
 

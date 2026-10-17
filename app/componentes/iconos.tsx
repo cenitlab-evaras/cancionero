@@ -219,3 +219,24 @@ export const IconoMezcla = (p: Props) => (
     <circle cx="17" cy="18" r="2" />
   </Trazo>
 )
+
+/** El tema (2026-10-17): el sol lleva al claro, la luna al oscuro. */
+export const IconoSol = (p: Props) => (
+  <Trazo {...p}>
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4" />
+  </Trazo>
+)
+
+export const IconoLuna = (p: Props) => (
+  <Trazo {...p}>
+    <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" />
+  </Trazo>
+)
+
+/** Desplegar: apunta abajo cerrado; se gira 180° abierto (2026-10-17). */
+export const IconoDesplegar = (p: Props) => (
+  <Trazo {...p}>
+    <path d="m6 9 6 6 6-6" />
+  </Trazo>
+)

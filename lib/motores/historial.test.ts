@@ -6,6 +6,8 @@ import {
   resumirHistorial,
   describirAntiguedad,
   describirEspaciado,
+  estaOlvidado,
+  type HistorialCanto,
 } from './historial'
 
 /**
@@ -220,5 +222,41 @@ describe('lo agendado se distingue de lo cantado, no se esconde', () => {
     const h = historialDeCanto([ej('a', null)], HOY)
     expect(h.veces).toBe(0)
     expect(h.agendadas).toEqual([])
+  })
+})
+
+describe('estaOlvidado — el reloj de arena (2026-10-17)', () => {
+  const h = (x: Partial<HistorialCanto>): HistorialCanto => ({
+    veces: 2,
+    ultima: '2026-01-01',
+    diasDesdeUltima: 10,
+    cadaCuantosDias: 30,
+    ejecuciones: [],
+    agendadas: [],
+    porMomento: [],
+    ...x,
+  })
+
+  test('se mide contra su propio ritmo: más del doble de su espaciado', () => {
+    expect(estaOlvidado(h({ cadaCuantosDias: 30, diasDesdeUltima: 61 }))).toBe(true)
+    expect(estaOlvidado(h({ cadaCuantosDias: 30, diasDesdeUltima: 59 }))).toBe(false)
+    // Uno que vuelve cada año (Navidad) no está olvidado a los cinco meses.
+    expect(estaOlvidado(h({ cadaCuantosDias: 365, diasDesdeUltima: 150 }))).toBe(false)
+  })
+
+  test('nunca antes de dos meses, aunque su ritmo sea semanal', () => {
+    expect(estaOlvidado(h({ cadaCuantosDias: 7, diasDesdeUltima: 45 }))).toBe(false)
+    expect(estaOlvidado(h({ cadaCuantosDias: 7, diasDesdeUltima: 61 }))).toBe(true)
+  })
+
+  test('cantado una sola vez: a los seis meses', () => {
+    expect(estaOlvidado(h({ veces: 1, cadaCuantosDias: null, diasDesdeUltima: 170 }))).toBe(false)
+    expect(estaOlvidado(h({ veces: 1, cadaCuantosDias: null, diasDesdeUltima: 190 }))).toBe(true)
+  })
+
+  test('agendado en una misa que viene, o nunca cantado: no', () => {
+    const agendada = { misaId: 'm', misaNombre: 'Domingo', fecha: '2026-11-01', momento: 'Entrada' }
+    expect(estaOlvidado(h({ diasDesdeUltima: 400, agendadas: [agendada as never] }))).toBe(false)
+    expect(estaOlvidado(h({ veces: 0, ultima: null, diasDesdeUltima: null, cadaCuantosDias: null }))).toBe(false)
   })
 })

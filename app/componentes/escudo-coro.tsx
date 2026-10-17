@@ -13,6 +13,15 @@ const LOGOS: Record<string, string> = {
   '1d1319ec-d4f4-4e2d-8672-271294cd20e3': '/coros/san-jose-de-la-familia.png',
 }
 
+/**
+ * El mismo coro por su nombre: el id es el de producción, y en el Supabase
+ * local (o una base vuelta a sembrar) el coro nace con otro, y salía el
+ * monograma en vez del logo (2026-10-17).
+ */
+const LOGOS_POR_NOMBRE: Record<string, string> = {
+  'coro san josé de la familia': '/coros/san-jose-de-la-familia.png',
+}
+
 /** Las iniciales que importan: «Coro San José de la Familia» → «SJ». */
 export function monograma(nombre: string): string {
   const vacias = new Set(['coro', 'de', 'del', 'la', 'las', 'los', 'el', 'y'])
@@ -32,7 +41,7 @@ export default function EscudoCoro({
   nombre: string
   tamano?: number
 }) {
-  const logo = LOGOS[coroId]
+  const logo = LOGOS[coroId] ?? LOGOS_POR_NOMBRE[nombre.trim().toLowerCase()]
 
   if (logo) {
     return (

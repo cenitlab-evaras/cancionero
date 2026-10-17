@@ -1285,6 +1285,33 @@ async function main() {
     await director.from('misa_cantos').update({ transposicion: original }).eq('id', fila!.id)
   }
 
+  // --- Acto 18: el orden de los cantos en cada momento (2026-10-17) -----------
+  // Una columna nueva en `canto_momentos`; la política de escritura es la de
+  // siempre (solo el director). Se comprueba que sigue mandando sobre ella.
+  {
+    const { data: vinculo } = await director.from('canto_momentos').select('id, orden').limit(1).single()
+    const original = vinculo!.orden as number | null
+
+    const { data: delMiembro } = await musico
+      .from('canto_momentos')
+      .update({ orden: 7 })
+      .eq('id', vinculo!.id)
+      .select('id')
+    comprobar('musico@ no puede ordenar los cantos de un momento', (delMiembro?.length ?? 0) === 0, `${delMiembro?.length ?? 0} filas afectadas`)
+
+    const { data: delDirector } = await director
+      .from('canto_momentos')
+      .update({ orden: 5 })
+      .eq('id', vinculo!.id)
+      .select('orden')
+    comprobar('director@ ordena los cantos de un momento', delDirector?.[0]?.orden === 5, `orden → ${delDirector?.[0]?.orden ?? '—'}`)
+
+    const { error: negativo } = await director.from('canto_momentos').update({ orden: -1 }).eq('id', vinculo!.id)
+    comprobar('ni el director guarda un lugar negativo', !!negativo, negativo?.message ?? 'se guardó')
+
+    await director.from('canto_momentos').update({ orden: original }).eq('id', vinculo!.id)
+  }
+
   const fallidos = resultados.filter((r) => !r.ok)
   console.log(`\n${resultados.length - fallidos.length}/${resultados.length} comprobaciones en verde`)
   if (fallidos.length > 0) process.exit(1)

@@ -11,10 +11,12 @@ import {
   IconoArchivo,
   IconoCambiar,
   IconoHistorial,
+  IconoMezcla,
   IconoMiembros,
   IconoPerfil,
   IconoSeguir,
   IconoSugerencias,
+  IconoRepertorio,
 } from '@/app/componentes/iconos'
 
 export const metadata = { title: 'Más · Cantoral' }
@@ -55,7 +57,23 @@ export default async function MasPage() {
     }
   }
 
+  // Herramientas (2026-10-17): interruptores de cada uno, sobre todo para ensayar.
+  planificar.push({
+    href: '/herramientas',
+    texto: 'Herramientas',
+    detalle: 'Quién canta cada estrofa, tu cuerda, dar el tono, Do-Re-Mi',
+    icono: <IconoMezcla />,
+  })
+
   const coro: Fila[] = []
+  if (hayCoro) {
+    coro.push({
+      href: '/canciones',
+      texto: 'Canciones',
+      detalle: 'Todas, una vez cada una: cuántas hay y cuáles se repiten',
+      icono: <IconoRepertorio />,
+    })
+  }
   if (hayCoro && puede(s, 'ver_ficha_del_coro')) {
     coro.push({ href: '/coro/miembros', texto: 'Miembros', icono: <IconoMiembros /> })
   }

@@ -4,6 +4,7 @@ import { nombreDelRol } from '@/lib/permisos'
 import EscudoCoro from './escudo-coro'
 import BarraNav from './barra-nav'
 import BuscadorGlobal from './buscador-global'
+import ConmutadorTema from './conmutador-tema'
 
 /**
  * La cabecera de las pantallas de gestión, y su barra de navegación abajo.
@@ -58,11 +59,12 @@ export default function Cabecera({
             <span className="titulo-libro text-[1.0625rem]">Cantoral</span>
           )}
 
+          <ConmutadorTema className="ml-auto" />
           <Link
             href="/mas"
             title={`Entraste como ${sesion.email}`}
             aria-label={`Entraste como ${rol}, ${sesion.email}. Ver tu cuenta`}
-            className="tactil ml-auto flex shrink-0 items-center rounded-lg border border-borde-fuerte px-2.5 text-sm text-texto-tenue transition-colors hover:text-texto"
+            className="tactil flex shrink-0 items-center rounded-lg border border-borde-fuerte px-2.5 text-sm text-texto-tenue transition-colors hover:text-texto"
           >
             {rol}
           </Link>

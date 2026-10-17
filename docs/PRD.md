@@ -723,7 +723,7 @@ en §19; cuando lo tienen, la fila lo dice y nombra qué cambiaría. Mientras ta
 
 | **H26 · Leer desde el PDF** ⏳ (bloque §21) | Audiveris en el conversor, trabajo `leer_pdf`, «Bajar para corregir» | Ver §21.9: la foto de *El Señor es mi fortaleza* da un borrador con el mismo número de avisos que `audiveris-crudo.mxl`, y la corregida suena igual que H23 |
 | **H27 · El tono de cada canto en la misa** 🟡 construido en local, sus 5 «listo cuando» verificados con sesiones reales; falta tocar los botones en un teléfono y aplicarlo en producción (pedido del dueño el 2026-10-17) | Columna `misa_cantos.transposicion` (nula = sin fijar) · motor `tonoEnLaMisa` con test · el director lo elige en «Armar la misa» y en la vista de la misa · la misa lo muestra a todo el coro | Ver «H27» abajo: `director@` fija *Abre tu jardín* en F y `musico@` lo ve en F en la misa aunque tenga otro tono guardado; fuera de la misa sigue el suyo; `musico@` no puede cambiarlo |
-| **H28 · Ensayar en cualquier tono** ⏳ diseño, esperando aprobación (pedido del dueño el 2026-10-17) | La partitura se dibuja en el teléfono desde el MusicXML (Verovio) y el sonido se genera en el teléfono (smplr): al cambiar el tono cambian las notas y el audio. Las pistas MP3 dejan de hacer falta | Ver «H28» abajo |
+| **H28 · Ensayar en cualquier tono** 🟡 construido en local; falta escucharlo y probarlo en un teléfono (pedido del dueño el 2026-10-17) | Con otro tono, Verovio redibuja la partitura en el teléfono y SoundTouch corre las pistas de MuseScore sin cambiar el tempo | Ver «H28» abajo |
 
 **Los diecinueve hitos están hechos y verificados corriendo la app. H23–H26 están abiertos desde el 2026-10-17** (bloque §21; los números H20–H22 quedaron quemados en §19.3 y no se reusan). H9 salió de §18-7, que lo dejaba
 condicionado a "si estorba"; H10, H11, H13, H14 y H15 salen del backlog de §19; H16 salió de §16,
@@ -747,44 +747,47 @@ entre sobre una base que la sostenga. Detalle visual en `docs/DESIGN.md`.
 | **Color e identidad** | gris neutro + azul con texto blanco (3,7:1) | café-negro del logo, halo dorado con texto oscuro (10,1:1), ámbar solo para acordes |
 | **Tipografía** | Inter + JetBrains Mono, títulos en mayúsculas espaciadas | Atkinson Hyperlegible Next (baja visión) + Source Serif 4 en títulos + JetBrains Mono; sin mayúsculas espaciadas |
 
-### H28 · Ensayar en cualquier tono (diseño, 2026-10-17)
+### H28 · Ensayar en cualquier tono (construido en local, 2026-10-17)
 
 **El pedido:** *«quiero que cuando cambiemos el tono también cambien las notas»*. El dueño eligió
-**hacerlo todo en el teléfono** sabiendo lo que cuesta: las voces suenan más sintéticas que las de
-MuseScore y se rehace buena parte del reproductor.
+**hacerlo en el teléfono**. Primero se diseñó con todo el sonido sintetizado (smplr); se cambió por
+otra cosa cuando pidió que soprano y contralto *«sonaran como mujeres»*: las pistas de MuseScore (y
+más adelante Muse Choir) se quedan, y el teléfono las corre de tono.
 
-**Qué cambia de H23.** H23 trae del bucket 35 pistas MP3 y una partitura ya dibujada, todo en un solo
-tono. H28 trae solo la **fuente** (`fuente.musicxml`, que ya se sube en H23) y el teléfono hace el
-resto:
-
-| Pieza | H23 | H28 |
+| Pieza | En el tono escrito | En otro tono |
 | --- | --- | --- |
-| La partitura | SVG de MuseScore, fijo, con 980 px de ancho mínimo y desplazamiento lateral | **Verovio** (WebAssembly) la dibuja al ancho de la pantalla, transpuesta |
-| El sonido | 7 `<audio>` sincronizados | **smplr**: cada nota se programa en la Web Audio API con el instrumento del sonido elegido (Choir Aahs, piano, órgano, guitarra nylon, flauta) |
-| El tempo | `playbackRate` con afinación conservada | se programan las notas a otro tempo: sin deformar el sonido |
-| La sincronía | `partitura.json` precalculado | la entrega Verovio (tiempo de cada nota) |
-| Peso por canto en el servidor | ≈ 18–84 MB | **≈ 100 KB** (la fuente) |
+| La partitura | El SVG de MuseScore, como en H23 | **Verovio 6.3** (WebAssembly) la redibuja desde `fuente.musicxml`, transpuesta (`hoja-verovio.ts`) |
+| La sincronía | `partitura.json` | El mapa de tiempos de Verovio: sus 392 ataques caen en los mismos ms que la de MuseScore |
+| El sonido | Las 30 pistas MP3 | Las mismas, por **SoundTouch** (`@soundtouchjs/audio-worklet`, MPL-2.0): un AudioWorklet que cambia el tono sin tocar el tempo |
+| El volumen | Web Audio (un GainNode por cuerda) desde el primer «Tocar» | igual |
 
-**Decisiones (mías; las corrige el dueño):**
-- **El tono de Ensayar** es el mismo que el del cifrado: el personal fuera de la misa, y el de la
-  misa si se abre desde una misa con tono fijado (H27). Ensayar suma los mismos − / + de la lectura.
-- **Los motores** se quedan donde están: `mezcla`, `tempo` (ahora una escala de tiempos, no una
-  tasa de reproducción), `seguimiento` y `cuerdas`. Nuevo: `programar` (de las notas de cada cuerda,
-  un tempo y un tono, la lista de lo que suena y cuándo), con test.
-- **Las muestras** de los instrumentos se piden al CDN público de smplr (gleitz). Es una
-  dependencia externa nueva: si falla, Ensayar dice que no pudo cargar el sonido. Copiarlas al
-  propio servidor queda para cuando se mida cuánto pesan (§18-14).
-- **Las pistas MP3 de H23** dejan de usarse y no se generan más; las ya subidas se pueden borrar.
-  La exportación a MP3/MP4 para WhatsApp (H24) sigue siendo del servidor, con MuseScore.
+**Decisiones:**
+- **El tono de Ensayar es el del cifrado**: el personal (la misma preferencia, se guarda desde los
+  dos lados) o, si se abre desde una misa (`?misa=…&fila=…`), el que fijó el director (H27), que ahí
+  no se cambia. El control está en el panel de tempo de la barra de abajo.
+- **El motor `tono-de-partitura`** (con test): cuántos semitonos se corre la partitura para sonar
+  en el tono del cifrado (aunque esté escrita en otra tonalidad), siempre el camino más corto
+  (−6 a +5), y cómo escribir el salto para Verovio con la armadura más simple en todas las del canto
+  (Fa y Sol +1 → Solb y Lab, no Fa# y Sol#). El nombre del tono que se muestra sigue al cifrado, en
+  sostenidos (decisión del PRD); la partitura puede escribirlo en bemoles.
+- **El manifiesto suma `armaduras` y `menor`** (el importador los saca de la fuente): así se calcula el
+  salto sin bajar la fuente. Los manifiestos anteriores no los traen y se confía en los semitonos.
+- **Verovio (7 MB, LGPL-3.0) y el procesador de SoundTouch** no se empaquetan: `scripts/copiar-vendor.mjs`
+  los copia a `public/vendor/` antes de `dev` y de `build` (no se versionan) y se bajan solo al cambiar
+  de tono.
+- **CORS**: las pistas se piden con `crossOrigin="anonymous"`; Storage responde `*` (local y producción).
+- **Efecto lateral bueno:** en el iPhone `audio.volume` es de solo lectura; con el GainNode la mezcla
+  por cuerda por fin funciona ahí (sin probar todavía en un iPhone).
 
 **Listo cuando:**
-1. En *Cantaré por siempre*, «+2» lleva la partitura de Fa a Sol: la armadura y cada nota se
-   redibujan, y el audio suena dos semitonos más arriba, sincronizado con lo que se pinta.
-2. Desde una misa con el canto fijado en otro tono (H27), Ensayar abre en ese tono.
-3. A 360 px la partitura cabe sin desplazamiento lateral.
-4. Mi cuerda, estrofas, mezcla, tempo y los cinco sonidos se comportan como en H23.
-5. *El Señor es mi fortaleza* también funciona, sin volver a generar nada.
-6. En un teléfono real: Safari de iPhone y Chrome de Android (sigue pendiente desde H23-4).
+1. ✅ En *Cantaré por siempre*, «+1» redibuja la partitura en Solb (6 bemoles) y la sigue: cursor,
+   halos y velos sobre el dibujo de Verovio.
+2. ⏳ El audio suena corrido, sincronizado con lo que se pinta (falta escucharlo: el navegador de
+   prueba no deja oír).
+3. ⏳ Desde una misa con el canto fijado (H27), Ensayar abre en ese tono y no deja cambiarlo (construido, sin probar).
+4. ⏳ A 360 px la partitura de Verovio se corre de lado como la de MuseScore.
+5. ⏳ *El Señor es mi fortaleza*: reimportada en local con armaduras; falta probarla en otro tono.
+6. ⏳ En un teléfono real: Safari de iPhone y Chrome de Android (sigue pendiente desde H23-4).
 
 ### H27 · El tono de cada canto en la misa (pedido el 2026-10-17)
 
@@ -878,8 +881,19 @@ tempo (♩ 100) y la modulación a Sol del compás 42 (Audiveris no pudo leer es
 `corregir.py` arregla los 15 compases cuya duración no cuadraba; `letra.py` corrige 166 sílabas mal
 leídas; `generar.py` produce con MuseScore 30 pistas (6 cuerdas × 5 sonidos) y la sincronía. El
 cifrado entró con `pdf-a-cantoral` (118 acordes, latina → americana), «En ensayo» y en Entrada
-(deducido). **Es un borrador leído por máquina:** los ritmos cuadran compás por compás, pero las
-alturas no se revisaron nota por nota. Se escucha, y lo que suene mal se corrige en MuseScore.
+(deducido). **Revisada nota por nota contra el PDF** (17-10-2026, los 66 compases de las seis
+voces): las alturas de Audiveris estaban bien; había un ritmo que sumaba bien pero no era el
+impreso (soprano c30, negra-negra donde va negra con puntillo-corchea) y mucha letra perdida o
+corrida: compases sin sílabas en voces enteras, dos sílabas en una nota y la vecina vacía, tildes
+(«dí», «dón», «sí»). Lección para el conversor: **que los compases cuadren no prueba que la lectura
+esté bien**, y la letra de Audiveris no sirve sin revisión. Una rareza que es del original y se
+dejó: en c61–63 el bajo está escrito por encima de los tenores.
+**Los cuatro sonidos salían idénticos a «Voces»** (17-10-2026): MuseScore elige el instrumento por
+su **nombre** antes que por `instrument-sound`, y la preparación había puesto «Soprano», «Tenor 1»…
+La copia que se usa para generar el audio ahora lleva el nombre genérico «Voice Oohs» (la fuente
+conserva los nombres). **El conversor de H24/H25 tiene que hacer lo mismo**: cualquier MusicXML
+exportado de Finale o MuseScore trae nombres de voz. Y las URLs de las pistas vencen a la hora: si
+una pista no carga, el reproductor pide URLs nuevas y avisa que hay que tocar otra vez.
 **Pesa 84 MB** (2:41, seis cuerdas): §18-14 estimaba 18 MB por canto. Con esto, 100 cantos así son
 unos 8 GB: hay que medir el disco del VPS antes de llevar partituras a producción.
 

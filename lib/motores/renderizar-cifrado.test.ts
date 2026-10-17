@@ -225,3 +225,21 @@ describe('acordes después de la última sílaba (2026-10-17, «Cantaré por sie
     expect(lineas).toHaveLength(1)
   })
 })
+
+describe('quién canta cada estrofa (2026-10-17)', () => {
+  const cifrado = '[G]Primera estrofa\nsigue\n\n{x_canta: mujeres}\n[D]Segunda\n\n{x_canta: solista}\nTercera'
+
+  test('la marca no se pinta: ni como texto ni como acordes', () => {
+    const { lineas } = renderizarCifrado(cifrado)
+    expect(lineas.some((l) => l.texto.includes('x_canta'))).toBe(false)
+  })
+
+  test('cada línea sabe su estrofa, y el resultado dice quién canta cada una', () => {
+    const r = renderizarCifrado(cifrado)
+    expect(r.quienCanta).toEqual([null, 'mujeres', 'solista'])
+    const deTexto = (t: string) => r.lineas.find((l) => l.texto === t)!.estrofa
+    expect(deTexto('Primera estrofa')).toBe(0)
+    expect(deTexto('Segunda')).toBe(1)
+    expect(deTexto('Tercera')).toBe(2)
+  })
+})

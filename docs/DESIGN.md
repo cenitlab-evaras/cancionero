@@ -10,9 +10,16 @@ con identidad y fácil de navegar**. Este documento describe el sistema que sali
 
 ## Visual Theme
 
-**Tema oscuro y cálido, sin conmutador.** La escena sigue siendo la iglesia a las ocho de la tarde
-con el músico de pie y la guitarra puesta, pero con su luz real: lámparas amarillas y velas, no un
-gris de oficina. Un tema claro obligaría a competir con esa oscuridad (PRD decisión 8).
+**Tema oscuro y cálido, y uno claro con el sol y la luna.** La escena sigue siendo la iglesia a las
+ocho de la tarde con el músico de pie y la guitarra puesta, pero con su luz real: lámparas amarillas y
+velas, no un gris de oficina. Por eso el oscuro es el de partida (PRD decisión 8).
+
+Desde el 2026-10-17, a pedido del dueño, hay un **tema claro**: la misma iglesia de día, el papel del
+cancionero (`#FAF6EE`) con su tinta café. Son los mismos tokens con otros valores
+(`:root[data-tema="claro"]` en `globals.css`), todos medidos a AA contra el fondo, la superficie y la
+superficie alta; el halo y el acorde se oscurecen para leerse sobre papel. Se cambia con el sol (en el
+oscuro) o la luna (en el claro) de cada cabecera, también en la lectura, y se guarda en la cookie
+`cantoral_tema`: el servidor pinta la página ya en el tema elegido, sin destello del otro.
 
 **La identidad sale del logo del coro**: San José con el Niño, un halo dorado sobre fondo café-negro.
 De ahí el fondo (Nave) y el color de marca (Halo). El logo va en la cabecera, en un círculo.

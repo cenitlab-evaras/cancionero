@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import type { MaterialDeEnsayo, Sonido } from '@/lib/datos/partitura'
 import { esDelCoro, esEstrofa, nombreDeCuerda, type Cuerda } from '@/lib/motores/cuerdas'
 import {
@@ -14,8 +15,11 @@ import {
 } from '@/lib/motores/mezcla'
 import { notaEn } from '@/lib/motores/seguimiento'
 import { TASA_MAX, TASA_MIN, bpmDeTasa, tasaDeTempo, temposDe } from '@/lib/motores/tempo'
+import { intervaloParaTransponer, semitonosDeLaPartitura } from '@/lib/motores/tono-de-partitura'
+import { normalizarSemitonos, transponerAcorde } from '@/lib/motores/transponer'
+import { guardarTransposicion } from '../acciones'
 import { BotonIcono, clasesBotonIcono } from '@/app/componentes/boton-icono'
-import { IconoMezcla, IconoPausa, IconoRepetir, IconoReproducir } from '@/app/componentes/iconos'
+import { IconoDesplegar, IconoMezcla, IconoPausa, IconoRepetir, IconoReproducir } from '@/app/componentes/iconos'
 import {
   momentoBajoElToque,
   moverMarca,
@@ -24,9 +28,9 @@ import {
   seguirConLaVista,
   mantenerALaVista,
   type DatosPartitura,
-  type Elemento,
-  type Pagina,
+  type Hoja,
 } from './hoja'
+import { prepararHojaVerovio } from './hoja-verovio'
 
 /**
  * El reproductor de ensayo — H23, portado de `escuchar.html` (PRD §21.1: su
@@ -68,13 +72,29 @@ function pistasDe(m: Mezcla): Record<Cuerda, Pista> {
   )
 }
 
+/** El grafo de Web Audio de una cuerda: su `<audio>`, el cambio de tono y su volumen. */
+type Via = { audio: HTMLAudioElement; fuente: MediaElementAudioSourceNode; tono: AudioWorkletNode | null; volumen: GainNode }
+
 export default function Reproductor({
   material,
   cuerdaInicial,
+  cantoId,
+  coroId,
+  tonalidadCifrado,
+  tono,
 }: {
   material: MaterialDeEnsayo
   /** De la tesitura de la ficha (`cuerdaPorTesitura`), o null: abre con el coro. */
   cuerdaInicial: Cuerda | null
+  cantoId: string
+  coroId: string | null
+  /** La tonalidad original del cifrado: el tono se cuenta desde ahí. */
+  tonalidadCifrado: string | null
+  /**
+   * H28 · El tono en semitonos sobre el cifrado: el personal, o el que fijó el
+   * director para la misa (H27). Fijado no se cambia desde acá.
+   */
+  tono: { semitonos: number; fijado: boolean }
 }) {
   const { cuerdas, pentagramas, tempo } = material
   const delCoro = cuerdas.filter(esDelCoro)
@@ -120,6 +140,9 @@ export default function Reproductor({
     setPistas((p) => ({ ...p, [c]: { ...p[c], volumen, silenciada: false } }))
   }
   const fondo = delCoro.filter((c) => !marcadas.includes(c))
+  // Los volúmenes se pliegan con su flecha (pedido del dueño, 2026-10-17):
+  // ocupan una línea por cuerda y tapaban la partitura.
+  const [volumenesAbiertos, setVolumenesAbiertos] = useState(true)
 
   const prendidas = eleccion?.tipo === 'estrofas' ? eleccion.estrofas : []
   function alternarEstrofa(c: Cuerda) {
@@ -154,33 +177,178 @@ export default function Reproductor({
     repetirRef.current = repetir
   }, [repetir])
 
+  // Lo elegido, para las pistas nuevas que se crean al renovar las URLs.
+  const elegido = useRef({ sonido, tasa, efectivos })
+  useEffect(() => {
+    elegido.current = { sonido, tasa, efectivos }
+  }, [sonido, tasa, efectivos])
+
+  /**
+   * Las URLs de las pistas vencen a la hora (§21.4). Con la página abierta más
+   * tiempo, cambiar de sonido o volver a cargar una pista falla en silencio.
+   * Si una pista no carga, se piden URLs nuevas al servidor (`router.refresh`
+   * vuelve a firmar con la sesión) y se avisa que hay que tocar otra vez.
+   */
+  const router = useRouter()
   useEffect(() => {
     const creados: Record<Cuerda, HTMLAudioElement> = {}
+    const { sonido: s, tasa: x, efectivos: v } = elegido.current
+    let renovando = false
+    const alFallar = () => {
+      if (renovando) return
+      renovando = true
+      pausaPropia.current = true
+      for (const a of Object.values(creados)) a.pause()
+      pausaPropia.current = false
+      setSonando(false)
+      setAviso('Se renovó el acceso a las pistas. Toca «Tocar» otra vez.')
+      router.refresh()
+    }
     for (const c of new Set(pentagramas)) {
-      const a = new Audio(material.pistas[material.sonidos[0]][c])
+      const a = new Audio()
+      // Antes de la URL: sin CORS, Web Audio recibe silencio (H28). Storage
+      // responde con `Access-Control-Allow-Origin: *`.
+      a.crossOrigin = 'anonymous'
+      a.src = material.pistas[s]?.[c] ?? material.pistas[material.sonidos[0]][c]
       a.preload = 'auto'
       a.preservesPitch = true // más lento, misma afinación
+      a.playbackRate = a.defaultPlaybackRate = x
+      a.volume = v[c] ?? 0
+      a.addEventListener('error', alFallar)
       creados[c] = a
     }
     audios.current = creados
     return () => {
       for (const a of Object.values(creados)) {
+        a.removeEventListener('error', alFallar)
         a.pause()
         a.removeAttribute('src')
         a.load()
       }
     }
-  }, [material, pentagramas])
+  }, [material, pentagramas, router])
 
-  // Volúmenes: lo que dice la mezcla, cuerda por cuerda.
-  useEffect(() => {
-    for (const [c, a] of Object.entries(audios.current)) a.volume = efectivos[c] ?? 0
-  }, [efectivos])
+  // --- El tono (H28) y el grafo de Web Audio ---------------------------------
+  // Semitonos sobre el cifrado; la partitura y las pistas se corren lo que haga
+  // falta para sonar ahí (pueden estar escritas en otra tonalidad).
+  const [transposicion, setTransposicion] = useState(tono.semitonos)
+  const semitonos = semitonosDeLaPartitura({
+    transposicion,
+    tonalidadCifrado,
+    armadura: material.armaduras[0] ?? null,
+    menor: material.menor,
+  })
+  const tonalidad = tonalidadCifrado ? transponerAcorde(tonalidadCifrado, transposicion) : null
+  const signo = transposicion > 0 ? `+${transposicion}` : `${transposicion}`
 
-  // Tempo: la tasa, en todas, y también la por defecto (la que vale después de un `load`).
+  /**
+   * Desde el primer «Tocar», cada pista pasa por Web Audio: su volumen con un
+   * GainNode (en el iPhone `audio.volume` no se puede cambiar, y la mezcla no
+   * sonaba) y, con otro tono, un SoundTouch que la corre sin cambiar el tempo.
+   * El contexto nace dentro del toque, que es lo que piden los navegadores.
+   */
+  const contexto = useRef<AudioContext | null>(null)
+  const vias = useRef<Record<Cuerda, Via>>({})
+  const procesador = useRef<Promise<typeof import('@soundtouchjs/audio-worklet')> | null>(null)
+  const vivoAudio = useRef({ efectivos, tasa, semitonos })
   useEffect(() => {
-    for (const a of todos()) a.playbackRate = a.defaultPlaybackRate = tasa
-  }, [tasa])
+    vivoAudio.current = { efectivos, tasa, semitonos }
+  }, [efectivos, tasa, semitonos])
+
+  /** Volumen, tasa y tono de cada pista, según haya o no grafo. */
+  const aplicar = useCallback(() => {
+    const { efectivos: v, tasa: x, semitonos: n } = vivoAudio.current
+    for (const [c, a] of Object.entries(audios.current)) {
+      const via = vias.current[c]
+      const conGrafo = via?.audio === a
+      a.volume = conGrafo ? 1 : (v[c] ?? 0)
+      if (conGrafo) via.volumen.gain.value = v[c] ?? 0
+      a.playbackRate = a.defaultPlaybackRate = x
+      // Con SoundTouch en el camino, él conserva la afinación; el navegador no.
+      const corre = conGrafo && via.tono !== null && n !== 0
+      a.preservesPitch = !corre
+      if (conGrafo && via.tono) {
+        ;(via.tono.parameters.get('pitchSemitones') as AudioParam).value = n
+        ;(via.tono.parameters.get('playbackRate') as AudioParam).value = x
+      }
+    }
+  }, [])
+
+  /** El SoundTouch de cada pista, en el camino solo si hay que cambiar de tono. */
+  const conectarTono = useCallback(async (n: number) => {
+    const ctx = contexto.current
+    if (!ctx) return
+    if (n !== 0) {
+      try {
+        procesador.current ??= import('@soundtouchjs/audio-worklet').then(async (m) => {
+          await m.SoundTouchNode.register(ctx, '/vendor/soundtouch-processor.js')
+          return m
+        })
+        const { SoundTouchNode } = await procesador.current
+        for (const via of Object.values(vias.current)) {
+          if (via.tono) continue
+          via.tono = new SoundTouchNode({ context: ctx })
+          via.tono.connect(via.volumen)
+        }
+      } catch {
+        procesador.current = null
+        setAviso('Este teléfono no puede cambiar el tono del audio: suena en el original.')
+        return
+      }
+    }
+    for (const via of Object.values(vias.current)) {
+      via.fuente.disconnect()
+      via.fuente.connect(n !== 0 && via.tono ? via.tono : via.volumen)
+    }
+    aplicar()
+  }, [aplicar])
+
+  /** Arma el grafo de las pistas que aún no lo tienen. Solo desde un toque. */
+  const asegurarGrafo = useCallback(() => {
+    if (typeof AudioContext === 'undefined') return
+    const ctx = (contexto.current ??= new AudioContext())
+    void ctx.resume()
+    for (const [c, a] of Object.entries(audios.current)) {
+      if (vias.current[c]?.audio === a) continue
+      vias.current[c]?.fuente.disconnect()
+      const fuente = ctx.createMediaElementSource(a)
+      const volumen = ctx.createGain()
+      volumen.connect(ctx.destination)
+      fuente.connect(volumen)
+      vias.current[c] = { audio: a, fuente, tono: vias.current[c]?.tono ?? null, volumen }
+    }
+    aplicar()
+    void conectarTono(vivoAudio.current.semitonos)
+  }, [aplicar, conectarTono])
+
+  useEffect(() => () => void contexto.current?.close(), [])
+
+  // Volúmenes y tempo: lo que dice la mezcla, cuerda por cuerda, y la tasa en
+  // todas (también la por defecto, la que vale después de un `load`).
+  useEffect(() => {
+    aplicar()
+  }, [efectivos, tasa, semitonos, aplicar])
+
+  function cambiarTono(nuevo: number) {
+    if (tono.fijado) return
+    const t = normalizarSemitonos(nuevo)
+    setTransposicion(t)
+    setEstadoHoja('cargando')
+    // El SoundTouch entra o sale del camino ahora, en el toque.
+    const n = semitonosDeLaPartitura({
+      transposicion: t,
+      tonalidadCifrado,
+      armadura: material.armaduras[0] ?? null,
+      menor: material.menor,
+    })
+    void conectarTono(n)
+    // El mismo tono que el cifrado: es una sola preferencia por canto (H3).
+    if (coroId) {
+      void guardarTransposicion({ cantoId, coroId, transposicion: t }).then(
+        (r) => !r.ok && setAviso(r.error)
+      )
+    }
+  }
 
   const pausar = useCallback(() => {
     pausaPropia.current = true
@@ -196,6 +364,7 @@ export default function Reproductor({
     if (r.ended || t >= (r.duration || Infinity) - 0.05) t = 0 // terminó: parte de nuevo
     const lista = Object.values(audios.current)
     for (const a of lista) a.currentTime = t
+    asegurarGrafo()
     try {
       // Safari exige que el audio arranque desde un toque: por eso tocar solo
       // se llama desde un botón, y si igual lo rechaza, se dice.
@@ -208,7 +377,7 @@ export default function Reproductor({
       setSonando(false)
       setAviso('El teléfono no dejó empezar el audio. Toca «Tocar» otra vez.')
     }
-  }, [pentagramas])
+  }, [pentagramas, asegurarGrafo])
 
   // Reloj de la pantalla y corrección de deriva, cada 200 ms.
   useEffect(() => {
@@ -267,6 +436,9 @@ export default function Reproductor({
     const t = r.ended ? 0 : r.currentTime
     const sonaba = !r.paused
     pausar()
+    // Se registra antes de cargar: si la carga falla porque vencieron las URLs,
+    // las pistas que se crean al renovarlas ya salen con este sonido.
+    setSonido(s)
     for (const [c, a] of Object.entries(audios.current)) a.src = material.pistas[s][c]
     await Promise.all(
       todos().map(
@@ -280,7 +452,6 @@ export default function Reproductor({
       a.currentTime = t
       a.playbackRate = a.defaultPlaybackRate
     }
-    setSonido(s)
     if (sonaba) await tocar(t)
   }
 
@@ -291,32 +462,55 @@ export default function Reproductor({
 
   // --- La partitura ---------------------------------------------------------
   const contenedor = useRef<HTMLDivElement>(null)
-  const hoja = useRef<{ datos: DatosPartitura; paginas: Pagina[]; elementos: Elemento[] } | null>(null)
+  const hoja = useRef<Hoja | null>(null)
   const [estadoHoja, setEstadoHoja] = useState<'cargando' | 'lista' | 'error'>('cargando')
+  // La fuente se baja una vez, la primera vez que se cambia de tono.
+  const fuente = useRef<Promise<string> | null>(null)
 
   useEffect(() => {
     let vigente = true
-    fetch(material.urlPartitura)
-      .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
-      .then((datos: DatosPartitura) => {
-        if (!vigente || !contenedor.current) return
-        const { paginas, elementos } = prepararHoja(contenedor.current, datos)
-        hoja.current = { datos, paginas, elementos }
-        paginas.forEach((pg, p) =>
+    const destino = contenedor.current
+    if (!destino) return
+    // En el tono escrito, el dibujo de MuseScore; en otro, Verovio lo redibuja
+    // transpuesto en el teléfono (H28).
+    const preparar: Promise<Hoja> =
+      semitonos === 0
+        ? fetch(material.urlPartitura)
+            .then((r) => (r.ok ? r.json() : Promise.reject(r.status)))
+            .then((datos: DatosPartitura) => prepararHoja(destino, datos))
+        : (fuente.current ??= fetch(material.urlFuente).then((r) =>
+            r.ok ? r.text() : Promise.reject(r.status)
+          ))
+            .then((xml) => {
+              if (!vigente) return Promise.reject('vieja')
+              return prepararHojaVerovio(destino, xml, intervaloParaTransponer(semitonos, material.armaduras))
+            })
+    // Mientras se redibuja no se muestran notas en el tono anterior.
+    hoja.current = null
+    destino.replaceChildren()
+    preparar
+      .then((h) => {
+        if (!vigente) return
+        hoja.current = h
+        h.paginas.forEach((pg, p) =>
           pg.svg.addEventListener('click', (ev) => {
-            const t = momentoBajoElToque(pg, p, datos.cursor, ev.clientX, ev.clientY)
+            const t = momentoBajoElToque(pg, p, h.cursor, ev.clientX, ev.clientY)
             if (t !== null) irA(t / 1000)
           })
         )
         setEstadoHoja('lista')
       })
-      .catch(() => vigente && setEstadoHoja('error'))
+      .catch(() => {
+        if (!vigente) return
+        fuente.current = null
+        setEstadoHoja('error')
+      })
     return () => {
       vigente = false
     }
     // irA solo toca refs: no hace falta volver a preparar la hoja.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [material.urlPartitura])
+  }, [material.urlPartitura, material.urlFuente, semitonos])
 
   // Lo que el bucle de dibujo necesita leer sin volver a armarse.
   const vivo = useRef({ efectivos, frente })
@@ -334,9 +528,10 @@ export default function Reproductor({
       const h = hoja.current
       const r = audios.current[pentagramas[0]]
       if (!h || !r) return
-      if (inicios.length !== h.datos.cursor.length) {
+      if (inicios.length !== h.cursor.length || inicios[0]?.t0 !== h.cursor[0]?.t) {
         inicios.length = 0
-        for (const c of h.datos.cursor) inicios.push({ t0: c.t })
+        for (const c of h.cursor) inicios.push({ t0: c.t })
+        cursorActual = -1
       }
       const t = r.currentTime * 1000
       const empezado = t > 0 || !r.paused
@@ -362,7 +557,7 @@ export default function Reproductor({
       }
       const i = empezado ? notaEn(t, inicios) ?? -1 : -1
       if (i !== cursorActual) {
-        const c = i >= 0 ? h.datos.cursor[i] : null
+        const c = i >= 0 ? h.cursor[i] : null
         moverMarca(h.paginas, c)
         // Sin nada sonando (antes de empezar, o de vuelta al inicio), cada hoja
         // vuelve a su comienzo: si no, quedaba corrida de lado donde la dejó el
@@ -390,32 +585,38 @@ export default function Reproductor({
   }, [pentagramas])
 
   // --- Pantalla ---------------------------------------------------------------
-  const [mezclaAbierta, setMezclaAbierta] = useState(false)
+  // Tempo, sonido y mezcla se tocan de vez en cuando: viven en la barra de
+  // abajo como paneles, para que la partitura ocupe la pantalla («está
+  // desproporcionado», el dueño, 2026-10-17). Uno abierto a la vez.
+  const [panel, setPanel] = useState<'tempo' | 'sonido' | 'mezcla' | null>(null)
+  const alternarPanel = (p: NonNullable<typeof panel>) => setPanel((a) => (a === p ? null : p))
 
-  // El panel «Mezcla» flota sobre la partitura: se cierra al tocar fuera de la
-  // barra de abajo (que lo contiene, con su botón) o con Esc, como en
+  // El panel flota sobre la partitura: se cierra al tocar fuera de la barra de
+  // abajo (que lo contiene, con sus botones) o con Esc, como en
   // `escuchar.html`. Sin esto quedaba abierto tapando la partitura.
   useEffect(() => {
-    if (!mezclaAbierta) return
+    if (!panel) return
     const fuera = (e: PointerEvent) => {
-      if (!barraAbajo.current?.contains(e.target as Node)) setMezclaAbierta(false)
+      if (!barraAbajo.current?.contains(e.target as Node)) setPanel(null)
     }
-    const tecla = (e: KeyboardEvent) => e.key === 'Escape' && setMezclaAbierta(false)
+    const tecla = (e: KeyboardEvent) => e.key === 'Escape' && setPanel(null)
     document.addEventListener('pointerdown', fuera)
     document.addEventListener('keydown', tecla)
     return () => {
       document.removeEventListener('pointerdown', fuera)
       document.removeEventListener('keydown', tecla)
     }
-  }, [mezclaAbierta])
+  }, [panel])
   const tempos = temposDe(tempo)
   const porcentaje = Math.round(tasa * 100)
 
   return (
     <>
-      <div className="flex flex-col gap-5 px-4 pt-5">
-        {/* «Mi cuerda», no «Mi voz» (§18-22): la palabra del coro para la sección. */}
-        <Grupo titulo="Mi cuerda">
+      <div className="flex flex-col gap-3 px-4 pt-3">
+        {/* «Mi cuerda», no «Mi voz» (§18-22): la palabra del coro para la sección.
+            Es lo único arriba: cambia lo que se ve en la partitura. En el
+            teléfono la fila se desliza de lado en vez de ocupar dos líneas. */}
+        <Fila titulo="Mi cuerda">
           {delCoro.map((c) => (
             <button
               key={c}
@@ -435,11 +636,34 @@ export default function Reproductor({
           >
             Coro
           </button>
-        </Grupo>
+        </Fila>
 
-        {/* El volumen de cada cuerda marcada, ahí mismo, y el del resto del coro. */}
+        {/* El volumen de cada cuerda marcada, ahí mismo, y el del resto del coro.
+            Plegado queda una línea con los valores. */}
         {marcadas.length > 0 && (
-          <div className="-mt-2 flex flex-col gap-1">
+          <div className="flex max-w-xl flex-col gap-1">
+            <button
+              type="button"
+              aria-expanded={volumenesAbiertos}
+              aria-controls="volumenes"
+              onClick={() => setVolumenesAbiertos((a) => !a)}
+              className="tactil -ml-1 flex min-w-0 items-center gap-1.5 self-start rounded-lg pr-2 pl-1 text-sm text-texto-tenue hover:text-texto"
+            >
+              <IconoDesplegar
+                tamano={18}
+                className={`shrink-0 transition-transform duration-150 motion-reduce:transition-none ${volumenesAbiertos ? 'rotate-180' : ''}`}
+              />
+              <span className="font-semibold text-texto">Volumen</span>
+              {!volumenesAbiertos && (
+                <span className="truncate tabular-nums">
+                  {[
+                    ...marcadas.map((c) => `${nombreDeCuerda(c)} ${Math.round((pistas[c]?.volumen ?? 1) * 100)}`),
+                    ...(fondo.length > 0 ? [`resto ${Math.round((pistas[fondo[0]]?.volumen ?? 0) * 100)}`] : []),
+                  ].join(', ')}
+                </span>
+              )}
+            </button>
+            <div id="volumenes" hidden={!volumenesAbiertos} className="flex flex-col gap-1">
             {marcadas.map((c) => (
               <Volumen
                 key={c}
@@ -456,12 +680,13 @@ export default function Reproductor({
                 cambiar={(v) => fondo.forEach((c) => volumenDe(c, v))}
               />
             )}
+            </div>
           </div>
         )}
 
         {estrofas.length > 0 && (
           // Se combinan entre sí, sobre el coro de fondo; sin ninguna vuelve el coro.
-          <Grupo titulo="Estrofas" detalle="con el coro de fondo">
+          <Fila titulo="Estrofas">
             {estrofas.map((c) => (
               <button
                 key={c}
@@ -473,52 +698,18 @@ export default function Reproductor({
                 {nombreDeCuerda(c)}
               </button>
             ))}
-          </Grupo>
+          </Fila>
         )}
-
-        <Grupo titulo="Tempo" detalle={`♩ ${bpm} · ${porcentaje} %`}>
-          {tempos.map((t) => (
-            <button
-              key={t.nombre}
-              type="button"
-              aria-pressed={bpm === t.bpm}
-              onClick={() => setBpm(t.bpm)}
-              className={chip(bpm === t.bpm)}
-            >
-              {t.nombre} · {t.bpm}
-            </button>
-          ))}
-          <label className="flex w-full items-center gap-3 text-sm text-texto-tenue">
-            <span className="shrink-0">Ajuste fino</span>
-            <input
-              type="range"
-              min={TASA_MIN * 100}
-              max={TASA_MAX * 100}
-              step={1}
-              value={porcentaje}
-              onChange={(e) => setBpm(bpmDeTasa(Number(e.target.value) / 100, tempo))}
-              className="tactil w-full accent-[var(--color-acento)]"
-            />
-          </label>
-        </Grupo>
-
-        <Grupo titulo="Sonido">
-          {material.sonidos.map((s) => (
-            <button
-              key={s}
-              type="button"
-              aria-pressed={sonido === s}
-              onClick={() => void cambiarSonido(s)}
-              className={chip(sonido === s)}
-            >
-              {SONIDOS[s]}
-            </button>
-          ))}
-        </Grupo>
       </div>
 
-      {/* La partitura en papel claro dentro del marco oscuro (§21.8). */}
-      <section ref={seccionHoja} aria-label="Partitura" className="mt-6 scroll-mt-14 px-2">
+      {/* La partitura en papel claro dentro del marco oscuro (§21.8). Es lo que
+          se mira mientras se canta: en una pantalla ancha sale de la columna de
+          los controles y crece hasta 64rem, para que las notas se lean. */}
+      <section
+        ref={seccionHoja}
+        aria-label="Partitura"
+        className="mt-3 scroll-mt-14 px-2 md:mx-[calc((100%_-_min(64rem,_100vw_-_2rem))_/_2)]"
+      >
         {estadoHoja === 'cargando' && (
           <p className="px-2 py-10 text-center text-sm text-texto-tenue">Cargando la partitura…</p>
         )}
@@ -538,9 +729,97 @@ export default function Reproductor({
       {/* La barra de abajo, al alcance del pulgar, como en la lectura. */}
       <div
         ref={barraAbajo}
-        className="sticky bottom-0 z-(--z-barra) border-t border-borde bg-fondo pb-[env(safe-area-inset-bottom)]"
+        className="sticky bottom-0 z-(--z-barra) border-t border-borde bg-fondo pb-[env(safe-area-inset-bottom)] md:mx-[calc((100%_-_min(64rem,_100vw_-_2rem))_/_2)]"
       >
-        {mezclaAbierta && (
+        {panel === 'tempo' && (
+          <div id="panel-tempo" className="border-b border-borde bg-superficie px-4 py-3">
+            <div className="mx-auto flex max-w-2xl flex-col gap-4">
+              {/* H28 · El tono: la partitura y las pistas se corren juntas. */}
+              <Grupo
+                titulo="Tono"
+                detalle={
+                  tono.fijado
+                    ? 'el de la misa'
+                    : transposicion === 0
+                      ? 'el original'
+                      : `${signo} semitono${Math.abs(transposicion) === 1 ? '' : 's'}`
+                }
+              >
+                <BotonIcono
+                  etiqueta="Bajar un semitono"
+                  apariencia="borde"
+                  disabled={tono.fijado}
+                  onClick={() => cambiarTono(transposicion - 1)}
+                >
+                  <span aria-hidden className="text-lg leading-none">−</span>
+                </BotonIcono>
+                <span className="min-w-16 self-center text-center text-base font-semibold">
+                  {tonalidad ?? (transposicion === 0 ? 'Original' : signo)}
+                </span>
+                <BotonIcono
+                  etiqueta="Subir un semitono"
+                  apariencia="borde"
+                  disabled={tono.fijado}
+                  onClick={() => cambiarTono(transposicion + 1)}
+                >
+                  <span aria-hidden className="text-lg leading-none">+</span>
+                </BotonIcono>
+                {!tono.fijado && transposicion !== 0 && (
+                  <button type="button" onClick={() => cambiarTono(0)} className={chip(false)}>
+                    Volver al original
+                  </button>
+                )}
+              </Grupo>
+              <Grupo titulo="Tempo" detalle={`♩ ${bpm} · ${porcentaje} %`}>
+                {tempos.map((t) => (
+                  <button
+                    key={t.nombre}
+                    type="button"
+                    aria-pressed={bpm === t.bpm}
+                    onClick={() => setBpm(t.bpm)}
+                    className={chip(bpm === t.bpm)}
+                  >
+                    {t.nombre} · {t.bpm}
+                  </button>
+                ))}
+                <label className="flex w-full items-center gap-3 text-sm text-texto-tenue">
+                  <span className="shrink-0">Ajuste fino</span>
+                  <input
+                    type="range"
+                    min={TASA_MIN * 100}
+                    max={TASA_MAX * 100}
+                    step={1}
+                    value={porcentaje}
+                    onChange={(e) => setBpm(bpmDeTasa(Number(e.target.value) / 100, tempo))}
+                    className="tactil w-full accent-[var(--color-acento)]"
+                  />
+                </label>
+              </Grupo>
+            </div>
+          </div>
+        )}
+
+        {panel === 'sonido' && (
+          <div id="panel-sonido" className="border-b border-borde bg-superficie px-4 py-3">
+            <div className="mx-auto max-w-2xl">
+              <Grupo titulo="Sonido">
+                {material.sonidos.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    aria-pressed={sonido === s}
+                    onClick={() => void cambiarSonido(s)}
+                    className={chip(sonido === s)}
+                  >
+                    {SONIDOS[s]}
+                  </button>
+                ))}
+              </Grupo>
+            </div>
+          </div>
+        )}
+
+        {panel === 'mezcla' && (
           <div id="panel-mezcla" className="max-h-[50vh] overflow-y-auto border-b border-borde bg-superficie px-4 py-3">
             <p className="text-sm text-texto-tenue">
               Toca el nombre para callar una cuerda; «Sola» deja solo esa.
@@ -593,17 +872,9 @@ export default function Reproductor({
           </p>
         )}
 
-        <div className="mx-auto flex w-full max-w-2xl items-center gap-2 px-2 py-1.5">
-          <BotonIcono
-            etiqueta={sonando ? 'Pausa' : 'Tocar'}
-            apariencia="lleno"
-            onClick={() => (sonando ? pausar() : void tocar())}
-          >
-            {sonando ? <IconoPausa /> : <IconoReproducir />}
-          </BotonIcono>
-          <span className="shrink-0 text-sm text-texto-tenue tabular-nums">
-            {mmss(tiempo)} / {mmss(duracion)}
-          </span>
+        {/* En el teléfono, dos líneas: la posición entera arriba y los botones
+            abajo; en una pantalla ancha, una sola. */}
+        <div className="mx-auto flex w-full max-w-2xl flex-wrap items-center gap-x-1 px-2 py-1.5 sm:flex-nowrap sm:gap-x-2">
           <input
             type="range"
             min={0}
@@ -611,8 +882,43 @@ export default function Reproductor({
             value={duracion ? Math.round((tiempo / duracion) * 1000) : 0}
             aria-label="Posición"
             onChange={(e) => irA((Number(e.target.value) / 1000) * duracion)}
-            className="tactil min-w-0 flex-1 accent-[var(--color-acento)]"
+            className="tactil order-first w-full min-w-0 accent-[var(--color-acento)] sm:order-none sm:w-auto sm:flex-1"
           />
+          <BotonIcono
+            etiqueta={sonando ? 'Pausa' : 'Tocar'}
+            apariencia="lleno"
+            onClick={() => (sonando ? pausar() : void tocar())}
+            className="sm:-order-1"
+          >
+            {sonando ? <IconoPausa /> : <IconoReproducir />}
+          </BotonIcono>
+          <span className="mr-auto shrink-0 text-sm text-texto-tenue tabular-nums sm:-order-1 sm:mr-0">
+            {mmss(tiempo)}
+            {/* En el teléfono no cabe: el largo ya lo dice la barra de posición. */}
+            <span className="hidden sm:inline"> / {mmss(duracion)}</span>
+          </span>
+          <BotonIcono
+            etiqueta={`Tempo y tono: negra a ${bpm}`}
+            texto={transposicion === 0 ? `♩ ${bpm}` : `♩ ${bpm} · ${signo}`}
+            apariencia={panel === 'tempo' ? 'activo' : 'plano'}
+            aria-expanded={panel === 'tempo'}
+            className="!px-2"
+            aria-controls="panel-tempo"
+            onClick={() => alternarPanel('tempo')}
+          >
+            {null}
+          </BotonIcono>
+          <BotonIcono
+            etiqueta={`Sonido: ${SONIDOS[sonido]}`}
+            texto={SONIDOS[sonido]}
+            apariencia={panel === 'sonido' ? 'activo' : 'plano'}
+            aria-expanded={panel === 'sonido'}
+            className="!px-2"
+            aria-controls="panel-sonido"
+            onClick={() => alternarPanel('sonido')}
+          >
+            {null}
+          </BotonIcono>
           <BotonIcono
             etiqueta="Repetir"
             apariencia={repetir ? 'activo' : 'plano'}
@@ -623,10 +929,10 @@ export default function Reproductor({
           </BotonIcono>
           <BotonIcono
             etiqueta="Mezcla por cuerda"
-            apariencia={mezclaAbierta ? 'activo' : 'plano'}
-            aria-expanded={mezclaAbierta}
+            apariencia={panel === 'mezcla' ? 'activo' : 'plano'}
+            aria-expanded={panel === 'mezcla'}
             aria-controls="panel-mezcla"
-            onClick={() => setMezclaAbierta((a) => !a)}
+            onClick={() => alternarPanel('mezcla')}
           >
             <IconoMezcla />
           </BotonIcono>
@@ -673,6 +979,21 @@ function Volumen({
       />
       <span className="w-9 shrink-0 text-right text-texto-tenue tabular-nums">{Math.round(valor * 100)}</span>
     </label>
+  )
+}
+
+/**
+ * Una fila de botones con su nombre al lado, no encima: ocupa una sola línea.
+ * Si no caben (un teléfono, seis cuerdas y «Coro»), se desliza de lado.
+ */
+function Fila({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+  return (
+    <div role="group" aria-label={titulo} className="flex min-w-0 items-center gap-3">
+      <p className="shrink-0 text-sm font-semibold text-texto">{titulo}</p>
+      <div className="-my-1 -mr-4 flex min-w-0 flex-1 gap-2 overflow-x-auto py-1 pr-4 [scrollbar-width:none]">
+        {children}
+      </div>
+    </div>
   )
 }
 

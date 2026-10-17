@@ -235,3 +235,25 @@ export function describirEspaciado(dias: number | null): string | null {
   const meses = Math.round(dias / 30)
   return meses === 1 ? 'cada mes' : `cada ${meses} meses`
 }
+
+/** Lo mínimo que tiene que pasar para hablar de «olvidado». */
+const OLVIDO_MIN_DIAS = 60
+/** Cantado una sola vez: sin ritmo propio, se usa este plazo. */
+const OLVIDO_SIN_RITMO_DIAS = 180
+
+/**
+ * Si un canto que el coro canta se está quedando atrás (2026-10-17): el reloj
+ * de arena del historial. Se mide contra SU ritmo —uno que vuelve cada mes y
+ * lleva tres sin sonar se está dejando; uno de Navidad, no—: más del doble de
+ * su espaciado habitual, y nunca antes de dos meses. Cantado una sola vez, a
+ * los seis meses. Uno ya agendado en una misa que viene no está olvidado, y
+ * uno nunca cantado tampoco: ese tiene su propio bloque.
+ */
+export function estaOlvidado(h: HistorialCanto): boolean {
+  if (h.diasDesdeUltima === null || h.agendadas.length > 0) return false
+  const plazo =
+    h.cadaCuantosDias === null
+      ? OLVIDO_SIN_RITMO_DIAS
+      : Math.max(OLVIDO_MIN_DIAS, 2 * h.cadaCuantosDias)
+  return h.diasDesdeUltima > plazo
+}

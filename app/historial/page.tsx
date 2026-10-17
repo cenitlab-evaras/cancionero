@@ -2,7 +2,8 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { obtenerSesion } from '@/lib/sesion'
 import { repertorioConHistorial } from '@/lib/datos/historial'
-import { describirAntiguedad, ordenarPorUso } from '@/lib/motores/historial'
+import { describirAntiguedad, estaOlvidado, ordenarPorUso } from '@/lib/motores/historial'
+import { MarcaOlvido } from '@/app/componentes/marcas'
 import Cabecera from '@/app/componentes/cabecera'
 import TituloSeccion from '@/app/componentes/titulo-seccion'
 
@@ -72,22 +73,20 @@ export default async function HistorialPage() {
                     href={`/repertorio/${canto.id}`}
                     className="tactil -mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5 hover:bg-superficie"
                   >
-                    {/* La columna izquierda es la del número del cancionero,
-                        como en el repertorio: la columna donde el ojo ya sabe
-                        buscar. Las veces se fueron a la derecha, con su unidad
-                        (rediseño 2026-10-17): antes ocupaban esta columna y se
-                        confundían con el número del libro.
+                    {/* Sin el número del cancionero (2026-10-17: «debemos ser
+                        limpios»). Las veces van a la derecha, con su unidad.
 
                         NO van en `--color-acorde`: ese cálido está reservado a
                         los acordes y a la tonalidad (§DESIGN, «la regla del
                         acorde»). Usarlo igual entrena al ojo a leer el ámbar
                         como «número importante», y esa lectura se lleva puesta
                         la vista del canto, que es donde el color decide algo. */}
-                    <span className="numero-libro w-7 shrink-0 text-right text-texto-tenue" aria-hidden>
-                      {canto.fuenteNumero ?? ''}
-                    </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate">{canto.titulo}</span>
+                      {/* El reloj de arena: lleva mucho sin sonar para SU ritmo. */}
+                      <span className="flex min-w-0 items-center gap-2">
+                        <span className="truncate">{canto.titulo}</span>
+                        {estaOlvidado(canto.historial) && <MarcaOlvido className="text-texto-tenue" />}
+                      </span>
                       <span className="block truncate text-sm text-texto-tenue">
                         {describirAntiguedad(canto.historial.diasDesdeUltima)}
                         {canto.historial.porMomento.length > 0 && (
@@ -119,9 +118,6 @@ export default async function HistorialPage() {
                     href={`/repertorio/${canto.id}`}
                     className="tactil -mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5 hover:bg-superficie"
                   >
-                    <span className="numero-libro w-7 shrink-0 text-right text-texto-tenue" aria-hidden>
-                      {canto.fuenteNumero ?? ''}
-                    </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate">{canto.titulo}</span>
                       {/* Un canto agendado no está olvidado: está por sonar. */}

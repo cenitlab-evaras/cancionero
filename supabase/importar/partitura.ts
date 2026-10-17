@@ -105,6 +105,12 @@ async function main() {
   const tempo = tempoXml ? Math.round(Number(tempoXml[1])) : 60
   if (!tempoXml) console.warn('⚠ La partitura no trae tempo: se asume ♩ = 60.')
 
+  // H28 · Las armaduras del canto (puede modular) y si está en menor: con eso
+  // «Ensayar» cruza el tono del cifrado con el de la partitura y elige cómo
+  // escribir la transposición, sin bajar la fuente para averiguarlo.
+  const armaduras = [...new Set([...xml.matchAll(/<fifths>(-?\d+)<\/fifths>/g)].map((m) => Number(m[1])))]
+  const menor = /<key>[\s\S]*?<\/key>/.exec(xml)?.[0].includes('<mode>minor</mode>') ?? false
+
   // partitura-datos.js es `window.PARTITURA = {...};`: se queda con el objeto.
   const js = readFileSync(rutaDatos, 'utf8')
   const sincronia = JSON.parse(js.slice(js.indexOf('{'), js.lastIndexOf('}') + 1))
@@ -151,6 +157,9 @@ async function main() {
     tempo,
     duracionMs: sincronia.fin,
     pentagramas,
+    // La primera es la del comienzo: la que cuenta como «tonalidad de la partitura».
+    armaduras,
+    menor,
     sonidos: SONIDOS,
     pistas: 'pistas/{sonido}/{cuerda}.mp3',
   }

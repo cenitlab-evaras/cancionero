@@ -1,6 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { coincideBusqueda, normalizarBusqueda } from '@/lib/motores/busqueda'
 import { normalizarEstado, type EstadoCanto } from '@/lib/motores/estado-canto'
+import type { CancionDeCatalogo } from '@/lib/motores/catalogo'
+import { ordenarMomento } from '@/lib/motores/orden-en-el-momento'
+import { normalizarHerramientas, type Herramienta } from '@/lib/motores/herramientas'
 import { TAMANO_POR_DEFECTO, esTamanoValido } from '@/lib/motores/tamano-letra'
 
 /**
@@ -37,7 +40,11 @@ type FilaCanto = {
   fuente_numero: number | null
   estado: string
   autores: { nombre: string } | null
-  canto_momentos: { momentos_liturgicos: { codigo: string; nombre: string; orden: number } | null }[]
+  canto_momentos: {
+    /** El lugar del canto en ESE momento; nulo = sin ordenar (2026-10-17). */
+    orden?: number | null
+    momentos_liturgicos: { codigo: string; nombre: string; orden: number } | null
+  }[]
 }
 
 /**
@@ -61,7 +68,7 @@ export async function repertorioPorMomento(
   const { data, error } = await supabase
     .from('cantos')
     .select(
-      'id, titulo, tonalidad_original, fuente_numero, estado, autores(nombre), canto_momentos(momentos_liturgicos(codigo, nombre, orden))'
+      'id, titulo, tonalidad_original, fuente_numero, estado, autores(nombre), canto_momentos(orden, momentos_liturgicos(codigo, nombre, orden))'
     )
     .eq('coro_id', coroId)
     .neq('estado', 'archivado')
@@ -69,7 +76,7 @@ export async function repertorioPorMomento(
 
   if (error) throw error
 
-  const grupos = new Map<string, GrupoDeMomento>()
+  const grupos = new Map<string, GrupoDeMomento & { lugares: Map<string, number | null> }>()
 
   for (const fila of (data ?? []) as unknown as FilaCanto[]) {
     const autor = fila.autores?.nombre ?? null
@@ -91,14 +98,31 @@ export async function repertorioPorMomento(
         codigo: momento.codigo,
         nombre: momento.nombre,
         orden: momento.orden,
-        cantos: [],
+        cantos: [] as CantoDeLista[],
+        lugares: new Map<string, number | null>(),
       }
       grupo.cantos.push(canto)
+      grupo.lugares.set(canto.id, vinculo.orden ?? null)
       grupos.set(momento.codigo, grupo)
     }
   }
 
-  return [...grupos.values()].sort((a, b) => a.orden - b.orden)
+  // Dentro de cada momento, el orden que dejó el director; lo no ordenado, por título.
+  return [...grupos.values()]
+    .sort((a, b) => a.orden - b.orden)
+    .map(({ lugares, ...g }) => ({
+      ...g,
+      cantos: ordenarMomento(g.cantos.map((c) => ({ ...c, orden: lugares.get(c.id) ?? null }))).map(
+        (c): CantoDeLista => ({
+          id: c.id,
+          titulo: c.titulo,
+          autor: c.autor,
+          tonalidadOriginal: c.tonalidadOriginal,
+          fuenteNumero: c.fuenteNumero,
+          estado: c.estado,
+        })
+      ),
+    }))
 }
 
 /**
@@ -110,19 +134,25 @@ export async function repertorioPorMomento(
  * confunde con falta de acceso: la política es `perfil_id = auth.uid()`, así que
  * nadie ve la de otro.
  */
-export type PreferenciasDelPerfil = { mostrarAcordes: boolean; tamanoLetra: number }
+export type PreferenciasDelPerfil = {
+  mostrarAcordes: boolean
+  tamanoLetra: number
+  /** Las herramientas que prendió (2026-10-17). */
+  herramientas: Herramienta[]
+}
 
 export async function preferenciasDelPerfil(): Promise<PreferenciasDelPerfil> {
   const supabase = await createClient()
 
   const { data } = await supabase
     .from('preferencias_perfil')
-    .select('mostrar_acordes, tamano_letra')
+    .select('mostrar_acordes, tamano_letra, herramientas')
     .maybeSingle()
 
   return {
     mostrarAcordes: data?.mostrar_acordes ?? true,
     tamanoLetra: esTamanoValido(data?.tamano_letra) ? data.tamano_letra : TAMANO_POR_DEFECTO,
+    herramientas: normalizarHerramientas(data?.herramientas),
   }
 }
 
@@ -409,4 +439,47 @@ export async function buscarCantos(coroId: string, termino: string, limite = 8):
       fuenteNumero: e.fuenteNumero,
       tonalidadOriginal: e.tonalidadOriginal,
     }))
+}
+
+export type Momento = { codigo: string; nombre: string; orden: number }
+
+/**
+ * «Canciones» (2026-10-17): las del coro, UNA vez cada una, con los momentos
+ * donde están y si tienen partitura publicada. Las archivadas no salen (tienen
+ * su lista). Los filtros y las repetidas los decide el motor `catalogo`.
+ */
+export async function catalogoDelCoro(
+  coroId: string,
+  conPartitura: Map<string, { solistas: boolean }>
+): Promise<{ canciones: CancionDeCatalogo[]; momentos: Momento[] }> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('cantos')
+    .select(
+      'id, titulo, tonalidad_original, fuente_numero, estado, autores(nombre), canto_momentos(momentos_liturgicos(codigo, nombre, orden))'
+    )
+    .eq('coro_id', coroId)
+    .neq('estado', 'archivado')
+    .order('titulo', { ascending: true })
+  if (error) throw error
+
+  const momentos = new Map<string, Momento>()
+  const canciones = ((data ?? []) as unknown as FilaCanto[]).map((fila) => {
+    const suyos = fila.canto_momentos
+      .map((v) => v.momentos_liturgicos)
+      .filter((m): m is Momento => m !== null)
+      .sort((a, b) => a.orden - b.orden)
+    for (const m of suyos) momentos.set(m.codigo, m)
+    return {
+      id: fila.id,
+      titulo: fila.titulo,
+      autor: fila.autores?.nombre ?? null,
+      tonalidadOriginal: fila.tonalidad_original,
+      estado: normalizarEstado(fila.estado),
+      momentos: suyos.map((m) => m.codigo),
+      conPartitura: conPartitura.has(fila.id),
+      conSolistas: conPartitura.get(fila.id)?.solistas ?? false,
+    }
+  })
+  return { canciones, momentos: [...momentos.values()].sort((a, b) => a.orden - b.orden) }
 }

@@ -6,7 +6,9 @@
     "node": ">=20.9.0"
   },
   "scripts": {
+    "predev": "node scripts/copiar-vendor.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/copiar-vendor.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -21,11 +23,13 @@
     "importar:partitura": "node --env-file=.env.local supabase/importar/partitura.ts"
   },
   "dependencies": {
+    "@soundtouchjs/audio-worklet": "2.1.1",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.111.0",
     "next": "^16.2.12",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "verovio": "6.3.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

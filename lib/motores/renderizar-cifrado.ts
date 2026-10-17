@@ -33,16 +33,25 @@ export type LineaCifrado = {
   esSeparador: boolean
   /** Vino de un `{comment: ...}`: se muestra distinto. */
   esComentario: boolean
+  /**
+   * A qué estrofa pertenece (0, 1, 2…; −1 los separadores), contada como en
+   * `estrofasDe`: los bloques de líneas del cifrado entre líneas en blanco.
+   */
+  estrofa: number
 }
 
 export type CifradoRenderizado = {
   lineas: LineaCifrado[]
   totalAcordes: number
+  /** Quién canta cada estrofa (2026-10-17), por índice; null = sin marcar. */
+  quienCanta: (QuienCanta | null)[]
 }
 
 /** Directivas que no se pintan: el título y el autor viven en sus columnas (RF-28). */
 const METAETIQUETAS = /^\{\s*(title|t|subtitle|st|artist|composer|key|tempo|time)\s*:.*\}\s*$/i
 const COMENTARIO = /^\{\s*(comment|c|ci|comment_italic)\s*:\s*(.*?)\s*\}\s*$/i
+
+import { MARCA as MARCA_QUIEN_CANTA, estrofasDe, type QuienCanta } from './quien-canta'
 
 /** Un acorde entre corchetes: `[C]`, `[F#m]`, `[A9/C#]`, `[Bm/A]`. */
 const ACORDE = /\[([^\]\n]+)\]/g
@@ -56,7 +65,7 @@ const ACORDE = /\[([^\]\n]+)\]/g
  */
 export function lineaPintaAcordes(cruda: string): boolean {
   const t = cruda.trim()
-  return !METAETIQUETAS.test(t) && !COMENTARIO.test(t)
+  return !METAETIQUETAS.test(t) && !COMENTARIO.test(t) && !MARCA_QUIEN_CANTA.test(t)
 }
 
 function separarAcordes(
@@ -144,6 +153,7 @@ function partirAlAncho(linea: LineaCifrado, ancho: number): LineaCifrado[] {
       acordes,
       esSeparador: false,
       esComentario: linea.esComentario,
+      estrofa: linea.estrofa,
     }
   })
 }
@@ -175,7 +185,7 @@ function bajarAcordesQueNoCaben(linea: LineaCifrado, ancho: number): LineaCifrad
   return [
     { ...linea, acordes: caben },
     ...bajarAcordesQueNoCaben(
-      { texto: '', acordes: enFila, esSeparador: false, esComentario: linea.esComentario },
+      { texto: '', acordes: enFila, esSeparador: false, esComentario: linea.esComentario, estrofa: linea.estrofa },
       ancho
     ),
   ]
@@ -193,7 +203,7 @@ export function renderizarCifrado(
   cifrado: string,
   opciones: { ancho?: number; mostrarAcordes?: boolean } = {}
 ): CifradoRenderizado {
-  if (cifrado.trim() === '') return { lineas: [], totalAcordes: 0 }
+  if (cifrado.trim() === '') return { lineas: [], totalAcordes: 0, quienCanta: [] }
 
   const mostrarAcordes = opciones.mostrarAcordes ?? true
 
@@ -201,9 +211,16 @@ export function renderizarCifrado(
   // H19-B · El ordinal se cuenta sobre TODOS los acordes, también los que no se
   // muestran en modo solo letra, para que siga valiendo lo mismo en los dos.
   let siguienteIndice = 0
+  // La estrofa de cada línea, contada sobre el cifrado CRUDO como en `estrofasDe`.
+  let estrofa = -1
+  let anteriorEnBlanco = true
 
   for (const cruda of cifrado.split('\n')) {
-    if (METAETIQUETAS.test(cruda.trim())) continue
+    const enBlanco = cruda.trim() === ''
+    if (!enBlanco && anteriorEnBlanco) estrofa++
+    anteriorEnBlanco = enBlanco
+    // Las metaetiquetas y la marca de quién canta no se pintan.
+    if (METAETIQUETAS.test(cruda.trim()) || MARCA_QUIEN_CANTA.test(cruda.trim())) continue
 
     const comentario = COMENTARIO.exec(cruda.trim())
     if (comentario) {
@@ -212,6 +229,7 @@ export function renderizarCifrado(
         acordes: [],
         esSeparador: false,
         esComentario: true,
+        estrofa,
       })
       continue
     }
@@ -231,6 +249,7 @@ export function renderizarCifrado(
       // del cifrado separa estrofas en los dos modos.
       esSeparador: texto.trim() === '' && acordes.length === 0,
       esComentario: false,
+      estrofa: enBlanco ? -1 : estrofa,
     }
 
     if (opciones.ancho && opciones.ancho > 0 && !linea.esSeparador) {
@@ -244,5 +263,6 @@ export function renderizarCifrado(
   return {
     lineas,
     totalAcordes: lineas.reduce((n, l) => n + l.acordes.length, 0),
+    quienCanta: estrofasDe(cifrado).map((e) => e.canta),
   }
 }

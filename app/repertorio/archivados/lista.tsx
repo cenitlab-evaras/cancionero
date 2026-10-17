@@ -52,14 +52,8 @@ export default function ListaArchivados({ cantos }: { cantos: CantoDeLista[] }) 
               href={`/repertorio/${canto.id}`}
               className="tactil -ml-2 flex min-w-0 flex-1 items-center gap-3 rounded-lg px-2 py-1 transition-colors hover:bg-superficie"
             >
-              <span className="numero-libro w-7 shrink-0 text-right text-texto-tenue" aria-hidden>
-                {canto.fuenteNumero ?? ''}
-              </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate">{canto.titulo}</span>
-                {canto.autor && (
-                  <span className="block truncate text-sm text-texto-tenue">{canto.autor}</span>
-                )}
               </span>
             </Link>
             <button

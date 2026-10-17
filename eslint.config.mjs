@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Copias de node_modules (scripts/copiar-vendor.mjs) y archivos del CLI de Supabase.
+    "public/vendor/**",
+    "supabase/.temp/**",
   ]),
 ]);
 

@@ -8,6 +8,7 @@ import { obtenerSesion } from '@/lib/sesion'
 import { puede } from '@/lib/permisos'
 import { validarCanto, type Campo } from '@/lib/motores/validar-canto'
 import { ESTADOS_EDITABLES, normalizarEstado } from '@/lib/motores/estado-canto'
+import { moverEnLista, ordenarMomento } from '@/lib/motores/orden-en-el-momento'
 
 /**
  * Alta y edición del repertorio (H8).
@@ -125,13 +126,23 @@ async function guardar(raw: unknown, cantoId: string | null): Promise<ResultadoC
   }
 
   // Los momentos se reescriben enteros: son pocos y así no hay que calcular
-  // qué se agregó y qué se quitó. `coro_id` va denormalizado (§7).
+  // qué se agregó y qué se quitó. `coro_id` va denormalizado (§7). El lugar
+  // que el canto tenía en cada momento que conserva se guarda antes y se le
+  // devuelve (2026-10-17): si no, editar un canto lo mandaba al final.
+  const { data: antes } = await supabase
+    .from('canto_momentos')
+    .select('momento_id, orden')
+    .eq('canto_id', id)
+  const lugar = new Map(
+    (antes ?? []).map((v) => [v.momento_id as string, v.orden as number | null])
+  )
   await supabase.from('canto_momentos').delete().eq('canto_id', id)
   const { error: errMomentos } = await supabase.from('canto_momentos').insert(
     datos.momentoIds.map((momentoId) => ({
       canto_id: id,
       momento_id: momentoId,
       coro_id: sesion.coroActivo!.id,
+      orden: lugar.get(momentoId) ?? null,
     }))
   )
   if (errMomentos) return { ok: false, error: 'El canto se guardó, pero no sus momentos.' }
@@ -223,4 +234,72 @@ export async function archivarCanto(cantoId: string): Promise<ResultadoArchivo> 
 
 export async function desarchivarCanto(cantoId: string): Promise<ResultadoArchivo> {
   return cambiarEstadoDeArchivo(cantoId, 'listo')
+}
+
+/**
+ * Sube o baja un canto un lugar dentro de su momento (pedido del dueño,
+ * 2026-10-17). Viene de un formulario de la lista del repertorio, así que
+ * funciona aunque no haya cargado el JavaScript.
+ *
+ * Se reescribe el lugar de TODOS los cantos visibles del momento (0, 1, 2…):
+ * así lo que nunca se había ordenado queda fijo donde se veía, y no salta al
+ * final cuando el de al lado pasa a tener número. Los archivados no cuentan.
+ */
+const Mover = z.object({
+  cantoId: z.string().uuid(),
+  momento: z.string().min(1),
+  direccion: z.enum(['arriba', 'abajo']),
+})
+
+export async function moverEnElMomento(formulario: FormData): Promise<void> {
+  const datos = Mover.parse({
+    cantoId: formulario.get('cantoId'),
+    momento: formulario.get('momento'),
+    direccion: formulario.get('direccion'),
+  })
+  const sesion = await obtenerSesion()
+  if (!sesion?.coroActivo || !puede(sesion.sujeto, 'editar_canto')) return
+
+  const supabase = await createClient()
+  const { data: momento } = await supabase
+    .from('momentos_liturgicos')
+    .select('id')
+    .eq('codigo', datos.momento)
+    .maybeSingle()
+  if (!momento) return
+
+  const { data: vinculos } = await supabase
+    .from('canto_momentos')
+    .select('id, canto_id, orden, cantos(titulo, estado)')
+    .eq('coro_id', sesion.coroActivo.id)
+    .eq('momento_id', momento.id)
+  const visibles = (vinculos ?? [])
+    .map((v) => {
+      const canto = v.cantos as unknown as { titulo: string; estado: string } | null
+      return {
+        id: v.id as string,
+        cantoId: v.canto_id as string,
+        orden: v.orden as number | null,
+        titulo: canto?.titulo ?? '',
+        estado: canto?.estado,
+      }
+    })
+    .filter((v) => v.estado !== 'archivado')
+
+  const ordenados = ordenarMomento(visibles)
+  const ids = moverEnLista(
+    ordenados.map((v) => v.cantoId),
+    datos.cantoId,
+    datos.direccion
+  )
+  const porCanto = new Map(ordenados.map((v) => [v.cantoId, v]))
+  // La RLS vuelve a decidir: solo el director del coro escribe canto_momentos.
+  await Promise.all(
+    ids.map((cantoId, i) =>
+      porCanto.get(cantoId)!.orden === i
+        ? null
+        : supabase.from('canto_momentos').update({ orden: i }).eq('id', porCanto.get(cantoId)!.id)
+    )
+  )
+  revalidatePath('/repertorio')
 }

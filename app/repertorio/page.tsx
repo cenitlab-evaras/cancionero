@@ -8,7 +8,10 @@ import { contarEnEnsayo, etiquetaEstado } from '@/lib/motores/estado-canto'
 import Cabecera from '@/app/componentes/cabecera'
 import TituloSeccion from '@/app/componentes/titulo-seccion'
 import { EnlaceIcono, clasesBotonIcono } from '@/app/componentes/boton-icono'
-import { IconoAgregar } from '@/app/componentes/iconos'
+import { IconoAgregar, IconoBajar, IconoSubir } from '@/app/componentes/iconos'
+import { MarcaEnsayo, MarcaPartitura, MarcaRepetida } from '@/app/componentes/marcas'
+import { repetidas } from '@/lib/motores/catalogo'
+import { moverEnElMomento } from './acciones'
 import Buscador from './buscador'
 
 export const metadata = { title: 'Repertorio · Cantoral' }
@@ -25,7 +28,7 @@ export const metadata = { title: 'Repertorio · Cantoral' }
 export default async function RepertorioPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>
+  searchParams: Promise<{ q?: string; ordenar?: string }>
 }) {
   const sesion = await obtenerSesion()
   if (!sesion) redirect('/entrar')
@@ -51,15 +54,25 @@ export default async function RepertorioPage({
     )
   }
 
-  const { q = '' } = await searchParams
+  const { q = '', ordenar } = await searchParams
   const puedeEditar = puede(sesion.sujeto, 'editar_canto')
+  // El momento que el director está ordenando (2026-10-17). Con una búsqueda
+  // escrita no: se moverían cantos respecto de otros que no se ven.
+  const ordenando = puedeEditar && !q ? (ordenar ?? null) : null
   const [grupos, conPartitura] = await Promise.all([
     repertorioPorMomento(sesion.coroActivo.id, q),
     // H23 · qué cantos se pueden ensayar: sin esto, «Ensayar» solo se
     // descubría entrando canto por canto.
-    puede(sesion.sujeto, 'ensayar_canto') ? cantosConPartitura() : Promise.resolve(new Set<string>()),
+    puede(sesion.sujeto, 'ensayar_canto')
+      ? cantosConPartitura()
+      : Promise.resolve(new Map<string, { solistas: boolean }>()),
   ])
-  const total = grupos.reduce((n, g) => n + g.cantos.length, 0)
+  // Canciones distintas, no filas: una canción en tres momentos sale tres
+  // veces en la lista y antes se contaba tres veces (2026-10-17).
+  const distintos = [...new Map(grupos.flatMap((g) => g.cantos).map((c) => [c.id, c])).values()]
+  const total = distintos.length
+  // La misma canción cargada dos veces (de dos cancioneros): se marca.
+  const veces = repetidas(distintos)
   // Se calcula al leer, nunca se guarda (innegociable 4). El motor cuenta por
   // id: un canto asignado a tres momentos aparece tres veces en `grupos`.
   const enEnsayo = contarEnEnsayo(grupos.flatMap((g) => g.cantos))
@@ -128,53 +141,45 @@ export default async function RepertorioPage({
                 que a 13 px y en tenue se leían lento). Sin contador: al lado de
                 los números de canto se lee como uno más, y la cuenta total ya
                 está al pie. */}
-            <TituloSeccion>{grupo.nombre}</TituloSeccion>
+            <div className="flex items-center justify-between gap-3">
+              <TituloSeccion>{grupo.nombre}</TituloSeccion>
+              {/* El director ordena un momento a la vez: las flechas solo
+                  aparecen ahí, para que la lista siga limpia (2026-10-17). */}
+              {puedeEditar && !q && grupo.cantos.length > 1 && (
+                <Link
+                  href={ordenando === grupo.codigo ? '/repertorio' : `/repertorio?ordenar=${grupo.codigo}`}
+                  scroll={false}
+                  className="tactil flex items-center rounded-lg px-2 text-sm text-acento underline-offset-2 hover:underline"
+                >
+                  {ordenando === grupo.codigo ? 'Listo' : 'Ordenar'}
+                </Link>
+              )}
+            </div>
 
             <ul className="mt-1">
-              {grupo.cantos.map((canto) => {
+              {grupo.cantos.map((canto, i) => {
                 // H10 · La marca solo aparece cuando dice algo: `listo` es el
                 // caso normal y etiquetar cada fila no informaría nada.
                 const marca = etiquetaEstado(canto.estado)
                 const partitura = conPartitura.has(canto.id)
                 return (
-                  <li key={canto.id} className="border-b border-borde last:border-b-0">
+                  <li key={canto.id} className="flex items-center gap-1 border-b border-borde last:border-b-0">
                     <Link
                       href={`/repertorio/${canto.id}`}
-                      className="tactil group -mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5 hover:bg-superficie"
+                      className="tactil group -mx-2 flex min-w-0 flex-1 items-center gap-3 rounded-lg px-2 py-2.5 hover:bg-superficie"
                     >
-                      {/* El número del cancionero, en los números de estilo
-                          antiguo del libro: no es un dato técnico, así que no
-                          va en la monoespaciada del cifrado. Sin número, el
-                          hueco queda vacío y la columna no se corre. */}
-                      <span
-                        className="numero-libro w-7 shrink-0 text-right text-texto-tenue"
-                        aria-hidden
-                      >
-                        {canto.fuenteNumero ?? ''}
-                      </span>
+                      {/* Sin el número del cancionero: la lista va limpia
+                          (el dueño, 2026-10-17). Buscar «34» sigue encontrándolo. */}
 
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate">{canto.titulo}</span>
-                        {/* El canto NO cambia de grupo ni de lugar: la marca va
-                            en la línea secundaria, donde ya vive el autor, para
-                            que la lista se siga leyendo de un tirón. */}
-                        {(marca || partitura || canto.autor) && (
-                          <span className="flex min-w-0 items-center gap-2">
-                            {marca && (
-                              <span className="shrink-0 rounded border border-borde-fuerte px-1.5 text-xs font-bold text-texto">
-                                {marca}
-                              </span>
-                            )}
-                            {/* H23 · se puede ensayar: tiene partitura con sus pistas. */}
-                            {partitura && (
-                              <span className="shrink-0 rounded border border-borde-fuerte px-1.5 text-xs font-bold text-texto">
-                                Partitura
-                              </span>
-                            )}
-                            {canto.autor && (
-                              <span className="truncate text-sm text-texto-tenue">{canto.autor}</span>
-                            )}
-                          </span>
+                      {/* El título y, al lado, sus marcas como íconos: en
+                          ensayo, con partitura. El autor no va acá: se ve al
+                          abrir el canto (el dueño, 2026-10-17). */}
+                      <span className="flex min-w-0 flex-1 items-center gap-2">
+                        <span className="truncate">{canto.titulo}</span>
+                        {marca && <MarcaEnsayo className="text-texto" />}
+                        {partitura && <MarcaPartitura className="text-texto-tenue" />}
+                        {veces.has(canto.id) && (
+                          <MarcaRepetida veces={veces.get(canto.id)!} className="text-peligro" />
                         )}
                       </span>
 
@@ -184,6 +189,34 @@ export default async function RepertorioPage({
                         </span>
                       )}
                     </Link>
+                    {ordenando === grupo.codigo && (
+                      <form action={moverEnElMomento} className="flex shrink-0">
+                        <input type="hidden" name="cantoId" value={canto.id} />
+                        <input type="hidden" name="momento" value={grupo.codigo} />
+                        <button
+                          type="submit"
+                          name="direccion"
+                          value="arriba"
+                          disabled={i === 0}
+                          aria-label={`Subir ${canto.titulo}`}
+                          title="Subir"
+                          className={clasesBotonIcono('plano')}
+                        >
+                          <IconoSubir />
+                        </button>
+                        <button
+                          type="submit"
+                          name="direccion"
+                          value="abajo"
+                          disabled={i === grupo.cantos.length - 1}
+                          aria-label={`Bajar ${canto.titulo}`}
+                          title="Bajar"
+                          className={clasesBotonIcono('plano')}
+                        >
+                          <IconoBajar />
+                        </button>
+                      </form>
+                    )}
                   </li>
                 )
               })}

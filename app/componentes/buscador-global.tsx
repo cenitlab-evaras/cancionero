@@ -103,9 +103,6 @@ export default function BuscadorGlobal() {
                     onClick={() => setAbierto(false)}
                     className="tactil flex items-center gap-3 px-3 py-2 hover:bg-superficie-alta"
                   >
-                    <span className="numero-libro w-7 shrink-0 text-right text-texto-tenue" aria-hidden>
-                      {c.fuenteNumero ?? ''}
-                    </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate">{c.titulo}</span>
                       {c.autor && <span className="block truncate text-sm text-texto-tenue">{c.autor}</span>}

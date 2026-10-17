@@ -18,6 +18,7 @@ import Cabecera from '@/app/componentes/cabecera'
 import PantallaEncendida from '@/app/componentes/pantalla-encendida'
 import TituloSeccion from '@/app/componentes/titulo-seccion'
 import { EnlaceIcono, clasesBotonIcono } from '@/app/componentes/boton-icono'
+import ConmutadorTema from '@/app/componentes/conmutador-tema'
 import { IconoEditar, IconoVolver } from '@/app/componentes/iconos'
 import Cifrado from '@/app/componentes/cifrado'
 import CartaAcorde from '@/app/componentes/carta-acorde'
@@ -141,15 +142,13 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
             <IconoVolver />
           </EnlaceIcono>
           <h1 className="titulo-libro min-w-0 flex-1 text-[1.375rem] leading-tight">
-            {canto.fuenteNumero && (
-              <span className="numero-libro mr-2 font-normal text-texto-tenue">{canto.fuenteNumero}</span>
-            )}
             {canto.titulo}
           </h1>
           {/* H11 · El interruptor de acordes va antes que «Editar» porque lo usa
               todo el mundo y «Editar» solo el director: el orden lo decide quién
               lo toca, no la jerarquía. */}
           <SoloLetra mostrarAcordes={mostrarAcordes} />
+          <ConmutadorTema />
           {/* Corregir un acorde a oído es trabajo esperable (§17.1): el acceso
               vive donde se descubre el error, no en un menú aparte. */}
           {puede(sesion.sujeto, 'editar_canto') && (

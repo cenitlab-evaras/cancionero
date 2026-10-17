@@ -16,6 +16,7 @@ import Cifrado from '@/app/componentes/cifrado'
 import CartaAcorde from '@/app/componentes/carta-acorde'
 import PantallaEncendida from '@/app/componentes/pantalla-encendida'
 import { EnlaceIcono, clasesBotonIcono } from '@/app/componentes/boton-icono'
+import ConmutadorTema from '@/app/componentes/conmutador-tema'
 import { IconoSeguir, IconoVolver } from '@/app/componentes/iconos'
 import Controles from '@/app/repertorio/[cantoId]/controles'
 import {
@@ -122,14 +123,12 @@ export default async function EjecucionPage({
             <span className="shrink-0 text-sm font-bold">
               {paso.posicion} <span className="font-normal text-texto-tenue">de {paso.total}</span>
             </span>
+            <ConmutadorTema className="-mr-2" />
           </div>
 
           <div className="px-4 pt-4">
             <p className="text-sm text-texto-tenue">{fila.momentoNombre}</p>
             <h1 className="titulo-libro mt-0.5 text-[1.5rem] leading-tight">
-              {canto.fuenteNumero && (
-                <span className="numero-libro mr-2 font-normal text-texto-tenue">{canto.fuenteNumero}</span>
-              )}
               {canto.titulo}
             </h1>
             {(canto.autor || canto.tonalidadOriginal) && (
@@ -143,7 +142,7 @@ export default async function EjecucionPage({
                 una pestaña: acá se toca, y la misa sigue siendo lo primero. */}
             {partitura && (
               <Link
-                href={`/repertorio/${canto.id}/ensayar`}
+                href={`/repertorio/${canto.id}/ensayar?misa=${id}&fila=${filaId}`}
                 className="tactil mt-1 inline-flex items-center text-sm text-acento underline underline-offset-2"
               >
                 Ensayar este canto

@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { esCuerda, ordenarCuerdas, type Cuerda } from '@/lib/motores/cuerdas'
+import { esCuerda, esEstrofa, ordenarCuerdas, type Cuerda } from '@/lib/motores/cuerdas'
 
 /**
  * H23 · La partitura de un canto y lo que hace falta para ensayarla.
@@ -48,6 +48,11 @@ export type MaterialDeEnsayo = {
   sonidos: Sonido[]
   /** La partitura dibujada con su sincronía (≈ 1 MB): la baja el navegador. */
   urlPartitura: string
+  /** H28 · La fuente MusicXML: el teléfono la redibuja con Verovio en otro tono. */
+  urlFuente: string
+  /** H28 · Las armaduras del canto (`fifths`), la del comienzo primero; vacío = no se sabe. */
+  armaduras: number[]
+  menor: boolean
   pistas: Record<Sonido, Record<Cuerda, string>>
 }
 
@@ -57,6 +62,9 @@ type Manifiesto = {
   duracionMs: number
   pentagramas: string[]
   sonidos: string[]
+  /** Desde H28; los manifiestos anteriores no los traen. */
+  armaduras?: number[]
+  menor?: boolean
 }
 
 /**
@@ -87,6 +95,7 @@ export async function materialDeEnsayo(p: PartituraPublicada): Promise<MaterialD
 
   const rutas = [
     `${base}/partitura.json`,
+    `${base}/fuente.musicxml`,
     ...sonidos.flatMap((s) => pentagramas.map((c) => `${base}/pistas/${s}/${c}.mp3`)),
   ]
   const { data: firmadas, error: errorFirma } = await bucket.createSignedUrls(rutas, VIGENCIA_S)
@@ -107,6 +116,9 @@ export async function materialDeEnsayo(p: PartituraPublicada): Promise<MaterialD
     cuerdas: ordenarCuerdas(pentagramas),
     sonidos,
     urlPartitura: url.get(`${base}/partitura.json`)!,
+    urlFuente: url.get(`${base}/fuente.musicxml`)!,
+    armaduras: Array.isArray(m.armaduras) ? m.armaduras.filter(Number.isInteger) : [],
+    menor: m.menor === true,
     pistas,
   }
 }
@@ -116,8 +128,16 @@ export async function materialDeEnsayo(p: PartituraPublicada): Promise<MaterialD
  * PUBLICADA, que es la que abre «Ensayar» (un borrador no). Para marcarlos en
  * el repertorio: antes había que entrar canto por canto para descubrirlos.
  */
-export async function cantosConPartitura(): Promise<Set<string>> {
+export type MarcasDePartitura = Map<string, { solistas: boolean }>
+
+export async function cantosConPartitura(): Promise<MarcasDePartitura> {
   const supabase = await createClient()
-  const { data } = await supabase.from('partitura').select('canto_id').eq('estado', 'publicada')
-  return new Set((data ?? []).map((p) => p.canto_id as string))
+  const { data } = await supabase.from('partitura').select('canto_id, cuerdas').eq('estado', 'publicada')
+  // Con estrofas de solista (2026-10-17): alguna de sus partes es `solista-N`.
+  return new Map(
+    (data ?? []).map((p) => [
+      p.canto_id as string,
+      { solistas: Object.values((p.cuerdas ?? {}) as Record<string, string>).some(esEstrofa) },
+    ])
+  )
 }

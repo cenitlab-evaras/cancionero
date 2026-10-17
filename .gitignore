@@ -50,3 +50,6 @@ next-env.d.ts
 # veces costó descubrir por qué había dos verdades.
 * 2.*
 * [0-9].*
+
+# H28 · copias de node_modules que hace scripts/copiar-vendor.mjs
+/public/vendor/

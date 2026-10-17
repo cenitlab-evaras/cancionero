@@ -1,3 +1,4 @@
+import Anotados from '@/app/componentes/anotados'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { obtenerSesion } from '@/lib/sesion'
@@ -138,10 +139,12 @@ function Seccion({
                     {c.cantidadCantos === 1 ? '1 canto' : `${c.cantidadCantos} cantos`}
                   </span>
                   {/* H15 · solo si hay alguien: «0 anotados» en cada fila sería
-                      un reproche semanal, no un dato. */}
+                      un reproche semanal, no un dato. Desde el 2026-10-17, sus
+                      iniciales con el color de su cuerda, además del número. */}
                   {c.anotados > 0 && (
-                    <span className="block">
-                      {c.anotados} {c.anotados === 1 ? 'anotado' : 'anotados'}
+                    <span className="mt-1 flex items-center justify-end gap-2">
+                      <Anotados quienes={c.quienes} />
+                      <span aria-hidden>{c.anotados}</span>
                     </span>
                   )}
                 </span>

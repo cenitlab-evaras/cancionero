@@ -14,7 +14,7 @@
 
 export const TINTA = '#1a1a1a'
 export const ACTIVA = '#d2691e'
-const CURSOR = '#e8a54b'
+export const CURSOR = '#e8a54b'
 const SVG = 'http://www.w3.org/2000/svg'
 
 export type DatosPartitura = {
@@ -25,9 +25,19 @@ export type DatosPartitura = {
   fin: number
 }
 
+export type Momento = DatosPartitura['cursor'][number]
+
 export type Pagina = {
   div: HTMLDivElement
   svg: SVGSVGElement
+  /**
+   * Donde viven las notas y lo que se les dibuja encima (franja, halos, velos),
+   * en sus coordenadas. En el SVG de MuseScore es el propio <svg>; en el de
+   * Verovio (H28), el <g class="page-margin">.
+   */
+  capa: SVGGraphicsElement
+  /** Cuánto mide el espacio entre líneas del pentagrama respecto del de MuseScore. */
+  escala: number
   marca: SVGRectElement
   velos: SVGRectElement[]
 }
@@ -35,8 +45,16 @@ export type Pagina = {
 export type Elemento = DatosPartitura['elementos'][number] & {
   nodo: SVGElement
   halo: SVGCircleElement | null
+  /** El grosor del trazo encendido, en las unidades de su hoja. */
+  trazo: number
   activa: boolean | null
 }
+
+/** Una partitura lista para seguir la música, la dibuje quien la dibuje. */
+export type Hoja = { paginas: Pagina[]; elementos: Elemento[]; cursor: Momento[] }
+
+/** El espacio entre líneas del pentagrama en el SVG de MuseScore. */
+export const ESPACIO_MUSESCORE = 68
 
 /**
  * Ajusta la hoja a lo que tiene dibujado, sin el blanco sobrante. Las piezas con
@@ -97,10 +115,7 @@ function velos(svg: SVGSVGElement): SVGRectElement[] {
 }
 
 /** Inserta las páginas en `contenedor` y une la sincronía con sus nodos. */
-export function prepararHoja(
-  contenedor: HTMLElement,
-  datos: DatosPartitura
-): { paginas: Pagina[]; elementos: Elemento[] } {
+export function prepararHoja(contenedor: HTMLElement, datos: DatosPartitura): Hoja {
   contenedor.replaceChildren()
   const paginas: Pagina[] = datos.paginas.map((marcado) => {
     const div = document.createElement('div')
@@ -119,7 +134,7 @@ export function prepararHoja(
     marca.setAttribute('rx', '40')
     marca.style.display = 'none'
     svg.querySelector('path')!.after(marca) // sobre el papel, bajo todo lo demás
-    return { div, svg, marca, velos: velos(svg) }
+    return { div, svg, capa: svg, escala: 1, marca, velos: velos(svg) }
   })
 
   const nodos = paginas.map((pg) => ({
@@ -149,9 +164,9 @@ export function prepararHoja(
       halo.style.display = 'none'
       paginas[e.p].marca.after(halo)
     }
-    elementos.push({ ...e, nodo, halo, activa: null })
+    elementos.push({ ...e, nodo, halo, trazo: e.k === 'n' ? 18 : 10, activa: null })
   }
-  return { paginas, elementos }
+  return { paginas, elementos, cursor: datos.cursor }
 }
 
 /** Enciende o apaga una nota o sílaba: naranjo y más gruesa, con su halo. */
@@ -159,22 +174,22 @@ export function pintarElemento(e: Elemento, activa: boolean) {
   if (activa === e.activa) return
   e.nodo.setAttribute('fill', activa ? ACTIVA : TINTA)
   e.nodo.setAttribute('stroke', activa ? ACTIVA : 'none')
-  e.nodo.setAttribute('stroke-width', activa ? (e.k === 'n' ? '18' : '10') : '0')
+  e.nodo.setAttribute('stroke-width', activa ? String(e.trazo) : '0')
   if (e.halo) e.halo.style.display = activa ? '' : 'none'
   e.activa = activa
 }
 
 /** La franja del cursor sobre el momento que suena, o nada. */
-export function moverMarca(paginas: Pagina[], c: DatosPartitura['cursor'][number] | null) {
+export function moverMarca(paginas: Pagina[], c: Momento | null) {
   paginas.forEach((pg, i) => {
     pg.marca.style.display = c && c.p === i ? '' : 'none'
   })
   if (!c) return
-  const m = paginas[c.p].marca
-  m.setAttribute('x', String(c.x - 40))
-  m.setAttribute('y', String(c.y - 300))
+  const { marca: m, escala: k } = paginas[c.p]
+  m.setAttribute('x', String(c.x - 40 * k))
+  m.setAttribute('y', String(c.y - 300 * k))
   m.setAttribute('width', String(c.w))
-  m.setAttribute('height', String(c.h + 600))
+  m.setAttribute('height', String(c.h + 600 * k))
 }
 
 /**
@@ -182,10 +197,12 @@ export function moverMarca(paginas: Pagina[], c: DatosPartitura['cursor'][number
  * mantener el cursor a la vista (entre el 10 % y el 70 % del ancho).
  */
 export function seguirConLaVista(pg: Pagina, x: number, suave: boolean) {
-  const { div, svg } = pg
+  const { div, capa } = pg
   if (div.scrollWidth <= div.clientWidth) return
-  const vb = svg.viewBox.baseVal
-  const px = ((x - vb.x) / vb.width) * svg.clientWidth
+  const ctm = capa.getScreenCTM()
+  if (!ctm) return
+  // De la capa a la pantalla, y de ahí al comienzo (con lo corrido) de la hoja.
+  const px = new DOMPoint(x, 0).matrixTransform(ctm).x - div.getBoundingClientRect().left + div.scrollLeft
   if (px < div.scrollLeft + div.clientWidth * 0.1 || px > div.scrollLeft + div.clientWidth * 0.7) {
     div.scrollTo({ left: px - div.clientWidth * 0.25, behavior: suave ? 'smooth' : 'auto' })
   }
@@ -216,11 +233,11 @@ export function mantenerALaVista(marca: SVGRectElement, arriba: number, abajo: n
 export function momentoBajoElToque(
   pg: Pagina,
   p: number,
-  cursor: DatosPartitura['cursor'],
+  cursor: Momento[],
   clientX: number,
   clientY: number
 ): number | null {
-  const ctm = pg.svg.getScreenCTM()
+  const ctm = pg.capa.getScreenCTM()
   if (!ctm) return null
   const pt = new DOMPoint(clientX, clientY).matrixTransform(ctm.inverse())
   const c = cursor.find((c) => c.p === p && pt.x >= c.x && pt.x < c.x + c.w)

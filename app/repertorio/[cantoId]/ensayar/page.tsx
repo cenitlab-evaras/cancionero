@@ -2,7 +2,9 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { obtenerSesion } from '@/lib/sesion'
 import { puede } from '@/lib/permisos'
-import { obtenerCanto } from '@/lib/datos/repertorio'
+import { obtenerCanto, obtenerTransposicion } from '@/lib/datos/repertorio'
+import { obtenerMisa } from '@/lib/datos/misas'
+import { tonoEnLaMisa } from '@/lib/motores/tono-en-la-misa'
 import { materialDeEnsayo, partituraPublicada } from '@/lib/datos/partitura'
 import { miFicha } from '@/lib/datos/ficha'
 import { esTesituraValida } from '@/lib/motores/ficha'
@@ -10,6 +12,7 @@ import { cuerdaPorTesitura } from '@/lib/motores/cuerdas'
 import Cabecera from '@/app/componentes/cabecera'
 import PantallaEncendida from '@/app/componentes/pantalla-encendida'
 import { EnlaceIcono, clasesBotonIcono } from '@/app/componentes/boton-icono'
+import ConmutadorTema from '@/app/componentes/conmutador-tema'
 import { IconoVolver } from '@/app/componentes/iconos'
 import PestanasCanto from '../pestanas'
 import Reproductor from './reproductor'
@@ -25,7 +28,14 @@ export const metadata = { title: 'Ensayar · Cantoral' }
  *   · la partitura existe pero Storage no deja firmar sus archivos → «no
  *     tienes acceso» (§21.4: la firma falla con la sesión de quien no puede).
  */
-export default async function EnsayarPage({ params }: { params: Promise<{ cantoId: string }> }) {
+export default async function EnsayarPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ cantoId: string }>
+  /** H28 · Desde una misa: su fila, para ensayar en el tono que fijó el director (H27). */
+  searchParams: Promise<{ misa?: string; fila?: string }>
+}) {
   const sesion = await obtenerSesion()
   if (!sesion) redirect('/entrar')
   if (!sesion.sujeto.aprobado) redirect('/esperando-aprobacion')
@@ -77,26 +87,42 @@ export default async function EnsayarPage({ params }: { params: Promise<{ cantoI
   const tesitura = esTesituraValida(ficha?.tesitura) ? ficha.tesitura : null
   const cuerdaInicial = cuerdaPorTesitura(tesitura, material.cuerdas)
 
+  // H28 · En qué tono se ensaya: el mismo que se ve en el cifrado. Desde una
+  // misa, el de su fila si el director lo fijó; si no, el personal.
+  const { misa: misaId, fila: filaId } = await searchParams
+  const [personal, misa] = await Promise.all([
+    obtenerTransposicion(canto.id),
+    misaId ? obtenerMisa(misaId) : Promise.resolve(null),
+  ])
+  const fila = misa?.cantos.find((c) => c.id === filaId && c.cantoId === canto.id)
+  const tono = fila ? tonoEnLaMisa(fila.tonoDeMisa, personal) : { semitonos: personal, fijado: false }
+  const volver = fila ? `/misas/${misa!.id}/${fila.id}` : '/repertorio'
+
   return (
     <>
       <PantallaEncendida />
       <main className="mx-auto w-full max-w-2xl flex-1">
         {/* La misma cabecera de lectura que el cifrado: volver y el nombre. */}
         <div className="sticky top-0 z-(--z-cabecera) flex items-center gap-1 border-b border-borde bg-fondo py-1 pr-2 pl-1">
-          <EnlaceIcono href="/repertorio" etiqueta="Volver al repertorio">
+          <EnlaceIcono href={volver} etiqueta={fila ? 'Volver a la misa' : 'Volver al repertorio'}>
             <IconoVolver />
           </EnlaceIcono>
           <h1 className="titulo-libro min-w-0 flex-1 text-[1.375rem] leading-tight">
-            {canto.fuenteNumero && (
-              <span className="numero-libro mr-2 font-normal text-texto-tenue">{canto.fuenteNumero}</span>
-            )}
             {canto.titulo}
           </h1>
+          <ConmutadorTema />
         </div>
 
         <PestanasCanto cantoId={canto.id} activa="ensayar" />
 
-        <Reproductor material={material} cuerdaInicial={cuerdaInicial} />
+        <Reproductor
+          material={material}
+          cuerdaInicial={cuerdaInicial}
+          cantoId={canto.id}
+          coroId={sesion.coroActivo?.id ?? null}
+          tonalidadCifrado={canto.tonalidadOriginal}
+          tono={tono}
+        />
       </main>
     </>
   )
