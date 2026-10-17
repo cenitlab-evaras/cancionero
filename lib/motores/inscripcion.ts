@@ -40,6 +40,17 @@ export const INSTRUMENTOS = [
 ] as const
 export type Instrumento = (typeof INSTRUMENTOS)[number]
 
+/**
+ * Lo que se ofrece al anotarse: el coro solo toca guitarra, percusión y flauta
+ * (el dueño, 2026-10-17). `INSTRUMENTOS` sigue entero porque es la lista que
+ * acepta la base y la que sabe nombrar lo que alguien ya guardó antes.
+ */
+export const INSTRUMENTOS_DEL_CORO = ['guitarra', 'percusion', 'flauta'] as const satisfies readonly Instrumento[]
+
+function esDelCoro(valor: unknown): valor is (typeof INSTRUMENTOS_DEL_CORO)[number] {
+  return (INSTRUMENTOS_DEL_CORO as readonly unknown[]).includes(valor)
+}
+
 const NOMBRES: Record<Instrumento, string> = {
   guitarra: 'Guitarra',
   teclado: 'Teclado',
@@ -106,7 +117,7 @@ export function validarInscripcion(entrada: {
   if (entrada.instrumento === null || entrada.instrumento === undefined || entrada.instrumento === '') {
     return { ok: false, error: 'Dinos qué instrumento vas a tocar.' }
   }
-  if (!esInstrumentoValido(entrada.instrumento)) {
+  if (!esDelCoro(entrada.instrumento)) {
     return { ok: false, error: 'Ese instrumento no está en la lista.' }
   }
 

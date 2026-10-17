@@ -7,12 +7,11 @@ import { cantosConPartitura } from '@/lib/datos/partitura'
 import { contarEnEnsayo, etiquetaEstado } from '@/lib/motores/estado-canto'
 import Cabecera from '@/app/componentes/cabecera'
 import TituloSeccion from '@/app/componentes/titulo-seccion'
-import { EnlaceIcono, clasesBotonIcono } from '@/app/componentes/boton-icono'
-import { IconoAgregar, IconoBajar, IconoSubir } from '@/app/componentes/iconos'
-import { MarcaEnsayo, MarcaPartitura, MarcaRepetida } from '@/app/componentes/marcas'
+import { clasesBotonIcono } from '@/app/componentes/boton-icono'
 import { repetidas } from '@/lib/motores/catalogo'
-import { moverEnElMomento } from './acciones'
 import Buscador from './buscador'
+import FilaCanto, { type DatosFila } from './fila-canto'
+import RepertorioOrdenable from './repertorio-ordenable'
 
 export const metadata = { title: 'Repertorio · Cantoral' }
 
@@ -28,7 +27,7 @@ export const metadata = { title: 'Repertorio · Cantoral' }
 export default async function RepertorioPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; ordenar?: string }>
+  searchParams: Promise<{ q?: string }>
 }) {
   const sesion = await obtenerSesion()
   if (!sesion) redirect('/entrar')
@@ -54,11 +53,11 @@ export default async function RepertorioPage({
     )
   }
 
-  const { q = '', ordenar } = await searchParams
+  const { q = '' } = await searchParams
   const puedeEditar = puede(sesion.sujeto, 'editar_canto')
-  // El momento que el director está ordenando (2026-10-17). Con una búsqueda
-  // escrita no: se moverían cantos respecto de otros que no se ven.
-  const ordenando = puedeEditar && !q ? (ordenar ?? null) : null
+  // El director ordena arrastrando (2026-10-17). Con una búsqueda escrita no:
+  // se moverían cantos respecto de otros que no se ven.
+  const ordenable = puedeEditar && !q
   const [grupos, conPartitura] = await Promise.all([
     repertorioPorMomento(sesion.coroActivo.id, q),
     // H23 · qué cantos se pueden ensayar: sin esto, «Ensayar» solo se
@@ -76,34 +75,38 @@ export default async function RepertorioPage({
   // Se calcula al leer, nunca se guarda (innegociable 4). El motor cuenta por
   // id: un canto asignado a tres momentos aparece tres veces en `grupos`.
   const enEnsayo = contarEnEnsayo(grupos.flatMap((g) => g.cantos))
+  // Lo que dibuja cada fila, una vez por canción: la misma la usan la lista
+  // quieta del miembro y la que arrastra el director.
+  const filas: Record<string, DatosFila> = Object.fromEntries(
+    distintos.map((c) => [
+      c.id,
+      {
+        id: c.id,
+        titulo: c.titulo,
+        // H10 · La marca solo aparece cuando dice algo: `listo` es el caso
+        // normal y etiquetar cada fila no informaría nada.
+        enEnsayo: Boolean(etiquetaEstado(c.estado)),
+        repetida: veces.get(c.id) ?? null,
+        partitura: conPartitura.get(c.id) ?? null,
+        tonalidad: c.tonalidadOriginal,
+      },
+    ])
+  )
+  const momentos = grupos.map((g) => ({ codigo: g.codigo, nombre: g.nombre, cantos: g.cantos.map((c) => c.id) }))
 
   return (
     <>
-      {/* Sin la barra de búsqueda de la cabecera: acá está la del repertorio. */}
+      {/* Sin «Buscar un canto» de la cabecera: acá está la lupa del repertorio. */}
       <Cabecera sesion={sesion} buscador={false} />
 
       <main className="mx-auto w-full max-w-2xl px-4 pt-6 pb-16">
-        <h1 className="titulo-libro text-[1.75rem] leading-tight">Repertorio</h1>
-
-        {/* El buscador queda a mano mientras se recorre la lista. Cuelga justo
-            bajo la cabecera, que mide 56 px (`top-14`). El fondo es opaco y
-            sin `backdrop-blur`: con el 95 % de antes las filas se veían pasar
-            en fantasma por detrás. */}
-        <div className="sticky top-14 z-(--z-barra) -mx-4 mt-3 flex items-center gap-2 bg-fondo px-4 py-3">
-          <div className="min-w-0 flex-1">
-            <Buscador valorInicial={q} />
-          </div>
-          {/* Con texto visible: un «+» solo no dice qué agrega. */}
-          {puedeEditar && (
-            <EnlaceIcono
-              href="/repertorio/nuevo"
-              etiqueta="Cargar un canto nuevo"
-              apariencia="borde"
-              texto="Nuevo"
-            >
-              <IconoAgregar tamano={18} />
-            </EnlaceIcono>
-          )}
+        {/* El título con su lupa queda a mano mientras se recorre la lista.
+            Cuelga justo bajo la cabecera, que mide 56 px (`top-14`). El fondo
+            es opaco y sin `backdrop-blur`: con el 95 % de antes las filas se
+            veían pasar en fantasma por detrás. «Nuevo» ya no va acá: cargar
+            un canto se hace desde Herramientas (el dueño, 2026-10-17). */}
+        <div className="sticky top-14 z-(--z-barra) -mx-4 -mt-3 bg-fondo px-4 py-3">
+          <Buscador valorInicial={q} />
         </div>
 
         {total === 0 && q !== '' && (
@@ -135,94 +138,30 @@ export default async function RepertorioPage({
         {/* La estructura es la del cancionero: momentos litúrgicos y cantos
             numerados. No hay tarjetas — las filas continuas dejan que el ojo
             recorra la lista sin tropezar con un marco por canto. */}
-        {grupos.map((grupo) => (
-          <section key={grupo.codigo} className="pt-6">
-            {/* El título de sección único de la app (sin mayúsculas espaciadas,
-                que a 13 px y en tenue se leían lento). Sin contador: al lado de
-                los números de canto se lee como uno más, y la cuenta total ya
-                está al pie. */}
-            <div className="flex items-center justify-between gap-3">
-              <TituloSeccion>{grupo.nombre}</TituloSeccion>
-              {/* El director ordena un momento a la vez: las flechas solo
-                  aparecen ahí, para que la lista siga limpia (2026-10-17). */}
-              {puedeEditar && !q && grupo.cantos.length > 1 && (
-                <Link
-                  href={ordenando === grupo.codigo ? '/repertorio' : `/repertorio?ordenar=${grupo.codigo}`}
-                  scroll={false}
-                  className="tactil flex items-center rounded-lg px-2 text-sm text-acento underline-offset-2 hover:underline"
-                >
-                  {ordenando === grupo.codigo ? 'Listo' : 'Ordenar'}
-                </Link>
-              )}
-            </div>
-
-            <ul className="mt-1">
-              {grupo.cantos.map((canto, i) => {
-                // H10 · La marca solo aparece cuando dice algo: `listo` es el
-                // caso normal y etiquetar cada fila no informaría nada.
-                const marca = etiquetaEstado(canto.estado)
-                const partitura = conPartitura.has(canto.id)
-                return (
-                  <li key={canto.id} className="flex items-center gap-1 border-b border-borde last:border-b-0">
-                    <Link
-                      href={`/repertorio/${canto.id}`}
-                      className="tactil group -mx-2 flex min-w-0 flex-1 items-center gap-3 rounded-lg px-2 py-2.5 hover:bg-superficie"
-                    >
-                      {/* Sin el número del cancionero: la lista va limpia
-                          (el dueño, 2026-10-17). Buscar «34» sigue encontrándolo. */}
-
-                      {/* El título y, al lado, sus marcas como íconos: en
-                          ensayo, con partitura. El autor no va acá: se ve al
-                          abrir el canto (el dueño, 2026-10-17). */}
-                      <span className="flex min-w-0 flex-1 items-center gap-2">
-                        <span className="truncate">{canto.titulo}</span>
-                        {marca && <MarcaEnsayo className="text-texto" />}
-                        {partitura && <MarcaPartitura className="text-texto-tenue" />}
-                        {veces.has(canto.id) && (
-                          <MarcaRepetida veces={veces.get(canto.id)!} className="text-peligro" />
-                        )}
-                      </span>
-
-                      {canto.tonalidadOriginal && (
-                        <span className="shrink-0 font-cifrado text-sm text-acorde">
-                          {canto.tonalidadOriginal}
-                        </span>
-                      )}
-                    </Link>
-                    {ordenando === grupo.codigo && (
-                      <form action={moverEnElMomento} className="flex shrink-0">
-                        <input type="hidden" name="cantoId" value={canto.id} />
-                        <input type="hidden" name="momento" value={grupo.codigo} />
-                        <button
-                          type="submit"
-                          name="direccion"
-                          value="arriba"
-                          disabled={i === 0}
-                          aria-label={`Subir ${canto.titulo}`}
-                          title="Subir"
-                          className={clasesBotonIcono('plano')}
-                        >
-                          <IconoSubir />
-                        </button>
-                        <button
-                          type="submit"
-                          name="direccion"
-                          value="abajo"
-                          disabled={i === grupo.cantos.length - 1}
-                          aria-label={`Bajar ${canto.titulo}`}
-                          title="Bajar"
-                          className={clasesBotonIcono('plano')}
-                        >
-                          <IconoBajar />
-                        </button>
-                      </form>
-                    )}
-                  </li>
-                )
-              })}
-            </ul>
-          </section>
-        ))}
+        {ordenable ? (
+          // La isla se vuelve a montar cuando el servidor trae otro orden: así
+          // arranca de lo guardado y no de lo que quedó en pantalla.
+          <RepertorioOrdenable
+            key={momentos.map((m) => `${m.codigo}:${m.cantos.join(',')}`).join(';')}
+            momentos={momentos}
+            filas={filas}
+          />
+        ) : (
+          momentos.map((m) => (
+            <section key={m.codigo} className="pt-6">
+              {/* El título de sección único de la app (sin mayúsculas
+                  espaciadas, que a 13 px y en tenue se leían lento). Sin
+                  contador: al lado de los números de canto se lee como uno más,
+                  y la cuenta total ya está al pie. */}
+              <TituloSeccion>{m.nombre}</TituloSeccion>
+              <ul className="mt-1">
+                {m.cantos.map((id) => (
+                  <FilaCanto key={id} canto={filas[id]} />
+                ))}
+              </ul>
+            </section>
+          ))
+        )}
 
         {/* Solo la cuenta. Los enlaces a historial, sugerencias y archivados
             que vivían en este pie se mudaron a «Más» (2026-10-17): al final de

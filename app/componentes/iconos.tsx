@@ -81,6 +81,12 @@ export const IconoCerrar = (p: Props) => (
   </Trazo>
 )
 
+export const IconoListo = (p: Props) => (
+  <Trazo {...p}>
+    <path d="M5 12.5l4.5 4.5L19 7.5" />
+  </Trazo>
+)
+
 export const IconoAgregar = (p: Props) => (
   <Trazo {...p}>
     <path d="M12 5v14M5 12h14" />
@@ -238,5 +244,16 @@ export const IconoLuna = (p: Props) => (
 export const IconoDesplegar = (p: Props) => (
   <Trazo {...p}>
     <path d="m6 9 6 6 6-6" />
+  </Trazo>
+)
+
+/**
+ * El asa para arrastrar un canto (⋮⋮, 2026-10-17): seis puntos en dos columnas.
+ * Los puntos son trazos de largo cero con la punta redonda, un poco más gruesos
+ * que el resto para que se vean como puntos y no como polvo.
+ */
+export const IconoAgarrar = (p: Props) => (
+  <Trazo {...p}>
+    <path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01" strokeWidth={2.75} />
   </Trazo>
 )

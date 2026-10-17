@@ -47,3 +47,26 @@ export function coincideBusqueda(canto: CantoBuscable, termino: string): boolean
   const pajar = `${normalizarBusqueda(canto.titulo)} ${normalizarBusqueda(canto.autor)}`
   return pajar.includes(aguja)
 }
+
+export type OpcionBuscable = {
+  texto: string
+  detalle?: string | null
+  /** Palabras con que alguien la buscaría y que la fila no muestra. */
+  claves?: readonly string[]
+}
+
+/**
+ * ¿Esta opción de una sección coincide con el término? (el dueño, 2026-10-17:
+ * la lupa de «Más» busca una herramienta, no una canción). Cada palabra del
+ * término tiene que estar en el nombre, el detalle o las claves, sin importar
+ * el orden: «tono nuevo» encuentra la fila que dice «dar el tono» y tiene la
+ * clave «cargar un canto nuevo». Un término vacío coincide con todo.
+ */
+export function coincideOpcion(opcion: OpcionBuscable, termino: string): boolean {
+  const palabras = normalizarBusqueda(termino).split(' ').filter(Boolean)
+  if (palabras.length === 0) return true
+  const pajar = normalizarBusqueda(
+    [opcion.texto, opcion.detalle ?? '', ...(opcion.claves ?? [])].join(' '),
+  )
+  return palabras.every((p) => pajar.includes(p))
+}

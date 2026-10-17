@@ -187,7 +187,7 @@ export default async function MisaPage({
             ) : (
               <Link
                 href={`/misas/${misa.id}/${misa.cantos[0].id}`}
-                className={clasesBotonIcono('lleno', 'mt-6 w-full gap-2 text-base')}
+                className={clasesBotonIcono('lleno', 'mt-6 h-12 w-full gap-2 !rounded-full text-base')}
               >
                 <IconoReproducir />
                 Empezar la misa

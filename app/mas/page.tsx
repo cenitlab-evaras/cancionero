@@ -1,11 +1,9 @@
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import type { ReactNode } from 'react'
 import { obtenerSesion } from '@/lib/sesion'
 import { puede } from '@/lib/permisos'
 import Cabecera from '@/app/componentes/cabecera'
 import BotonSalir from '@/app/componentes/boton-salir'
-import TituloSeccion from '@/app/componentes/titulo-seccion'
+import Opciones, { type Fila } from './opciones'
 import {
   IconoAdmin,
   IconoArchivo,
@@ -14,14 +12,11 @@ import {
   IconoMezcla,
   IconoMiembros,
   IconoPerfil,
-  IconoSeguir,
   IconoSugerencias,
   IconoRepertorio,
 } from '@/app/componentes/iconos'
 
 export const metadata = { title: 'Más · Cantoral' }
-
-type Fila = { href: string; texto: string; detalle?: string; icono: ReactNode }
 
 /**
  * Lo que no entra en los cuatro destinos de la barra (rediseño 2026-10-17).
@@ -30,6 +25,9 @@ type Fila = { href: string; texto: string; detalle?: string; icono: ReactNode }
  * Salir estaba a un toque en la cabecera, también en plena misa. Acá cada cosa
  * tiene su fila de 44 px, agrupada por para qué sirve, y solo aparece lo que la
  * matriz deja usar a esta persona.
+ *
+ * Sin «Buscar un canto» de la cabecera (el dueño, 2026-10-17): acá no se busca
+ * una canción sino una opción, y la lupa del título filtra estas filas.
  */
 export default async function MasPage() {
   const sesion = await obtenerSesion()
@@ -62,6 +60,7 @@ export default async function MasPage() {
     href: '/herramientas',
     texto: 'Herramientas',
     detalle: 'Quién canta cada estrofa, tu cuerda, dar el tono, Do-Re-Mi',
+    claves: puede(s, 'editar_canto') ? ['cargar un canto nuevo', 'agregar canción'] : [],
     icono: <IconoMezcla />,
   })
 
@@ -104,61 +103,20 @@ export default async function MasPage() {
 
   return (
     <>
-      <Cabecera sesion={sesion} />
+      <Cabecera sesion={sesion} buscador={false} />
 
       <main className="mx-auto w-full max-w-2xl px-4 pt-6 pb-10">
-        <h1 className="titulo-libro text-[1.75rem] leading-tight">Más</h1>
-        <p className="mt-1 text-sm text-texto-tenue">{sesion.email}</p>
-
-        <Grupo titulo="Planificar" filas={planificar} />
-        <Grupo titulo="El coro" filas={coro} />
-
-        <section className="mt-8">
-          <TituloSeccion>Tu cuenta</TituloSeccion>
-          <ul className="mt-2">
-            {cuenta.map((f) => (
-              <FilaMas key={f.href} fila={f} />
-            ))}
-            <li>
-              <BotonSalir />
-            </li>
-          </ul>
-        </section>
+        <Opciones
+          grupos={[
+            { titulo: 'Planificar', filas: planificar },
+            { titulo: 'El coro', filas: coro },
+            { titulo: 'Tu cuenta', filas: cuenta },
+          ]}
+          grupoDeSalir="Tu cuenta"
+          salir={<BotonSalir />}
+          arriba={<p className="mt-1 text-sm text-texto-tenue">{sesion.email}</p>}
+        />
       </main>
     </>
-  )
-}
-
-function Grupo({ titulo, filas }: { titulo: string; filas: Fila[] }) {
-  if (filas.length === 0) return null
-  return (
-    <section className="mt-8">
-      <TituloSeccion>{titulo}</TituloSeccion>
-      <ul className="mt-2">
-        {filas.map((f) => (
-          <FilaMas key={f.href} fila={f} />
-        ))}
-      </ul>
-    </section>
-  )
-}
-
-function FilaMas({ fila }: { fila: Fila }) {
-  return (
-    <li>
-      <Link
-        href={fila.href}
-        className="tactil flex items-center gap-4 rounded-lg px-3 py-2.5 transition-colors hover:bg-superficie"
-      >
-        <span className="text-texto-tenue">{fila.icono}</span>
-        <span className="min-w-0 flex-1">
-          <span className="block">{fila.texto}</span>
-          {fila.detalle && (
-            <span className="block truncate text-sm text-texto-tenue">{fila.detalle}</span>
-          )}
-        </span>
-        <IconoSeguir tamano={18} className="shrink-0 text-texto-tenue" />
-      </Link>
-    </li>
   )
 }

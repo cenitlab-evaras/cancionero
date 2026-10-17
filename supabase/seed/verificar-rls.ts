@@ -1312,6 +1312,38 @@ async function main() {
     await director.from('canto_momentos').update({ orden: original }).eq('id', vinculo!.id)
   }
 
+  // --- Acto 19: arrastrar un canto a otro momento (2026-10-17) ----------------
+  // Soltar un canto en otra sección cambia el `momento_id` de su vínculo. La
+  // política es la misma (`canto_momentos_write`): solo el director del coro.
+  {
+    const { data: vinculo } = await director
+      .from('canto_momentos')
+      .select('id, canto_id, momento_id')
+      .limit(1)
+      .single()
+    const { data: suyos } = await director.from('canto_momentos').select('momento_id').eq('canto_id', vinculo!.canto_id)
+    const { data: todos } = await director.from('momentos_liturgicos').select('id')
+    const ocupados = new Set((suyos ?? []).map((v) => v.momento_id))
+    const otro = (todos ?? []).find((m) => !ocupados.has(m.id))!.id
+
+    const { data: delMiembro } = await musico
+      .from('canto_momentos')
+      .update({ momento_id: otro })
+      .eq('id', vinculo!.id)
+      .select('id')
+    comprobar('musico@ no puede cambiar un canto de momento', (delMiembro?.length ?? 0) === 0, `${delMiembro?.length ?? 0} filas afectadas`)
+
+    const { data: delDirector } = await director
+      .from('canto_momentos')
+      .update({ momento_id: otro })
+      .eq('id', vinculo!.id)
+      .select('momento_id')
+    comprobar('director@ cambia un canto de momento', delDirector?.[0]?.momento_id === otro, `momento → ${delDirector?.[0]?.momento_id ?? '—'}`)
+
+    // Se deja como estaba.
+    await director.from('canto_momentos').update({ momento_id: vinculo!.momento_id }).eq('id', vinculo!.id)
+  }
+
   const fallidos = resultados.filter((r) => !r.ok)
   console.log(`\n${resultados.length - fallidos.length}/${resultados.length} comprobaciones en verde`)
   if (fallidos.length > 0) process.exit(1)

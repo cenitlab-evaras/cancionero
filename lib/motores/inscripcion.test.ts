@@ -3,7 +3,7 @@ import {
   APORTES,
   contarInstrumento,
   contarVoces,
-  INSTRUMENTOS,
+  INSTRUMENTOS_DEL_CORO,
   quienFalta,
   resumirCoro,
   sePuedeInscribir,
@@ -64,14 +64,26 @@ describe('validarInscripcion', () => {
     expect(r.ok).toBe(false)
   })
 
-  test('los dos aportes y todos los instrumentos de la lista pasan', () => {
-    for (const instrumento of INSTRUMENTOS) {
+  test('los dos aportes y los instrumentos que el coro ofrece pasan', () => {
+    for (const instrumento of INSTRUMENTOS_DEL_CORO) {
       expect(validarInscripcion({ aporte: 'instrumental', instrumento }).ok).toBe(true)
     }
     for (const aporte of APORTES) {
       const instrumento = aporte === 'instrumental' ? 'guitarra' : null
       expect(validarInscripcion({ aporte, instrumento }).ok).toBe(true)
     }
+  })
+})
+
+// El coro solo toca guitarra, percusión y flauta (el dueño, 2026-10-17).
+describe('instrumentos del coro', () => {
+  test('son guitarra, percusión y flauta', () => {
+    expect([...INSTRUMENTOS_DEL_CORO]).toEqual(['guitarra', 'percusion', 'flauta'])
+  })
+
+  test('uno que se ofrecía antes ya no se puede elegir', () => {
+    const r = validarInscripcion({ aporte: 'instrumental', instrumento: 'teclado' })
+    expect(r.ok).toBe(false)
   })
 })
 

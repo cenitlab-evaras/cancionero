@@ -31,6 +31,7 @@ import {
   type Hoja,
 } from './hoja'
 import { prepararHojaVerovio } from './hoja-verovio'
+import { leerVerPartitura, useVerPartitura } from './ver-partitura'
 
 /**
  * El reproductor de ensayo — H23, portado de `escuchar.html` (PRD §21.1: su
@@ -371,7 +372,7 @@ export default function Reproductor({
       await Promise.all(lista.map((a) => a.play()))
       setAviso(null)
       setSonando(true)
-      llevarALaVista(seccionHoja.current)
+      if (leerVerPartitura()) llevarALaVista(seccionHoja.current)
     } catch {
       for (const a of lista) a.pause()
       setSonando(false)
@@ -467,6 +468,11 @@ export default function Reproductor({
   // La fuente se baja una vez, la primera vez que se cambia de tono.
   const fuente = useRef<Promise<string> | null>(null)
 
+  // Ver la partitura o solo escuchar (`ver-partitura.ts`; el interruptor está
+  // en el renglón de las pestañas). Oculta, la hoja sigue armada debajo, así
+  // que vuelve al instante y sigue donde va la música.
+  const verPartitura = useVerPartitura()
+
   useEffect(() => {
     let vigente = true
     const destino = contenedor.current
@@ -513,10 +519,10 @@ export default function Reproductor({
   }, [material.urlPartitura, material.urlFuente, semitonos])
 
   // Lo que el bucle de dibujo necesita leer sin volver a armarse.
-  const vivo = useRef({ efectivos, frente })
+  const vivo = useRef({ efectivos, frente, verPartitura })
   useEffect(() => {
-    vivo.current = { efectivos, frente }
-  }, [efectivos, frente])
+    vivo.current = { efectivos, frente, verPartitura }
+  }, [efectivos, frente, verPartitura])
 
   useEffect(() => {
     let cuadro = 0
@@ -535,7 +541,7 @@ export default function Reproductor({
       }
       const t = r.currentTime * 1000
       const empezado = t > 0 || !r.paused
-      const { efectivos, frente } = vivo.current
+      const { efectivos, frente, verPartitura } = vivo.current
 
       // Los pentagramas se cuentan de arriba abajo DENTRO de cada página, y
       // una página puede tener varios sistemas: el pentagrama i es la cuerda
@@ -568,14 +574,15 @@ export default function Reproductor({
           // Se revisa en cada nota, no solo al cambiar de sistema (al empezar,
           // el primero puede estar abajo), pero sin mover la página de nuevo
           // mientras termina el desplazamiento anterior.
-          if (!r.paused && performance.now() - ultimoMovimiento > 700) {
+          // Con la partitura oculta no hay nada que seguir: la página se queda quieta.
+          if (verPartitura && !r.paused && performance.now() - ultimoMovimiento > 700) {
             const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches
             const abajo = barraAbajo.current?.getBoundingClientRect().top ?? innerHeight
             if (mantenerALaVista(h.paginas[c.p].marca, ALTO_CABECERA, abajo, !quieto)) {
               ultimoMovimiento = performance.now()
             }
           }
-          seguirConLaVista(h.paginas[c.p], c.x, !r.paused)
+          if (verPartitura) seguirConLaVista(h.paginas[c.p], c.x, !r.paused)
         }
         cursorActual = i
       }
@@ -706,8 +713,10 @@ export default function Reproductor({
           se mira mientras se canta: en una pantalla ancha sale de la columna de
           los controles y crece hasta 64rem, para que las notas se lean. */}
       <section
+        id="partitura"
         ref={seccionHoja}
         aria-label="Partitura"
+        hidden={!verPartitura}
         className="mt-3 scroll-mt-14 px-2 md:mx-[calc((100%_-_min(64rem,_100vw_-_2rem))_/_2)]"
       >
         {estadoHoja === 'cargando' && (

@@ -1,22 +1,28 @@
 import Link from 'next/link'
+import type { ReactNode } from 'react'
 
 /**
- * «Cifrado · Ensayar» — H23 (PRD §21.8: pestaña, no sección nueva).
+ * «Acordes · Partitura» — H23 (PRD §21.8: pestaña, no sección nueva). Se
+ * llamaban «Cifrado · Ensayar»; el dueño les puso estos nombres el 2026-10-17.
+ * La ruta sigue siendo `/ensayar`.
  *
  * Solo se dibuja si el canto tiene una partitura que esta persona puede ver:
- * un canto sin partitura no muestra «Ensayar» (§21.8, estados vacíos), y con
- * una sola pestaña no hay nada que elegir.
+ * un canto sin partitura no muestra «Partitura» (§21.8, estados vacíos), y con
+ * una sola pestaña no hay nada que elegir. `alLado` va a la derecha del
+ * renglón (el interruptor de la partitura).
  */
 export default function PestanasCanto({
   cantoId,
   activa,
+  alLado,
 }: {
   cantoId: string
   activa: 'cifrado' | 'ensayar'
+  alLado?: ReactNode
 }) {
   const pestanas = [
-    { clave: 'cifrado', texto: 'Cifrado', href: `/repertorio/${cantoId}` },
-    { clave: 'ensayar', texto: 'Ensayar', href: `/repertorio/${cantoId}/ensayar` },
+    { clave: 'cifrado', texto: 'Acordes', href: `/repertorio/${cantoId}` },
+    { clave: 'ensayar', texto: 'Partitura', href: `/repertorio/${cantoId}/ensayar` },
   ] as const
 
   return (
@@ -39,6 +45,7 @@ export default function PestanasCanto({
           </Link>
         )
       })}
+      {alLado}
     </nav>
   )
 }

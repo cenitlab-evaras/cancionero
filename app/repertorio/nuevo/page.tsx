@@ -42,11 +42,12 @@ export default async function NuevoCantoPage() {
     <>
       <Cabecera sesion={sesion} />
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 pt-6">
-        {/* Segundo nivel: se llega desde el repertorio y se vuelve a él. El
+        {/* Segundo nivel: se llega desde Herramientas (antes, desde el
+            repertorio; el dueño la mudó el 2026-10-17) y se vuelve ahí. El
             `-ml-3` alinea el trazo de la flecha con el borde del texto: lo que
             se toca es la caja de 44 px, no el dibujo. */}
         <div className="-ml-3 flex items-center gap-1">
-          <EnlaceIcono href="/repertorio" etiqueta="Volver al repertorio">
+          <EnlaceIcono href="/herramientas" etiqueta="Volver a Herramientas">
             <IconoVolver />
           </EnlaceIcono>
           <h1 className="titulo-libro min-w-0 text-[1.75rem] leading-tight">Canto nuevo</h1>

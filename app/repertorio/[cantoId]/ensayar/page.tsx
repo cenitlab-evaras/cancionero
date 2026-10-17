@@ -15,9 +15,10 @@ import { EnlaceIcono, clasesBotonIcono } from '@/app/componentes/boton-icono'
 import ConmutadorTema from '@/app/componentes/conmutador-tema'
 import { IconoVolver } from '@/app/componentes/iconos'
 import PestanasCanto from '../pestanas'
+import InterruptorPartitura from './interruptor-partitura'
 import Reproductor from './reproductor'
 
-export const metadata = { title: 'Ensayar · Cantoral' }
+export const metadata = { title: 'Partitura · Cantoral' }
 
 /**
  * H23 · Ensayar: el reproductor de la partitura publicada (PRD §21.7).
@@ -113,7 +114,7 @@ export default async function EnsayarPage({
           <ConmutadorTema />
         </div>
 
-        <PestanasCanto cantoId={canto.id} activa="ensayar" />
+        <PestanasCanto cantoId={canto.id} activa="ensayar" alLado={<InterruptorPartitura />} />
 
         <Reproductor
           material={material}

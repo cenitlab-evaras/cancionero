@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'vitest'
-import { moverEnLista, ordenarMomento } from './orden-en-el-momento'
+import { ordenarMomento, soltarCanto } from './orden-en-el-momento'
 
 /**
  * El orden de los cantos dentro de un momento (pedido del dueño, 2026-10-17):
- * el director los sube y los baja; lo que nunca se ordenó va al final, por título.
+ * el director los arrastra; lo que nunca se ordenó va al final, por título.
  */
 
 describe('ordenarMomento', () => {
@@ -27,20 +27,38 @@ describe('ordenarMomento', () => {
   })
 })
 
-describe('moverEnLista', () => {
-  const ids = ['a', 'b', 'c']
-
-  test('sube y baja un lugar', () => {
-    expect(moverEnLista(ids, 'b', 'arriba')).toEqual(['b', 'a', 'c'])
-    expect(moverEnLista(ids, 'b', 'abajo')).toEqual(['a', 'c', 'b'])
+// El director arrastra un canto con el dedo o el mouse (el dueño, 2026-10-17:
+// «el clásico mover con el dedo»), dentro de su momento o a otro.
+describe('soltarCanto', () => {
+  test('dentro del mismo momento lo deja en el lugar donde se suelta', () => {
+    const r = soltarCanto({ E: ['a', 'b', 'c'] }, { id: 'a', de: 'E', a: 'E', indice: 2 })
+    expect(r.E).toEqual(['b', 'c', 'a'])
   })
 
-  test('en los bordes no se mueve', () => {
-    expect(moverEnLista(ids, 'a', 'arriba')).toEqual(ids)
-    expect(moverEnLista(ids, 'c', 'abajo')).toEqual(ids)
+  test('a otro momento: sale del primero y entra al segundo en ese lugar', () => {
+    const r = soltarCanto({ E: ['a', 'b'], C: ['x', 'y'] }, { id: 'b', de: 'E', a: 'C', indice: 1 })
+    expect(r).toEqual({ E: ['a'], C: ['x', 'b', 'y'] })
   })
 
-  test('uno que no está deja la lista igual', () => {
-    expect(moverEnLista(ids, 'z', 'arriba')).toEqual(ids)
+  test('si ya estaba en el destino queda una sola vez, donde se soltó', () => {
+    const r = soltarCanto({ E: ['a', 'b'], C: ['b', 'x'] }, { id: 'b', de: 'E', a: 'C', indice: 2 })
+    expect(r).toEqual({ E: ['a'], C: ['x', 'b'] })
+  })
+
+  test('un lugar fuera de la lista se lleva al borde', () => {
+    expect(soltarCanto({ E: ['a', 'b'] }, { id: 'b', de: 'E', a: 'E', indice: -3 }).E).toEqual(['b', 'a'])
+    expect(soltarCanto({ E: ['a', 'b'] }, { id: 'a', de: 'E', a: 'E', indice: 9 }).E).toEqual(['b', 'a'])
+  })
+
+  test('un canto que no está en el origen, o un momento que no existe, no cambia nada', () => {
+    const listas = { E: ['a'], C: ['x'] }
+    expect(soltarCanto(listas, { id: 'z', de: 'E', a: 'C', indice: 0 })).toEqual(listas)
+    expect(soltarCanto(listas, { id: 'a', de: 'E', a: 'Q', indice: 0 })).toEqual(listas)
+  })
+
+  test('no toca las listas que recibe', () => {
+    const listas = { E: ['a', 'b'], C: ['x'] }
+    soltarCanto(listas, { id: 'a', de: 'E', a: 'C', indice: 0 })
+    expect(listas).toEqual({ E: ['a', 'b'], C: ['x'] })
   })
 })

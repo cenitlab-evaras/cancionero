@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { coincideBusqueda, normalizarBusqueda } from './busqueda'
+import { coincideBusqueda, coincideOpcion, normalizarBusqueda } from './busqueda'
 
 // RF-02 del funcional: la búsqueda coincide por título O por autor, sin
 // distinguir mayúsculas ni acentos.
@@ -71,5 +71,43 @@ describe('coincideBusqueda — por el número del cancionero (2026-10-17)', () =
 
   test('un canto sin número se sigue buscando por título', () => {
     expect(coincideBusqueda({ titulo: 'Himno 2025', numero: null }, '2025')).toBe(true)
+  })
+})
+
+// La lupa de una sección busca en lo que esa sección ofrece, no canciones
+// (el dueño, 2026-10-17: en «Más» se busca una herramienta).
+describe('coincideOpcion', () => {
+  const herramientas = {
+    texto: 'Herramientas',
+    detalle: 'Quién canta cada estrofa, tu cuerda, dar el tono',
+    claves: ['cargar un canto nuevo'],
+  }
+
+  test('encuentra por el nombre, sin acentos ni mayúsculas', () => {
+    expect(coincideOpcion(herramientas, 'HERRAMIENTA')).toBe(true)
+  })
+
+  test('encuentra por el detalle', () => {
+    expect(coincideOpcion(herramientas, 'quien canta')).toBe(true)
+  })
+
+  test('encuentra por una clave que no se muestra', () => {
+    expect(coincideOpcion(herramientas, 'canto nuevo')).toBe(true)
+  })
+
+  test('cada palabra puede estar en un lugar distinto', () => {
+    expect(coincideOpcion(herramientas, 'tono nuevo')).toBe(true)
+  })
+
+  test('no encuentra lo que no dice', () => {
+    expect(coincideOpcion(herramientas, 'miembros')).toBe(false)
+  })
+
+  test('sin detalle ni claves busca solo en el nombre', () => {
+    expect(coincideOpcion({ texto: 'Miembros' }, 'miem')).toBe(true)
+  })
+
+  test('un término vacío coincide con todo', () => {
+    expect(coincideOpcion({ texto: 'Miembros' }, '  ')).toBe(true)
   })
 })

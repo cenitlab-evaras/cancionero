@@ -8,7 +8,7 @@ import { obtenerSesion } from '@/lib/sesion'
 import { puede } from '@/lib/permisos'
 import { validarCanto, type Campo } from '@/lib/motores/validar-canto'
 import { ESTADOS_EDITABLES, normalizarEstado } from '@/lib/motores/estado-canto'
-import { moverEnLista, ordenarMomento } from '@/lib/motores/orden-en-el-momento'
+import { ordenarMomento, soltarCanto } from '@/lib/motores/orden-en-el-momento'
 
 /**
  * Alta y edición del repertorio (H8).
@@ -237,69 +237,121 @@ export async function desarchivarCanto(cantoId: string): Promise<ResultadoArchiv
 }
 
 /**
- * Sube o baja un canto un lugar dentro de su momento (pedido del dueño,
- * 2026-10-17). Viene de un formulario de la lista del repertorio, así que
- * funciona aunque no haya cargado el JavaScript.
+ * El director suelta un canto que arrastró con el dedo o el mouse (el dueño,
+ * 2026-10-17: «el clásico mover con el dedo o mouse. Y se puede cambiar de
+ * sección de la misa también»). `indice` es su lugar en el momento destino,
+ * contado sin él. Las listas se rearman con el MISMO motor que usa la pantalla
+ * (`soltarCanto`), así lo que se ve al soltar es lo que queda guardado.
  *
- * Se reescribe el lugar de TODOS los cantos visibles del momento (0, 1, 2…):
- * así lo que nunca se había ordenado queda fijo donde se veía, y no salta al
- * final cuando el de al lado pasa a tener número. Los archivados no cuentan.
+ * Se reescribe el lugar de TODOS los cantos visibles de los momentos tocados
+ * (0, 1, 2…): lo que nunca se había ordenado queda fijo donde se veía, y no
+ * salta al final cuando el de al lado pasa a tener número. Los archivados no
+ * cuentan.
+ *
+ * Cambiar de momento es cambiar el `momento_id` del vínculo; si el canto ya
+ * estaba también en el destino, el vínculo del origen se borra y queda el que
+ * ya había (unique canto–momento). La RLS (`canto_momentos_write`) vuelve a
+ * decidir en cada escritura.
  */
-const Mover = z.object({
+export type ResultadoSoltar = { ok: true } | { ok: false; error: string }
+
+const Soltar = z.object({
   cantoId: z.string().uuid(),
-  momento: z.string().min(1),
-  direccion: z.enum(['arriba', 'abajo']),
+  de: z.string().min(1),
+  a: z.string().min(1),
+  indice: z.number().int().min(0),
 })
 
-export async function moverEnElMomento(formulario: FormData): Promise<void> {
-  const datos = Mover.parse({
-    cantoId: formulario.get('cantoId'),
-    momento: formulario.get('momento'),
-    direccion: formulario.get('direccion'),
-  })
+const NO_PUEDE_ORDENAR = 'No tienes permiso para ordenar el repertorio de este coro.'
+const NO_SE_GUARDO = 'No pudimos guardar el orden. Vuelve a intentarlo.'
+
+export async function soltarEnElRepertorio(raw: unknown): Promise<ResultadoSoltar> {
+  const parseado = Soltar.safeParse(raw)
+  if (!parseado.success) return { ok: false, error: 'No entendimos a dónde soltaste el canto.' }
+  const datos = parseado.data
+
   const sesion = await obtenerSesion()
-  if (!sesion?.coroActivo || !puede(sesion.sujeto, 'editar_canto')) return
+  if (!sesion) return { ok: false, error: 'Tu sesión expiró. Vuelve a entrar.' }
+  if (!sesion.coroActivo) return { ok: false, error: 'No tienes un coro activo.' }
+  if (!puede(sesion.sujeto, 'editar_canto')) return { ok: false, error: NO_PUEDE_ORDENAR }
+  const coroId = sesion.coroActivo.id
 
   const supabase = await createClient()
-  const { data: momento } = await supabase
+  const { data: momentos } = await supabase
     .from('momentos_liturgicos')
-    .select('id')
-    .eq('codigo', datos.momento)
-    .maybeSingle()
-  if (!momento) return
+    .select('id, codigo')
+    .in('codigo', [...new Set([datos.de, datos.a])])
+  const idDe = momentos?.find((m) => m.codigo === datos.de)?.id as string | undefined
+  const idA = momentos?.find((m) => m.codigo === datos.a)?.id as string | undefined
+  if (!idDe || !idA) return { ok: false, error: 'Ese momento no existe.' }
 
-  const { data: vinculos } = await supabase
+  const { data: vinculos, error: errLeer } = await supabase
     .from('canto_momentos')
-    .select('id, canto_id, orden, cantos(titulo, estado)')
-    .eq('coro_id', sesion.coroActivo.id)
-    .eq('momento_id', momento.id)
-  const visibles = (vinculos ?? [])
-    .map((v) => {
-      const canto = v.cantos as unknown as { titulo: string; estado: string } | null
-      return {
+    .select('id, canto_id, momento_id, orden, cantos(titulo, estado)')
+    .eq('coro_id', coroId)
+    .in('momento_id', [...new Set([idDe, idA])])
+  if (errLeer) return { ok: false, error: NO_SE_GUARDO }
+
+  type Vinculo = { id: string; cantoId: string; momentoId: string; orden: number | null; titulo: string }
+  const visibles: Vinculo[] = (vinculos ?? []).flatMap((v) => {
+    const canto = v.cantos as unknown as { titulo: string; estado: string } | null
+    if (!canto || canto.estado === 'archivado') return []
+    return [
+      {
         id: v.id as string,
         cantoId: v.canto_id as string,
+        momentoId: v.momento_id as string,
         orden: v.orden as number | null,
-        titulo: canto?.titulo ?? '',
-        estado: canto?.estado,
-      }
-    })
-    .filter((v) => v.estado !== 'archivado')
+        titulo: canto.titulo,
+      },
+    ]
+  })
+  const delMomento = (momentoId: string) => ordenarMomento(visibles.filter((v) => v.momentoId === momentoId))
+  const enDe = delMomento(idDe)
+  const enA = delMomento(idA)
 
-  const ordenados = ordenarMomento(visibles)
-  const ids = moverEnLista(
-    ordenados.map((v) => v.cantoId),
-    datos.cantoId,
-    datos.direccion
+  const movido = enDe.find((v) => v.cantoId === datos.cantoId)
+  if (!movido) return { ok: false, error: 'Ese canto ya no está en ese momento. Recarga la página.' }
+
+  const listas = soltarCanto(
+    { [datos.de]: enDe.map((v) => v.cantoId), [datos.a]: enA.map((v) => v.cantoId) },
+    { id: datos.cantoId, de: datos.de, a: datos.a, indice: datos.indice }
   )
-  const porCanto = new Map(ordenados.map((v) => [v.cantoId, v]))
-  // La RLS vuelve a decidir: solo el director del coro escribe canto_momentos.
-  await Promise.all(
-    ids.map((cantoId, i) =>
-      porCanto.get(cantoId)!.orden === i
-        ? null
-        : supabase.from('canto_momentos').update({ orden: i }).eq('id', porCanto.get(cantoId)!.id)
+
+  // El vínculo de cada canto en el destino, con el lugar que tiene hoy. El
+  // movido entra con el suyo propio, o con el que ya tenía en el destino.
+  const enDestino = new Map(enA.map((v) => [v.cantoId, { id: v.id, orden: v.orden }]))
+
+  if (datos.de !== datos.a) {
+    const yaEstaba = enDestino.has(datos.cantoId)
+    const { data: cambiado, error } = yaEstaba
+      ? await supabase.from('canto_momentos').delete().eq('id', movido.id).select('id')
+      : await supabase.from('canto_momentos').update({ momento_id: idA }).eq('id', movido.id).select('id')
+    if (error) return { ok: false, error: NO_SE_GUARDO }
+    // Cero filas sin error es la RLS diciendo que no (§14).
+    if (!cambiado?.length) return { ok: false, error: NO_PUEDE_ORDENAR }
+    // Lo que traía del origen no vale en el destino: se escribe siempre.
+    if (!yaEstaba) enDestino.set(datos.cantoId, { id: movido.id, orden: null })
+  }
+
+  const enOrigen = new Map(enDe.map((v) => [v.cantoId, { id: v.id, orden: v.orden }]))
+  const cambios = [
+    ...listas[datos.a].map((cantoId, i) => ({ vinculo: enDestino.get(cantoId)!, orden: i })),
+    ...(datos.de === datos.a
+      ? []
+      : listas[datos.de].map((cantoId, i) => ({ vinculo: enOrigen.get(cantoId)!, orden: i }))),
+  ].filter((c) => c.vinculo.orden !== c.orden)
+
+  const resultados = await Promise.all(
+    cambios.map((c) =>
+      supabase.from('canto_momentos').update({ orden: c.orden }).eq('id', c.vinculo.id).select('id')
     )
   )
+  if (resultados.some((r) => r.error)) return { ok: false, error: NO_SE_GUARDO }
+  if (resultados.some((r) => !r.data?.length)) return { ok: false, error: NO_PUEDE_ORDENAR }
+
   revalidatePath('/repertorio')
+  // La ficha del canto lista sus momentos: si cambió de momento, también.
+  if (datos.de !== datos.a) revalidatePath(`/repertorio/${datos.cantoId}`)
+  return { ok: true }
 }
