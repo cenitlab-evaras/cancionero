@@ -8,6 +8,7 @@ import { obtenerSesion } from '@/lib/sesion'
 import { puede, type Capacidad } from '@/lib/permisos'
 import { ordenDeInsercion, reordenar } from '@/lib/motores/misa'
 import { validarInscripcion } from '@/lib/motores/inscripcion'
+import { esTonoDeMisa } from '@/lib/motores/tono-en-la-misa'
 import { obtenerMisa } from '@/lib/datos/misas'
 
 /**
@@ -321,5 +322,41 @@ export async function retirarMiInscripcion(misaId: string): Promise<Resultado> {
 
   revalidatePath(`/misas/${id.data}`)
   revalidatePath('/misas')
+  return { ok: true }
+}
+
+/**
+ * H27 · El tono en que va un canto en esta misa (`null` = sin fijar).
+ *
+ * Es escribir la fila de la misa, así que es del director (`asignar_cantos_misa`)
+ * y la RLS de `misa_cantos` lo vuelve a decidir. El `.select()` está para
+ * distinguir «no se pudo» de «la RLS dejó 0 filas»: un update que no toca nada
+ * no da error, y sin esto el director creería que quedó guardado.
+ */
+const CambiarTono = z.object({
+  misaId: z.string().uuid(),
+  filaId: z.string().uuid(),
+  transposicion: z.unknown().refine(esTonoDeMisa),
+})
+
+export async function cambiarTono(raw: unknown): Promise<Resultado> {
+  const datos = CambiarTono.safeParse(raw)
+  if (!datos.success) return { ok: false, error: 'Ese tono no está disponible.' }
+
+  const ctx = await exigir('asignar_cantos_misa')
+  if (!ctx.ok) return ctx
+
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('misa_cantos')
+    .update({ transposicion: datos.data.transposicion as number | null })
+    .eq('id', datos.data.filaId)
+    .eq('misa_id', datos.data.misaId)
+    .select('id')
+
+  if (error || !data?.length) return { ok: false, error: 'No pudimos cambiar el tono.' }
+
+  revalidatePath(`/misas/${datos.data.misaId}`, 'layout')
+  revalidatePath('/')
   return { ok: true }
 }

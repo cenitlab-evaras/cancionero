@@ -7,6 +7,7 @@ import { TAMANO_MAX, TAMANO_MIN, cambiarTamano } from '@/lib/motores/tamano-letr
 import { BotonIcono } from '@/app/componentes/boton-icono'
 import { IconoAgregar, IconoPausa, IconoQuitar, IconoReproducir } from '@/app/componentes/iconos'
 import { guardarTamanoLetra, guardarTransposicion } from './acciones'
+import { cambiarTono } from '@/app/misas/acciones'
 import { Velocidad, useAutoScroll } from './auto-scroll'
 
 /**
@@ -36,6 +37,7 @@ export default function Controles({
   tamanoLetra,
   tonalidadActual,
   mostrarAcordes = true,
+  misa,
 }: {
   cantoId: string
   coroId: string
@@ -47,6 +49,13 @@ export default function Controles({
    * pantalla: el bloque entero se retira. La preferencia guardada NO se toca.
    */
   mostrarAcordes?: boolean
+  /**
+   * H27 · Dentro de una misa. Con el tono de la misa fijado, ese es el que se
+   * ve, y solo el director lo cambia: sus botones escriben la fila de la misa,
+   * no su preferencia personal. El resto ve el tono y su origen, sin botones.
+   * Sin fijar, la barra es la de siempre: el tono personal.
+   */
+  misa?: { misaId: string; filaId: string; fijado: boolean; puedeFijar: boolean }
 }) {
   const router = useRouter()
   const [, iniciarTransicion] = useTransition()
@@ -60,14 +69,23 @@ export default function Controles({
     return () => clearTimeout(t)
   }, [aviso])
 
-  function transponer(nueva: number) {
+  function transponer(nueva: number | null) {
     iniciarTransicion(async () => {
-      aplicarOptimista({ ...optimista, transposicion: nueva })
-      const r = await guardarTransposicion({ cantoId, coroId, transposicion: nueva })
+      if (nueva !== null) aplicarOptimista({ ...optimista, transposicion: nueva })
+      const r = misa?.puedeFijar
+        ? await cambiarTono({ misaId: misa.misaId, filaId: misa.filaId, transposicion: nueva })
+        : await guardarTransposicion({ cantoId, coroId, transposicion: nueva ?? 0 })
       if (!r.ok) setAviso(r.error)
       router.refresh()
     })
   }
+
+  // H27 · El tono lo fijó el director para esta misa y quien mira no puede
+  // cambiarlo: se muestra, pero sin botones que harían creer que sí.
+  const soloVer = !!misa?.fijado && !misa.puedeFijar
+  // El director, con el tono fijado: tocar la tonalidad lo quita (vuelve a
+  // «cada uno con el suyo»), igual que tocarla fuera de la misa vuelve al original.
+  const quitaElDeLaMisa = !!misa?.fijado && misa.puedeFijar
 
   function tamano(direccion: 1 | -1) {
     const nuevo = cambiarTamano(optimista.tamanoLetra, direccion)
@@ -111,40 +129,56 @@ export default function Controles({
           // Transponer: la tonalidad al centro, que es el dato que se mira de
           // reojo. Tocarla vuelve al original.
           <div className="flex min-w-0 flex-1 items-center justify-center gap-1">
-            <BotonIcono
-              etiqueta="Bajar un semitono"
-              apariencia="borde"
-              onClick={() => transponer(normalizarSemitonos(optimista.transposicion - 1))}
-            >
-              <IconoQuitar />
-            </BotonIcono>
+            {!soloVer && (
+              <BotonIcono
+                etiqueta={misa?.puedeFijar ? 'Bajar el tono de la misa' : 'Bajar un semitono'}
+                apariencia="borde"
+                onClick={() => transponer(normalizarSemitonos(optimista.transposicion - 1))}
+              >
+                <IconoQuitar />
+              </BotonIcono>
+            )}
 
             <button
               type="button"
-              onClick={() => !enOriginal && transponer(0)}
-              disabled={enOriginal}
+              onClick={() =>
+                quitaElDeLaMisa ? transponer(null) : !enOriginal && !soloVer && transponer(0)
+              }
+              disabled={soloVer || (enOriginal && !quitaElDeLaMisa)}
               aria-label={
-                enOriginal
-                  ? `Tonalidad original, ${tonalidadActual ?? 'sin tonalidad'}`
-                  : `En ${tonalidadActual}, ${signo} semitonos. Volver a la original`
+                misa?.fijado
+                  ? `Tono de la misa, ${tonalidadActual ?? `${signo} semitonos`}${
+                      quitaElDeLaMisa ? '. Quitarlo para que cada uno vea el suyo' : ''
+                    }`
+                  : enOriginal
+                    ? `Tonalidad original, ${tonalidadActual ?? 'sin tonalidad'}`
+                    : `En ${tonalidadActual}, ${signo} semitonos. Volver a la original`
               }
               className="tactil flex min-w-14 flex-col items-center justify-center rounded-lg px-1 disabled:cursor-default"
             >
               <span className="font-cifrado text-lg leading-none font-bold text-acorde">
-                {tonalidadActual ?? '—'}
+                {tonalidadActual ?? (misa?.fijado ? signo : '—')}
               </span>
               <span className="mt-1 text-xs leading-none text-texto-tenue">
-                {enOriginal ? 'original' : `${signo} · volver`}
+                {misa?.fijado
+                  ? quitaElDeLaMisa
+                    ? 'de la misa · quitar'
+                    : 'de la misa'
+                  : enOriginal
+                    ? 'original'
+                    : `${signo} · volver`}
               </span>
             </button>
 
-            <BotonIcono
-              etiqueta="Subir un semitono"
-              apariencia="borde"
-              onClick={() => transponer(normalizarSemitonos(optimista.transposicion + 1))}
-            >
-              <IconoAgregar />
-            </BotonIcono>
+            {!soloVer && (
+              <BotonIcono
+                etiqueta={misa?.puedeFijar ? 'Subir el tono de la misa' : 'Subir un semitono'}
+                apariencia="borde"
+                onClick={() => transponer(normalizarSemitonos(optimista.transposicion + 1))}
+              >
+                <IconoAgregar />
+              </BotonIcono>
+            )}
           </div>
         ) : (
           <span className="flex-1" />

@@ -6,6 +6,7 @@ import { partituraPublicada } from '@/lib/datos/partitura'
 import { obtenerMisa } from '@/lib/datos/misas'
 import { obtenerCanto, obtenerTransposicion, preferenciasDelPerfil } from '@/lib/datos/repertorio'
 import { recorrido } from '@/lib/motores/misa'
+import { tonoEnLaMisa } from '@/lib/motores/tono-en-la-misa'
 import { transponer, transponerAcorde } from '@/lib/motores/transponer'
 import { acordesDeCanto } from '@/lib/motores/acordes-de-canto'
 import { buscarDigitacion } from '@/lib/motores/buscar-digitacion'
@@ -77,7 +78,7 @@ export default async function EjecucionPage({
   const fila = misa.cantos.find((c) => c.id === filaId)
   if (!fila) redirect(`/misas/${id}`)
 
-  const [canto, transposicion, perfil, partitura] = await Promise.all([
+  const [canto, transposicionPersonal, perfil, partitura] = await Promise.all([
     obtenerCanto(fila.cantoId),
     obtenerTransposicion(fila.cantoId),
     preferenciasDelPerfil(),
@@ -87,6 +88,10 @@ export default async function EjecucionPage({
   if (!canto) redirect(`/misas/${id}`)
 
   const { mostrarAcordes, tamanoLetra } = perfil
+  // H27 · En la misa manda el tono que fijó el director para ESTA fila; sin
+  // fijar, el personal de cada uno, como antes.
+  const tono = tonoEnLaMisa(fila.tonoDeMisa, transposicionPersonal)
+  const transposicion = tono.semitonos
   const paso = recorrido(misa.cantos, filaId)
   const siguiente = paso.siguiente ? misa.cantos.find((c) => c.id === paso.siguiente) : null
 
@@ -218,6 +223,12 @@ export default async function EjecucionPage({
             tamanoLetra={tamanoLetra}
             tonalidadActual={tonalidadActual}
             mostrarAcordes={mostrarAcordes}
+            misa={{
+              misaId: misa.id,
+              filaId: fila.id,
+              fijado: tono.fijado,
+              puedeFijar: puede(sesion.sujeto, 'asignar_cantos_misa'),
+            }}
           />
         </div>
       </ProveedorDiagramas>

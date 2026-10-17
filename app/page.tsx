@@ -8,6 +8,7 @@ import { inscritosDeMisa } from '@/lib/datos/inscripciones'
 import { hoyISO } from '@/lib/datos/historial'
 import { misaDeInicio } from '@/lib/motores/agenda'
 import { cuantoFalta, fechaLarga } from '@/lib/motores/fecha'
+import { tonalidadDeLaFila } from '@/lib/motores/tono-en-la-misa'
 import Cabecera from '@/app/componentes/cabecera'
 import TituloSeccion from '@/app/componentes/titulo-seccion'
 import { clasesBotonIcono } from '@/app/componentes/boton-icono'
@@ -81,7 +82,14 @@ export default async function Inicio() {
                 {misa.cantos.map((c) => (
                   <li key={c.id} className="flex items-baseline gap-3">
                     <span className="w-24 shrink-0 text-sm text-texto-tenue">{c.momentoNombre}</span>
-                    <span className="min-w-0 truncate">{c.titulo}</span>
+                    <span className="min-w-0 flex-1 truncate">{c.titulo}</span>
+                    {/* H27 · solo si el director fijó el tono para esta misa:
+                        es el dato que quien toca necesita saber antes de llegar. */}
+                    {c.tonoDeMisa !== null && tonalidadDeLaFila(c.tonalidadOriginal, c.tonoDeMisa) && (
+                      <span className="shrink-0 font-cifrado text-sm text-acorde">
+                        {tonalidadDeLaFila(c.tonalidadOriginal, c.tonoDeMisa)}
+                      </span>
+                    )}
                   </li>
                 ))}
               </ol>

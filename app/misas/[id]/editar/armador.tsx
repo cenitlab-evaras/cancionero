@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { agregarCanto, moverCanto, quitarCanto } from '../../acciones'
+import { agregarCanto, cambiarTono, moverCanto, quitarCanto } from '../../acciones'
+import { cambiarTonoDeMisa, tonalidadDeLaFila } from '@/lib/motores/tono-en-la-misa'
 import type { CantoDeMisa } from '@/lib/datos/misas'
 import type { FilaDelRanking } from '@/lib/motores/sugerencia'
 
@@ -52,6 +53,11 @@ export default function Armador({
       if (!r.ok) setError(r.error ?? 'No pudimos guardar el cambio.')
       router.refresh()
     })
+  }
+
+  /** H27 · `null` quita el tono fijado: cada uno vuelve a ver el suyo. */
+  function fijarTono(filaId: string, transposicion: number | null) {
+    correr(() => cambiarTono({ misaId, filaId, transposicion }))
   }
 
   // Agrupado por momento para que el director busque como piensa la misa.
@@ -133,43 +139,82 @@ export default function Armador({
               borde y separado por un hueco: antes eran tres glifos de 36 px
               pegados y el ✕ rojo quedaba a un dedo del ↓. */}
           {asignados.map((c, i) => (
-            <li key={c.id} className="flex min-h-14 items-center gap-2 py-2">
-              <span className="min-w-0 flex-1">
-                <span className="block truncate">{c.titulo}</span>
-                <span className="block truncate text-sm text-texto-tenue">{c.momentoNombre}</span>
-              </span>
+            <li key={c.id} className="py-2">
+              <div className="flex min-h-11 items-center gap-2">
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate">{c.titulo}</span>
+                  <span className="block truncate text-sm text-texto-tenue">{c.momentoNombre}</span>
+                </span>
 
-              <BotonIcono
-                etiqueta={`Subir ${c.titulo}`}
-                apariencia="borde"
-                onClick={() =>
-                  correr(() => moverCanto({ misaId, filaId: c.id, direccion: 'arriba' }))
-                }
-                disabled={i === 0 || pendiente}
-              >
-                <IconoSubir tamano={18} />
-              </BotonIcono>
-              <BotonIcono
-                etiqueta={`Bajar ${c.titulo}`}
-                apariencia="borde"
-                onClick={() =>
-                  correr(() => moverCanto({ misaId, filaId: c.id, direccion: 'abajo' }))
-                }
-                disabled={i === asignados.length - 1 || pendiente}
-              >
-                <IconoBajar tamano={18} />
-              </BotonIcono>
-              <BotonIcono
-                etiqueta={`Quitar ${c.titulo} de la misa`}
-                onClick={() => correr(() => quitarCanto({ misaId, filaId: c.id }))}
-                disabled={pendiente}
-                // La única acción destructiva del producto tiene el único color
-                // de peligro (PRD §11.1). Quitar de una misa no borra el
-                // canto del repertorio.
-                className="ml-3 !text-peligro"
-              >
-                <IconoQuitar tamano={18} />
-              </BotonIcono>
+                <BotonIcono
+                  etiqueta={`Subir ${c.titulo}`}
+                  apariencia="borde"
+                  onClick={() =>
+                    correr(() => moverCanto({ misaId, filaId: c.id, direccion: 'arriba' }))
+                  }
+                  disabled={i === 0 || pendiente}
+                >
+                  <IconoSubir tamano={18} />
+                </BotonIcono>
+                <BotonIcono
+                  etiqueta={`Bajar ${c.titulo}`}
+                  apariencia="borde"
+                  onClick={() =>
+                    correr(() => moverCanto({ misaId, filaId: c.id, direccion: 'abajo' }))
+                  }
+                  disabled={i === asignados.length - 1 || pendiente}
+                >
+                  <IconoBajar tamano={18} />
+                </BotonIcono>
+                <BotonIcono
+                  etiqueta={`Quitar ${c.titulo} de la misa`}
+                  onClick={() => correr(() => quitarCanto({ misaId, filaId: c.id }))}
+                  disabled={pendiente}
+                  // La única acción destructiva del producto tiene el único color
+                  // de peligro (PRD §11.1). Quitar de una misa no borra el
+                  // canto del repertorio.
+                  className="ml-3 !text-peligro"
+                >
+                  <IconoQuitar tamano={18} />
+                </BotonIcono>
+              </div>
+
+              {/* H27 · En qué tono va este canto en ESTA misa. Sin fijar, cada
+                  uno lo ve en su tono personal; fijado, todos lo ven en este. */}
+              <div className="mt-1.5 flex items-center gap-2">
+                <span className="w-12 shrink-0 text-sm text-texto-tenue">Tono</span>
+                <BotonIcono
+                  etiqueta={`Bajar el tono de ${c.titulo} en esta misa`}
+                  apariencia="borde"
+                  disabled={pendiente}
+                  onClick={() => fijarTono(c.id, cambiarTonoDeMisa(c.tonoDeMisa, -1))}
+                >
+                  <IconoQuitar tamano={18} />
+                </BotonIcono>
+                <span className="min-w-12 text-center font-cifrado font-bold text-acorde">
+                  {tonalidadDeLaFila(c.tonalidadOriginal, c.tonoDeMisa) ?? semitonos(c.tonoDeMisa)}
+                </span>
+                <BotonIcono
+                  etiqueta={`Subir el tono de ${c.titulo} en esta misa`}
+                  apariencia="borde"
+                  disabled={pendiente}
+                  onClick={() => fijarTono(c.id, cambiarTonoDeMisa(c.tonoDeMisa, 1))}
+                >
+                  <IconoAgregar tamano={18} />
+                </BotonIcono>
+                {c.tonoDeMisa === null ? (
+                  <span className="text-sm text-texto-tenue">sin fijar</span>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={pendiente}
+                    onClick={() => fijarTono(c.id, null)}
+                    className="tactil px-2 text-sm text-texto-tenue underline underline-offset-2 hover:text-texto disabled:opacity-40"
+                  >
+                    Quitar
+                  </button>
+                )}
+              </div>
             </li>
           ))}
         </ol>
@@ -258,4 +303,10 @@ export default function Armador({
       )}
     </div>
   )
+}
+
+/** Un canto sin tonalidad original declarada: el tono de la misa en semitonos. */
+function semitonos(n: number | null): string {
+  if (!n) return n === 0 ? 'original' : '—'
+  return n > 0 ? `+${n}` : String(n)
 }

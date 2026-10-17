@@ -19,6 +19,7 @@ import {
 } from '@/lib/motores/inscripcion'
 import { etiquetaDisponibilidad } from '@/lib/motores/ficha'
 import { fechaLarga } from '@/lib/motores/fecha'
+import { tonalidadDeLaFila } from '@/lib/motores/tono-en-la-misa'
 import Cabecera from '@/app/componentes/cabecera'
 import TituloSeccion from '@/app/componentes/titulo-seccion'
 import { EnlaceIcono, clasesBotonIcono } from '@/app/componentes/boton-icono'
@@ -164,9 +165,11 @@ export default async function MisaPage({
                       <span className="block truncate text-base">{c.titulo}</span>
                       <span className="block text-sm text-texto-tenue">{c.momentoNombre}</span>
                     </span>
-                    {c.tonalidadOriginal && (
+                    {/* H27 · el tono en que va EN ESTA MISA, si el director
+                        lo fijó; si no, el original del cifrado. */}
+                    {tonalidadDeLaFila(c.tonalidadOriginal, c.tonoDeMisa) && (
                       <span className="shrink-0 font-cifrado text-sm text-acorde">
-                        {c.tonalidadOriginal}
+                        {tonalidadDeLaFila(c.tonalidadOriginal, c.tonoDeMisa)}
                       </span>
                     )}
                   </Link>

@@ -31,6 +31,11 @@ export type CantoDeMisa = {
   momentoNombre: string
   momentoOrden: number
   orden: number
+  /**
+   * H27 · El tono en que va este canto EN ESTA MISA, en semitonos respecto del
+   * cifrado. `null` = sin fijar: cada persona ve su tono personal.
+   */
+  tonoDeMisa: number | null
 }
 
 export type MisaCompleta = {
@@ -45,6 +50,7 @@ type FilaCanto = {
   id: string
   canto_id: string
   orden: number
+  transposicion: number | null
   momentos_liturgicos: { nombre: string; orden: number } | null
   cantos: {
     titulo: string
@@ -105,7 +111,7 @@ export async function obtenerMisa(misaId: string): Promise<MisaCompleta | null> 
   const { data, error } = await supabase
     .from('misas')
     .select(
-      'id, nombre, fecha, coro_id, misa_cantos(id, canto_id, orden, momentos_liturgicos(nombre, orden), cantos(titulo, tonalidad_original, fuente_numero, autores(nombre)))'
+      'id, nombre, fecha, coro_id, misa_cantos(id, canto_id, orden, transposicion, momentos_liturgicos(nombre, orden), cantos(titulo, tonalidad_original, fuente_numero, autores(nombre)))'
     )
     .eq('id', misaId)
     .maybeSingle()
@@ -131,6 +137,7 @@ export async function obtenerMisa(misaId: string): Promise<MisaCompleta | null> 
         momentoNombre: f.momentos_liturgicos?.nombre ?? '—',
         momentoOrden: f.momentos_liturgicos?.orden ?? 0,
         orden: f.orden,
+        tonoDeMisa: f.transposicion,
       }))
       // El orden que se ve es el que se guardó: se ordena acá y no se confía
       // en cómo vino el anidado de PostgREST.

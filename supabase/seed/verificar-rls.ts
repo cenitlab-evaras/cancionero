@@ -1250,6 +1250,41 @@ async function main() {
     }
   }
 
+  // --- Acto 17: H27 · el tono de cada canto en la misa ------------------------
+  //
+  // Sin política nueva: fijar el tono es escribir la fila de `misa_cantos`, que
+  // ya es solo del director. Se comprueba en vez de suponerlo, y con la columna
+  // nueva, que es la que esta vez importa.
+  {
+    const { data: fila } = await director.from('misa_cantos').select('id, transposicion').limit(1).single()
+    const original = fila!.transposicion as number | null
+
+    const { data: delMiembro } = await musico
+      .from('misa_cantos')
+      .update({ transposicion: 3 })
+      .eq('id', fila!.id)
+      .select('id')
+    comprobar('musico@ no puede fijar el tono de un canto en la misa', (delMiembro?.length ?? 0) === 0, `${delMiembro?.length ?? 0} filas afectadas`)
+
+    const { data: delDirector } = await director
+      .from('misa_cantos')
+      .update({ transposicion: 1 })
+      .eq('id', fila!.id)
+      .select('transposicion')
+    const { data: loVeElMiembro } = await musico.from('misa_cantos').select('transposicion').eq('id', fila!.id).single()
+    comprobar(
+      'director@ fija el tono y el miembro lo lee',
+      delDirector?.[0]?.transposicion === 1 && loVeElMiembro?.transposicion === 1,
+      `director → ${delDirector?.[0]?.transposicion ?? '—'} · musico lee ${loVeElMiembro?.transposicion ?? '—'}`
+    )
+
+    const { error: fueraDeRango } = await director.from('misa_cantos').update({ transposicion: 12 }).eq('id', fila!.id)
+    comprobar('ni el director guarda un tono fuera de −11…11', !!fueraDeRango, fueraDeRango?.message ?? 'se guardó')
+
+    // Se deja como estaba.
+    await director.from('misa_cantos').update({ transposicion: original }).eq('id', fila!.id)
+  }
+
   const fallidos = resultados.filter((r) => !r.ok)
   console.log(`\n${resultados.length - fallidos.length}/${resultados.length} comprobaciones en verde`)
   if (fallidos.length > 0) process.exit(1)
