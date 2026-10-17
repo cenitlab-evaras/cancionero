@@ -30,15 +30,20 @@ export function normalizarBusqueda(texto: string | null | undefined): string {
 export type CantoBuscable = {
   titulo: string
   autor?: string | null
+  /** El número en el cancionero impreso: el coro busca de memoria «el 34». */
+  numero?: number | null
 }
 
 /**
- * ¿Este canto coincide con el término? Compara contra título y autor.
+ * ¿Este canto coincide con el término? Compara contra título y autor, y si el
+ * término es solo un número, también contra el número del cancionero, EXACTO:
+ * buscar «3» no debe traer el 34, el 35 y el 136.
  * Un término vacío coincide con todo: no filtra nada.
  */
 export function coincideBusqueda(canto: CantoBuscable, termino: string): boolean {
   const aguja = normalizarBusqueda(termino)
   if (aguja === '') return true
+  if (/^\d+$/.test(aguja) && canto.numero != null && String(canto.numero) === aguja) return true
   const pajar = `${normalizarBusqueda(canto.titulo)} ${normalizarBusqueda(canto.autor)}`
   return pajar.includes(aguja)
 }

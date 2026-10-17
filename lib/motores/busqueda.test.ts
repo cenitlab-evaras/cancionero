@@ -55,3 +55,21 @@ describe('coincideBusqueda', () => {
     expect(coincideBusqueda(abreTuJardin, 'tu jar')).toBe(true)
   })
 })
+
+describe('coincideBusqueda — por el número del cancionero (2026-10-17)', () => {
+  // El coro busca de memoria por el número del libro: «el 34».
+  const alfarero = { titulo: 'El Alfarero', autor: null, numero: 34 }
+
+  test('un término que es solo un número encuentra el canto con ese número', () => {
+    expect(coincideBusqueda(alfarero, '34')).toBe(true)
+    expect(coincideBusqueda(alfarero, ' 34 ')).toBe(true)
+  })
+
+  test('el número es exacto: 3 no encuentra el 34', () => {
+    expect(coincideBusqueda(alfarero, '3')).toBe(false)
+  })
+
+  test('un canto sin número se sigue buscando por título', () => {
+    expect(coincideBusqueda({ titulo: 'Himno 2025', numero: null }, '2025')).toBe(true)
+  })
+})

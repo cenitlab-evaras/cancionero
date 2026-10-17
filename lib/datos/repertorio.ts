@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { coincideBusqueda } from '@/lib/motores/busqueda'
+import { coincideBusqueda, normalizarBusqueda } from '@/lib/motores/busqueda'
 import { normalizarEstado, type EstadoCanto } from '@/lib/motores/estado-canto'
 import { TAMANO_POR_DEFECTO, esTamanoValido } from '@/lib/motores/tamano-letra'
 
@@ -73,7 +73,7 @@ export async function repertorioPorMomento(
 
   for (const fila of (data ?? []) as unknown as FilaCanto[]) {
     const autor = fila.autores?.nombre ?? null
-    if (!coincideBusqueda({ titulo: fila.titulo, autor }, busqueda)) continue
+    if (!coincideBusqueda({ titulo: fila.titulo, autor, numero: fila.fuente_numero }, busqueda)) continue
 
     const canto: CantoDeLista = {
       id: fila.id,
@@ -349,4 +349,64 @@ export async function contarArchivados(coroId: string): Promise<number> {
 
   if (error) throw error
   return count ?? 0
+}
+
+export type CantoEncontrado = {
+  id: string
+  titulo: string
+  autor: string | null
+  fuenteNumero: number | null
+  tonalidadOriginal: string | null
+}
+
+/**
+ * La búsqueda de la cabecera, mientras se escribe (2026-10-17).
+ *
+ * Los mismos cantos y la misma regla que el repertorio (`coincideBusqueda`:
+ * sin tildes, sin mayúsculas, y el número del cancionero exacto), pero una
+ * lista plana y corta: es para encontrar uno y entrar, no para recorrer.
+ * Primero los que EMPIEZAN con lo escrito, después los que lo contienen.
+ */
+export async function buscarCantos(coroId: string, termino: string, limite = 8): Promise<CantoEncontrado[]> {
+  const aguja = normalizarBusqueda(termino)
+  if (aguja === '') return []
+
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('cantos')
+    .select('id, titulo, tonalidad_original, fuente_numero, autores(nombre)')
+    .eq('coro_id', coroId)
+    .neq('estado', 'archivado')
+    .order('titulo', { ascending: true })
+  if (error) throw error
+
+  type Fila = {
+    id: string
+    titulo: string
+    tonalidad_original: string | null
+    fuente_numero: number | null
+    autores: { nombre: string } | null
+  }
+  const encontrados = ((data ?? []) as unknown as Fila[])
+    .filter((f) =>
+      coincideBusqueda({ titulo: f.titulo, autor: f.autores?.nombre, numero: f.fuente_numero }, termino)
+    )
+    .map((f) => ({
+      id: f.id,
+      titulo: f.titulo,
+      autor: f.autores?.nombre ?? null,
+      fuenteNumero: f.fuente_numero,
+      tonalidadOriginal: f.tonalidad_original,
+      empieza: normalizarBusqueda(f.titulo).startsWith(aguja) || String(f.fuente_numero) === aguja,
+    }))
+
+  return [...encontrados.filter((e) => e.empieza), ...encontrados.filter((e) => !e.empieza)]
+    .slice(0, limite)
+    .map((e) => ({
+      id: e.id,
+      titulo: e.titulo,
+      autor: e.autor,
+      fuenteNumero: e.fuenteNumero,
+      tonalidadOriginal: e.tonalidadOriginal,
+    }))
 }

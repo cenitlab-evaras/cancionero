@@ -1,7 +1,9 @@
 import Link from 'next/link'
 import type { SesionCantoral } from '@/lib/sesion'
+import { nombreDelRol } from '@/lib/permisos'
 import EscudoCoro from './escudo-coro'
 import BarraNav from './barra-nav'
+import BuscadorGlobal from './buscador-global'
 
 /**
  * La cabecera de las pantallas de gestión, y su barra de navegación abajo.
@@ -21,9 +23,24 @@ import BarraNav from './barra-nav'
  *
  * Los `sticky` que cuelgan debajo de esta cabecera usan `top-14`: si cambia
  * el alto, cambian con él.
+ *
+ * Desde el 2026-10-17, a pedido del dueño, la fila fija suma a la derecha el
+ * ROL con que se está mirando («Director», «Miembro»…): había quedado como
+ * `ajeno@` sin saberlo y una pantalla vacía parecía una falla. Y debajo, fuera
+ * de la parte fija, una barra para buscar un canto desde cualquier pantalla,
+ * con los resultados apareciendo mientras se escribe (`buscador-global.tsx`).
+ * El repertorio la apaga (`buscador`) porque ya tiene la suya, fija bajo esta
+ * fila.
  */
-export default function Cabecera({ sesion }: { sesion: SesionCantoral }) {
+export default function Cabecera({
+  sesion,
+  buscador = true,
+}: {
+  sesion: SesionCantoral
+  buscador?: boolean
+}) {
   const coro = sesion.coroActivo
+  const rol = nombreDelRol(sesion.sujeto)
 
   return (
     <>
@@ -40,8 +57,19 @@ export default function Cabecera({ sesion }: { sesion: SesionCantoral }) {
           ) : (
             <span className="titulo-libro text-[1.0625rem]">Cantoral</span>
           )}
+
+          <Link
+            href="/mas"
+            title={`Entraste como ${sesion.email}`}
+            aria-label={`Entraste como ${rol}, ${sesion.email}. Ver tu cuenta`}
+            className="tactil ml-auto flex shrink-0 items-center rounded-lg border border-borde-fuerte px-2.5 text-sm text-texto-tenue transition-colors hover:text-texto"
+          >
+            {rol}
+          </Link>
         </div>
       </header>
+
+      {buscador && sesion.coroActivo && <BuscadorGlobal />}
 
       <BarraNav sesion={sesion} />
     </>

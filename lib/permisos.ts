@@ -299,3 +299,22 @@ export function alcance(rol: Rol): 'todos' | 'vinculados' {
 export function esRolValido(valor: string): valor is Rol {
   return (ROLES as readonly string[]).includes(valor)
 }
+
+/**
+ * Con qué credenciales se está mirando la app, en una palabra (2026-10-17).
+ *
+ * Lo pidió el dueño después de quedar como `ajeno@` sin darse cuenta: una
+ * pantalla sin partituras parecía una falla cuando era la RLS haciendo su
+ * trabajo. Va en la cabecera de todas las pantallas de gestión.
+ *
+ * El rol EN EL CORO ACTIVO manda sobre el global: un `usuario` es «Director»
+ * en un coro y «Miembro» en otro. El admin no dirige coros: es «Administrador».
+ */
+export function nombreDelRol(sujeto: Sujeto): string {
+  if (!sujeto.aprobado) return 'Sin aprobar'
+  if (sujeto.rol === 'admin') return 'Administrador'
+  if (sujeto.rol === 'externo') return 'Externo'
+  if (sujeto.rolLocal === 'director') return 'Director'
+  if (sujeto.rolLocal === 'miembro') return 'Miembro'
+  return 'Sin coro'
+}

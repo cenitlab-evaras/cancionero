@@ -4,6 +4,8 @@ import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { COOKIE_CORO, obtenerSesion } from '@/lib/sesion'
+import { puede } from '@/lib/permisos'
+import { buscarCantos } from '@/lib/datos/repertorio'
 
 const Entrada = z.object({ coroId: z.string().uuid() })
 
@@ -35,4 +37,21 @@ export async function fijarCoroActivo(raw: unknown) {
 
   revalidatePath('/', 'layout')
   return { ok: true as const }
+}
+
+/**
+ * La búsqueda de la cabecera, mientras se escribe (2026-10-17).
+ *
+ * Es una action y no una ruta porque solo la llama la app. Lee con la sesión
+ * del usuario y en su coro activo: la RLS decide qué cantos existen para él,
+ * igual que en el repertorio. Sin sesión, sin aprobar o sin coro: nada.
+ */
+const Busqueda = z.string().max(80)
+
+export async function buscarCantosAhora(raw: unknown) {
+  const termino = Busqueda.safeParse(raw)
+  if (!termino.success) return []
+  const sesion = await obtenerSesion()
+  if (!sesion?.coroActivo || !puede(sesion.sujeto, 'ver_repertorio')) return []
+  return buscarCantos(sesion.coroActivo.id, termino.data)
 }

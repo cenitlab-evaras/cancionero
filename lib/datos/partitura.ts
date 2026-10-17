@@ -110,3 +110,14 @@ export async function materialDeEnsayo(p: PartituraPublicada): Promise<MaterialD
     pistas,
   }
 }
+
+/**
+ * Los cantos que esta persona puede ensayar: los que tienen partitura
+ * PUBLICADA, que es la que abre «Ensayar» (un borrador no). Para marcarlos en
+ * el repertorio: antes había que entrar canto por canto para descubrirlos.
+ */
+export async function cantosConPartitura(): Promise<Set<string>> {
+  const supabase = await createClient()
+  const { data } = await supabase.from('partitura').select('canto_id').eq('estado', 'publicada')
+  return new Set((data ?? []).map((p) => p.canto_id as string))
+}

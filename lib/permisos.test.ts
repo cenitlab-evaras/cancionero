@@ -3,6 +3,7 @@ import {
   CAPACIDADES,
   capacidadesDe,
   esRolValido,
+  nombreDelRol,
   porQueNoEntra,
   puede,
   rutaInicial,
@@ -225,5 +226,19 @@ describe('ensayo — §21.5 (H23)', () => {
       expect(puede(admin, c)).toBe(true)
       expect(puede(ajeno, c)).toBe(false)
     }
+  })
+})
+
+describe('nombreDelRol — lo que dice la cabecera (2026-10-17)', () => {
+  test('con qué credenciales se está: el rol EN ESTE CORO manda sobre el global', () => {
+    expect(nombreDelRol(admin)).toBe('Administrador')
+    expect(nombreDelRol(director)).toBe('Director')
+    expect(nombreDelRol(miembro)).toBe('Miembro')
+    expect(nombreDelRol(sinVinculo)).toBe('Sin coro')
+    expect(nombreDelRol({ rol: 'externo', aprobado: true, rolLocal: null })).toBe('Externo')
+  })
+
+  test('sin aprobar no es ningún rol todavía', () => {
+    expect(nombreDelRol(pendiente)).toBe('Sin aprobar')
   })
 })

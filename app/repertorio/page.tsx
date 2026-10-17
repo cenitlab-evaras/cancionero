@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { obtenerSesion } from '@/lib/sesion'
 import { puede } from '@/lib/permisos'
 import { repertorioPorMomento } from '@/lib/datos/repertorio'
+import { cantosConPartitura } from '@/lib/datos/partitura'
 import { contarEnEnsayo, etiquetaEstado } from '@/lib/motores/estado-canto'
 import Cabecera from '@/app/componentes/cabecera'
 import TituloSeccion from '@/app/componentes/titulo-seccion'
@@ -52,7 +53,12 @@ export default async function RepertorioPage({
 
   const { q = '' } = await searchParams
   const puedeEditar = puede(sesion.sujeto, 'editar_canto')
-  const grupos = await repertorioPorMomento(sesion.coroActivo.id, q)
+  const [grupos, conPartitura] = await Promise.all([
+    repertorioPorMomento(sesion.coroActivo.id, q),
+    // H23 · qué cantos se pueden ensayar: sin esto, «Ensayar» solo se
+    // descubría entrando canto por canto.
+    puede(sesion.sujeto, 'ensayar_canto') ? cantosConPartitura() : Promise.resolve(new Set<string>()),
+  ])
   const total = grupos.reduce((n, g) => n + g.cantos.length, 0)
   // Se calcula al leer, nunca se guarda (innegociable 4). El motor cuenta por
   // id: un canto asignado a tres momentos aparece tres veces en `grupos`.
@@ -60,7 +66,8 @@ export default async function RepertorioPage({
 
   return (
     <>
-      <Cabecera sesion={sesion} />
+      {/* Sin la barra de búsqueda de la cabecera: acá está la del repertorio. */}
+      <Cabecera sesion={sesion} buscador={false} />
 
       <main className="mx-auto w-full max-w-2xl px-4 pt-6 pb-16">
         <h1 className="titulo-libro text-[1.75rem] leading-tight">Repertorio</h1>
@@ -128,6 +135,7 @@ export default async function RepertorioPage({
                 // H10 · La marca solo aparece cuando dice algo: `listo` es el
                 // caso normal y etiquetar cada fila no informaría nada.
                 const marca = etiquetaEstado(canto.estado)
+                const partitura = conPartitura.has(canto.id)
                 return (
                   <li key={canto.id} className="border-b border-borde last:border-b-0">
                     <Link
@@ -150,11 +158,17 @@ export default async function RepertorioPage({
                         {/* El canto NO cambia de grupo ni de lugar: la marca va
                             en la línea secundaria, donde ya vive el autor, para
                             que la lista se siga leyendo de un tirón. */}
-                        {(marca || canto.autor) && (
+                        {(marca || partitura || canto.autor) && (
                           <span className="flex min-w-0 items-center gap-2">
                             {marca && (
                               <span className="shrink-0 rounded border border-borde-fuerte px-1.5 text-xs font-bold text-texto">
                                 {marca}
+                              </span>
+                            )}
+                            {/* H23 · se puede ensayar: tiene partitura con sus pistas. */}
+                            {partitura && (
+                              <span className="shrink-0 rounded border border-borde-fuerte px-1.5 text-xs font-bold text-texto">
+                                Partitura
                               </span>
                             )}
                             {canto.autor && (
