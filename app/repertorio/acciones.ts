@@ -71,7 +71,7 @@ async function guardar(raw: unknown, cantoId: string | null): Promise<ResultadoC
   const datos = parseado.data
 
   const sesion = await obtenerSesion()
-  if (!sesion) return { ok: false, error: 'Sesión expirada. Volvé a entrar.' }
+  if (!sesion) return { ok: false, error: 'Tu sesión expiró. Vuelve a entrar.' }
   if (!sesion.coroActivo) return { ok: false, error: 'No tienes un coro activo.' }
   if (!puede(sesion.sujeto, 'editar_canto')) return { ok: false, error: NO_PUEDE }
 

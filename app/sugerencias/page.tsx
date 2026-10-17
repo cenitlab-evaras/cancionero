@@ -30,8 +30,8 @@ export default async function SugerenciasPage() {
     return (
       <>
         <Cabecera sesion={sesion} />
-        <main className="mx-auto w-full max-w-2xl px-4 py-10">
-          <h1 className="text-lg font-semibold text-peligro">
+        <main className="mx-auto w-full max-w-2xl px-4 pt-6 pb-10">
+          <h1 className="titulo-libro text-[1.75rem] leading-tight text-peligro">
             No tienes acceso a las sugerencias de este coro
           </h1>
           <p className="mt-2 max-w-prose text-sm text-texto-tenue">
@@ -53,17 +53,9 @@ export default async function SugerenciasPage() {
   return (
     <>
       <Cabecera sesion={sesion} />
-      <main className="mx-auto w-full max-w-2xl flex-1 px-4 pb-10">
-        <div className="flex items-baseline gap-3 pt-4">
-          <Link
-            href="/repertorio"
-            className="-ml-1 shrink-0 rounded px-1 text-sm text-texto-tenue transition-colors hover:text-texto"
-            aria-label="Volver al repertorio"
-          >
-            ←
-          </Link>
-          <h1 className="min-w-0 text-[1.375rem] leading-tight font-semibold">Sugerencias</h1>
-        </div>
+      {/* Destino de primer nivel (se llega desde «Más»): sin flecha de volver. */}
+      <main className="mx-auto w-full max-w-2xl flex-1 px-4 pt-6 pb-10">
+        <h1 className="titulo-libro text-[1.75rem] leading-tight">Sugerencias</h1>
 
         {ranking.length === 0 ? (
           // Un estado vacío explica POR QUÉ está vacío (§14).
@@ -73,26 +65,32 @@ export default async function SugerenciasPage() {
           </p>
         ) : (
           <>
-            <p className="mt-1.5 max-w-prose pl-7 text-xs text-texto-tenue">
+            <p className="mt-1 max-w-prose text-sm text-texto-tenue">
               Lo que el coro propone, del más pedido al menos. Lo que se pidió para una misa
               concreta se ve en esa misa.
             </p>
 
+            {/* El recuento va a la derecha, en tenue y con su unidad: no es un
+                acorde, así que no lleva el ámbar (§DESIGN, «la regla del
+                acorde»). Quiénes lo proponen, en su propia línea. */}
             <ul className="mt-4 divide-y divide-borde border-t border-borde">
               {ranking.map((f) => (
-                <li key={`${f.cantoId}·${f.momentoId}`} className="py-2.5">
-                  <div className="flex items-baseline gap-3">
-                    <Link
-                      href={`/repertorio/${f.cantoId}`}
-                      className="min-w-0 flex-1 truncate text-sm"
-                    >
-                      {f.titulo}
-                    </Link>
-                    <span className="shrink-0 font-cifrado text-sm text-acorde">{f.cuantas}</span>
-                  </div>
-                  <p className="mt-0.5 text-xs text-texto-tenue">
-                    {f.momentoNombre} · {f.quienes.join(', ')}
-                  </p>
+                <li key={`${f.cantoId}·${f.momentoId}`}>
+                  <Link
+                    href={`/repertorio/${f.cantoId}`}
+                    className="-mx-2 flex items-start gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-superficie"
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-base">{f.titulo}</span>
+                      <span className="block text-sm text-texto-tenue">{f.momentoNombre}</span>
+                      <span className="block text-sm text-texto-tenue">
+                        Lo {f.quienes.length === 1 ? 'propone' : 'proponen'} {f.quienes.join(', ')}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-sm text-texto-tenue">
+                      {f.cuantas} {f.cuantas === 1 ? 'voto' : 'votos'}
+                    </span>
+                  </Link>
                 </li>
               ))}
             </ul>

@@ -1,31 +1,39 @@
 @import "tailwindcss";
 
 /*
- * Sistema visual de Cantoral — ver DESIGN.md en la raíz del proyecto.
+ * Sistema visual de Cantoral — ver docs/DESIGN.md.
  * NINGÚN color escrito a mano fuera de este bloque.
  *
- * Tema oscuro único, sin conmutador (PRD decisión 8): la escena es una iglesia
- * a las ocho de la tarde, con el músico de pie y la guitarra puesta.
+ * Tema oscuro y CÁLIDO (rediseño del 2026-10-17). La escena sigue siendo la
+ * iglesia a las ocho de la tarde, pero con su luz real: lámparas amarillas y
+ * velas, no un gris de oficina. La paleta sale del logo del Coro San José de
+ * la Familia: el café-negro del fondo y el dorado del halo.
  *
- * Los valores están en OKLCH para poder derivar estados sin que el matiz derive;
- * el hex de origen del PRD §11 va como referencia al lado.
+ * Los nombres de los tokens no cambiaron a propósito: cambiaron sus valores.
+ * El hex de diseño va al lado, con su contraste medido contra el fondo.
  */
 @theme {
-  --color-fondo: oklch(0.176 0 0); /* #0F0F0F */
-  --color-superficie: oklch(0.243 0 0); /* #1A1A1A */
-  --color-superficie-alta: oklch(0.296 0 0); /* #242424 */
-  --color-borde: oklch(0.325 0 0); /* #2A2A2A */
-  /* Borde de control interactivo. WCAG 1.4.11 pide 3:1 contra el fondo para
-     que el control se distinga como tal; con el gris del PRD daba 1.97:1. */
-  --color-borde-fuerte: oklch(0.53 0 0);
-  --color-texto: oklch(0.925 0 0); /* #E8E8E8 */
-  --color-texto-tenue: oklch(0.687 0 0); /* #9A9A9A */
-  --color-acorde: oklch(0.72 0.14 62); /* #E08A3C · 8.1:1 */
-  --color-acento: oklch(0.62 0.17 258); /* #3B82F6 */
-  --color-peligro: oklch(0.58 0.21 27); /* #DC2626 */
-  --color-exito: oklch(0.6 0.16 149); /* #16A34A */
+  --color-fondo: oklch(0.181 0.010 67.1); /* Nave #15110D — el fondo del logo */
+  --color-superficie: oklch(0.228 0.016 62.5); /* Banca #221B15 */
+  --color-superficie-alta: oklch(0.268 0.020 63.5); /* #2D241C · hover, fila activa */
+  --color-borde: oklch(0.317 0.021 63.9); /* #3A3027 · separadores, no controles */
+  /* Borde de control interactivo: WCAG 1.4.11 pide 3:1 contra el fondo. 3,6:1 */
+  --color-borde-fuerte: oklch(0.534 0.034 70.3); /* #7A6A58 */
+  --color-texto: oklch(0.933 0.021 81.8); /* Marfil #F0E8DA · 15,4:1 */
+  --color-texto-tenue: oklch(0.729 0.029 72.7); /* Ceniza #B3A594 · 7,8:1 */
+  /* EL ACORDE, Y NADA MÁS. Ámbar más intenso que el halo: los dos son cálidos y
+     casi iguales en luminosidad (1,1:1), así que se distinguen solo por tono.
+     Por eso el halo NUNCA aparece en la lectura ni en la ejecución. */
+  --color-acorde: oklch(0.781 0.157 60.7); /* Ámbar #FF9D3D · 9,1:1 */
+  /* Halo: marca, lugar activo de la navegación y acción principal. */
+  --color-acento: oklch(0.804 0.123 84.2); /* Halo #E4B85A · 10,1:1 */
+  /* Lo que va ENCIMA del halo: el fondo, no blanco (blanco daba 1,6:1). 10,1:1 */
+  --color-sobre-acento: oklch(0.181 0.010 67.1);
+  --color-peligro: oklch(0.664 0.162 32.5); /* #E5674F · 5,7:1 */
+  --color-exito: oklch(0.734 0.134 145.1); /* #6FBF73 · 8,4:1 */
 
   --font-interfaz: var(--fuente-interfaz), system-ui, sans-serif;
+  --font-titulo: var(--fuente-titulo), Georgia, serif;
   --font-cifrado: var(--fuente-cifrado), ui-monospace, monospace;
 
   /* Escala de z-index semántica. Nunca 999. */
@@ -39,13 +47,58 @@
 
   /* Motion de producto: comunica estado, no decora (DESIGN.md · Motion). */
   --transicion: 160ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Alto de la barra de navegación inferior, para que el contenido no quede
+     debajo. Incluye la zona segura del iPhone (el borde del gesto). */
+  --alto-barra-nav: calc(4rem + env(safe-area-inset-bottom));
 }
 
 body {
   background: var(--color-fondo);
   color: var(--color-texto);
   font-family: var(--font-interfaz);
-  font-feature-settings: "tnum" 1; /* números tabulares: los contadores no bailan */
+  font-variant-numeric: tabular-nums; /* los contadores no bailan */
+}
+
+/* Con la barra de navegación fija abajo, el final de cada pantalla tiene que
+   poder subir por encima de ella. `:has` evita que cada página lo recuerde. */
+body:has(.barra-nav) {
+  padding-bottom: var(--alto-barra-nav);
+}
+
+/* -------------------------------------------------------------------------
+ * El halo: el resplandor dorado del logo, detrás de la próxima misa en Inicio.
+ * Es el ÚNICO lugar de la app que lo usa (DESIGN.md · la firma del coro), y
+ * nunca en la lectura: ahí lo único cálido es el acorde.
+ * ------------------------------------------------------------------------- */
+.halo {
+  background:
+    radial-gradient(
+      120% 90% at 0% 0%,
+      color-mix(in oklch, var(--color-acento) 16%, transparent) 0%,
+      color-mix(in oklch, var(--color-acento) 5%, transparent) 45%,
+      transparent 75%
+    );
+}
+
+/* -------------------------------------------------------------------------
+ * Títulos de canto y de misa: la serif del libro (Source Serif 4, con su eje
+ * óptico). Evoca el cancionero impreso y el misal; la interfaz sigue en
+ * Atkinson Hyperlegible Next.
+ * ------------------------------------------------------------------------- */
+.titulo-libro {
+  font-family: var(--font-titulo);
+  font-optical-sizing: auto;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+/* El número del canto en el cancionero: números de estilo antiguo de la serif,
+   como en el libro impreso. No monoespaciado: no es un dato técnico. */
+.numero-libro {
+  font-family: var(--font-titulo);
+  font-variant-numeric: oldstyle-nums proportional-nums;
 }
 
 /* -------------------------------------------------------------------------
@@ -103,6 +156,41 @@ body {
   content: '';
   position: absolute;
   inset: calc((44px - 1em) / -2) -0.25em;
+}
+
+/* El deslizador (velocidad del desplazamiento). Dibujado y no nativo porque
+   el nativo con `accent-color` pintaba la perilla de 16 px en el color de
+   acción, y en la lectura no hay más color que el del acorde. */
+.deslizador {
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+.deslizador::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-borde-fuerte);
+}
+.deslizador::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-borde-fuerte);
+}
+.deslizador::-webkit-slider-thumb {
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  margin-top: -10px;
+  border-radius: 50%;
+  background: var(--color-texto);
+  border: 0;
+}
+.deslizador::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-texto);
+  border: 0;
 }
 
 /* Objetivo táctil mínimo: se usa con la guitarra puesta (PRD §11.2). */

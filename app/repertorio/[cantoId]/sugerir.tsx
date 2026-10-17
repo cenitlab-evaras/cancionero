@@ -10,8 +10,12 @@ import { yaSugirio, type Sugerencia } from '@/lib/motores/sugerencia'
  *
  * VIVE FUERA DE LA ZONA DE LECTURA. El cifrado es el producto (§PRODUCT) y
  * todo lo que no es acorde o letra tiene que justificarse: este control se toca
- * sentado, planificando, no de pie con la guitarra puesta. Por eso va arriba
- * del cifrado y no en la barra inferior, que es la que se usa MIENTRAS se canta.
+ * sentado, planificando, no de pie con la guitarra puesta. Por eso va AL PIE del
+ * canto (rediseño 2026-10-17) — antes iba arriba y era lo primero tocable de la
+ * pantalla, con el primer acorde a 224 px — y no en la barra inferior, que es la
+ * que se usa MIENTRAS se canta.
+ *
+ * Sin el halo en el botón: en la lectura lo único cálido es el acorde.
  *
  * EL ALCANCE ES UN SELECTOR Y NO DOS BOTONES porque el dueño pidió las dos
  * cosas: proponer «para Comunión» en general y proponer «para el domingo 20».
@@ -58,7 +62,7 @@ export default function Sugerir({
   const payload = { cantoId, momentoId, misaId: alcance }
 
   return (
-    <section className="mt-4 rounded-lg border border-borde px-3 py-2.5">
+    <section>
       <div className="flex flex-wrap items-center gap-1.5 text-sm">
         <span className="text-texto-tenue">Proponerlo para</span>
 
@@ -103,8 +107,8 @@ export default function Sugerir({
           }
           className={`tactil ml-auto rounded-lg px-3 text-sm disabled:opacity-40 ${
             puesta
-              ? 'text-texto-tenue'
-              : 'border border-acento text-acento'
+              ? 'text-texto-tenue hover:text-texto'
+              : 'border border-borde-fuerte bg-superficie font-bold text-texto hover:bg-superficie-alta'
           }`}
         >
           {puesta ? 'Retirar' : 'Proponer'}
@@ -116,11 +120,11 @@ export default function Sugerir({
           en general, cambia el selector a una misa y el botón vuelve a decir
           «Proponer» como si no hubiera hecho nada. */}
       {!puesta && yaSugirio(mias, cantoId, momentoId, null) && alcance !== null && (
-        <p className="mt-1.5 text-xs text-texto-tenue">Ya lo propusiste en general.</p>
+        <p className="mt-1.5 text-sm text-texto-tenue">Ya lo propusiste en general.</p>
       )}
 
       {error && (
-        <p role="alert" className="mt-1.5 text-xs text-peligro">
+        <p role="alert" className="mt-1.5 text-sm text-peligro">
           {error}
         </p>
       )}

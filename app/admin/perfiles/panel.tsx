@@ -4,6 +4,8 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { aprobarPerfil, crearCoro } from '../../coro/acciones'
 import type { CoroDeAdmin, PerfilConVinculo } from '@/lib/datos/gobierno'
+import TituloSeccion from '@/app/componentes/titulo-seccion'
+import { clasesBotonIcono } from '@/app/componentes/boton-icono'
 
 export default function PanelAdmin({
   perfiles,
@@ -36,11 +38,18 @@ export default function PanelAdmin({
 
   return (
     <div className={pendiente ? 'opacity-60 transition-opacity' : 'transition-opacity'}>
-      {error && <p className="mt-4 text-sm text-peligro">{error}</p>}
+      {error && (
+        <p role="status" className="mt-4 text-sm text-peligro">
+          {error}
+        </p>
+      )}
 
-      <h2 className="mt-6 text-[0.8125rem] font-semibold text-texto-tenue uppercase">
+      <TituloSeccion
+        className="mt-6"
+        detalle={esperando.length > 0 ? String(esperando.length) : undefined}
+      >
         Esperando aprobación
-      </h2>
+      </TituloSeccion>
 
       {esperando.length === 0 ? (
         <p className="mt-2 text-sm text-texto-tenue">
@@ -51,13 +60,14 @@ export default function PanelAdmin({
           {esperando.map((p) => (
             <li key={p.id} className="flex min-h-14 items-center gap-3 py-2">
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm">{nombreDe(p)}</span>
-                <span className="block truncate text-xs text-texto-tenue">{p.email}</span>
+                <span className="block truncate">{nombreDe(p)}</span>
+                <span className="block truncate text-sm text-texto-tenue">{p.email}</span>
               </span>
               <button
+                type="button"
                 onClick={() => correr(() => aprobarPerfil({ perfilId: p.id, aprobado: true }))}
                 disabled={pendiente}
-                className="tactil shrink-0 rounded-lg bg-acento px-3 text-sm font-medium text-white disabled:opacity-40"
+                className={clasesBotonIcono('lleno', 'px-4 text-sm')}
               >
                 Aprobar
               </button>
@@ -66,27 +76,27 @@ export default function PanelAdmin({
         </ul>
       )}
 
-      <h2 className="mt-10 text-[0.8125rem] font-semibold text-texto-tenue uppercase">
+      <TituloSeccion className="mt-10" detalle={String(habilitados.length)}>
         Cuentas habilitadas
-      </h2>
+      </TituloSeccion>
 
       <ul className="mt-2 divide-y divide-borde border-t border-borde">
         {habilitados.map((p) => (
           <li key={p.id} className="flex min-h-14 items-center gap-3 py-2">
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm">
+              <span className="block truncate">
                 {nombreDe(p)}
-                {p.id === yoId && <span className="text-texto-tenue"> · tú</span>}
+                {p.id === yoId && <span className="text-sm text-texto-tenue"> (tú)</span>}
               </span>
-              <span className="block truncate text-xs text-texto-tenue">
-                {p.email} · {p.rol}
-              </span>
+              <span className="block truncate text-sm text-texto-tenue">{p.email}</span>
+              <span className="block text-sm text-texto-tenue capitalize">{p.rol}</span>
             </span>
             {p.id !== yoId && (
               <button
+                type="button"
                 onClick={() => correr(() => aprobarPerfil({ perfilId: p.id, aprobado: false }))}
                 disabled={pendiente}
-                className="tactil shrink-0 rounded-lg px-3 text-sm text-texto-tenue disabled:opacity-40"
+                className={clasesBotonIcono('borde', 'px-4 text-sm')}
               >
                 Suspender
               </button>
@@ -95,17 +105,21 @@ export default function PanelAdmin({
         ))}
       </ul>
 
-      <h2 className="mt-10 text-[0.8125rem] font-semibold text-texto-tenue uppercase">Coros</h2>
+      <TituloSeccion className="mt-10" detalle={String(coros.length)}>
+        Coros
+      </TituloSeccion>
 
       <ul className="mt-2 divide-y divide-borde border-t border-borde">
         {coros.map((c) => (
           <li key={c.id} className="flex min-h-14 items-center gap-3 py-2">
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm">{c.nombre}</span>
-              <span className="block truncate text-xs text-texto-tenue">
-                {c.parroquia ?? 'sin parroquia'} ·{' '}
-                {c.miembros === 1 ? '1 miembro' : `${c.miembros} miembros`}
+              <span className="block truncate">{c.nombre}</span>
+              <span className="block truncate text-sm text-texto-tenue">
+                {c.parroquia ?? 'Sin parroquia'}
               </span>
+            </span>
+            <span className="shrink-0 text-sm text-texto-tenue">
+              {c.miembros === 1 ? '1 miembro' : `${c.miembros} miembros`}
             </span>
           </li>
         ))}
@@ -130,19 +144,19 @@ export default function PanelAdmin({
           onChange={(e) => setNombreCoro(e.target.value)}
           placeholder="Nombre del coro nuevo"
           aria-label="Nombre del coro nuevo"
-          className="h-11 rounded-lg border border-borde-fuerte bg-superficie px-3 text-sm placeholder:text-texto-tenue focus:border-acento"
+          className="tactil rounded-lg border border-borde-fuerte bg-superficie px-3 text-base placeholder:text-texto-tenue focus:border-acento"
         />
         <input
           value={parroquia}
           onChange={(e) => setParroquia(e.target.value)}
           placeholder="Parroquia (opcional)"
           aria-label="Parroquia del coro nuevo"
-          className="h-11 rounded-lg border border-borde-fuerte bg-superficie px-3 text-sm placeholder:text-texto-tenue focus:border-acento"
+          className="tactil rounded-lg border border-borde-fuerte bg-superficie px-3 text-base placeholder:text-texto-tenue focus:border-acento"
         />
         <button
           type="submit"
           disabled={pendiente || nombreCoro.trim() === ''}
-          className="tactil rounded-lg border border-borde-fuerte text-sm disabled:opacity-40"
+          className={clasesBotonIcono('borde', 'text-sm')}
         >
           Crear coro
         </button>

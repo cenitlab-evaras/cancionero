@@ -36,7 +36,7 @@ export default function HistorialDelCanto({
   // dato útil no es el cero sino qué hacer con él (§14, los estados vacíos).
   if (veces === 0) {
     return (
-      <p className="mt-2 pl-7 text-xs text-texto-tenue">
+      <p className="text-sm text-texto-tenue">
         Todavía no se ha cantado en ninguna misa.
         {agendadas.length > 0 && (
           <>
@@ -53,18 +53,19 @@ export default function HistorialDelCanto({
   }
 
   return (
-    <details className="mt-2 ml-7">
-      <summary className="cursor-pointer text-xs text-texto-tenue marker:text-texto-tenue">
+    <details className="group">
+      <summary className="tactil flex cursor-pointer list-none flex-wrap items-center gap-x-1 text-sm text-texto-tenue [&::-webkit-details-marker]:hidden">
         Cantado {veces} {veces === 1 ? 'vez' : 'veces'} ·{' '}
         <span className="text-texto">{describirAntiguedad(diasDesdeUltima)}</span>
         {ritmo && <> · {ritmo}</>}
+        <span className="underline underline-offset-2 group-open:hidden">ver cuándo</span>
       </summary>
 
-      <div className="mt-2 flex flex-col gap-2 border-l border-borde pl-3 text-xs text-texto-tenue">
+      <div className="mt-1 flex flex-col gap-2 border-l border-borde pl-3 text-sm text-texto-tenue">
         <ul className="flex flex-col gap-1">
           {ejecuciones.map((e) => (
             <li key={e.misaId} className="flex gap-2">
-              <span className="w-16 shrink-0 font-cifrado">
+              <span className="w-20 shrink-0">
                 {fechaCorta(e.fecha, e.fecha.slice(0, 4) !== anioActual)}
               </span>
               <span className="min-w-0 flex-1 truncate text-texto">{e.misaNombre}</span>

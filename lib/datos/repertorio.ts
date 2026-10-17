@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { coincideBusqueda } from '@/lib/motores/busqueda'
 import { normalizarEstado, type EstadoCanto } from '@/lib/motores/estado-canto'
+import { TAMANO_POR_DEFECTO, esTamanoValido } from '@/lib/motores/tamano-letra'
 
 /**
  * Consultas del repertorio.
@@ -101,22 +102,28 @@ export async function repertorioPorMomento(
 }
 
 /**
- * ¿Esta persona quiere ver los acordes? (H11)
+ * Lo que vale para esta PERSONA en todo el repertorio: si quiere ver los
+ * acordes (H11) y con qué tamaño de letra lee (2026-10-17, antes era por canto).
  *
- * Sin fila devuelve `true`, que es el default de la columna y la lectura normal
- * del producto: un cancionero con acordes. Ese vacío es legítimo —es el caso de
- * todo el mundo hasta que alguien los apaga— y no se confunde con falta de
- * acceso: la política es `perfil_id = auth.uid()`, así que nadie ve la de otro.
+ * Sin fila devuelve los defaults de las columnas —acordes sí, 16 px—, que es el
+ * caso de todo el mundo hasta que cambia algo. Ese vacío es legítimo y no se
+ * confunde con falta de acceso: la política es `perfil_id = auth.uid()`, así que
+ * nadie ve la de otro.
  */
-export async function mostrarAcordesDelPerfil(): Promise<boolean> {
+export type PreferenciasDelPerfil = { mostrarAcordes: boolean; tamanoLetra: number }
+
+export async function preferenciasDelPerfil(): Promise<PreferenciasDelPerfil> {
   const supabase = await createClient()
 
   const { data } = await supabase
     .from('preferencias_perfil')
-    .select('mostrar_acordes')
+    .select('mostrar_acordes, tamano_letra')
     .maybeSingle()
 
-  return data?.mostrar_acordes ?? true
+  return {
+    mostrarAcordes: data?.mostrar_acordes ?? true,
+    tamanoLetra: esTamanoValido(data?.tamano_letra) ? data.tamano_letra : TAMANO_POR_DEFECTO,
+  }
 }
 
 export type CantoCompleto = {
@@ -138,30 +145,26 @@ export type CantoCompleto = {
   fuentePagina: number | null
 }
 
-/** Valores por defecto cuando el usuario todavía no guardó preferencia. */
-export const PREFERENCIA_POR_DEFECTO = { transposicion: 0, tamanoLetra: 16 }
-
-export type PreferenciaLectura = { transposicion: number; tamanoLetra: number }
-
 /**
- * La preferencia PROPIA del usuario para un canto.
+ * La transposición PROPIA del usuario para un canto (H3).
  *
- * Si no hay fila, devuelve los valores por defecto. Ese vacío es legítimo —es
- * el caso normal la primera vez— y no se confunde con falta de acceso: la
- * política de esta tabla es `perfil_id = auth.uid()`, así que nadie ve la de
- * otro, ni el director ni el admin (PRD §8.2).
+ * Es lo único que sigue siendo por canto: la voz no llega a ESE canto en ESE
+ * tono. El tamaño de letra pasó a `preferenciasDelPerfil` el 2026-10-17, y la
+ * columna `tamano_letra` de esta tabla quedó sin uso.
+ *
+ * Sin fila devuelve 0 (tonalidad original). Ese vacío es legítimo y no se
+ * confunde con falta de acceso: nadie ve la preferencia de otro (PRD §8.2).
  */
-export async function obtenerPreferencia(cantoId: string): Promise<PreferenciaLectura> {
+export async function obtenerTransposicion(cantoId: string): Promise<number> {
   const supabase = await createClient()
 
   const { data } = await supabase
     .from('preferencias_lectura')
-    .select('transposicion, tamano_letra')
+    .select('transposicion')
     .eq('canto_id', cantoId)
     .maybeSingle()
 
-  if (!data) return PREFERENCIA_POR_DEFECTO
-  return { transposicion: data.transposicion, tamanoLetra: data.tamano_letra }
+  return data?.transposicion ?? 0
 }
 
 /**

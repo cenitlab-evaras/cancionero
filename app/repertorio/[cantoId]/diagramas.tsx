@@ -10,6 +10,8 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { BotonIcono } from '@/app/componentes/boton-icono'
+import { IconoCerrar } from '@/app/componentes/iconos'
 
 /**
  * La parte de cliente de H5, y nada más que eso.
@@ -115,6 +117,10 @@ export function ZonaAcordes({ children }: { children: ReactNode }) {
  * transponer con la hoja abierta —es el segundo acto del "listo cuando"—. No es
  * un modal a pantalla completa porque el cifrado no se puede tapar: es lo único
  * que no se interrumpe mientras se toca.
+ *
+ * Es parte de la lectura, así que va sin halo, sin sombra y sin
+ * `backdrop-blur`: una superficie opaca con su línea de separación, y solo
+ * tokens (rediseño 2026-10-17).
  */
 export function HojaDiagramas({
   children,
@@ -153,9 +159,12 @@ export function HojaDiagramas({
   }, [foco])
 
   return (
-    // El envoltorio recorta: la barra de controles es translúcida
-    // (`bg-fondo/95 backdrop-blur`), así que una hoja "escondida detrás" se
-    // vería en fantasma. Se recorta de verdad y encima se apaga con `inert`.
+    // El envoltorio recorta. La hoja cerrada no queda "detrás" de la barra de
+    // controles: está trasladada sobre ella, y como es `absolute` se pinta
+    // encima aunque la barra ya sea opaca. Cuando la barra era translúcida
+    // (`bg-fondo/95 backdrop-blur`, hasta el 2026-10-17) eso se veía en
+    // fantasma; ahora la taparía entera. Se recorta de verdad y encima se
+    // apaga con `inert`.
     <div className="pointer-events-none absolute inset-x-0 bottom-full overflow-hidden">
       <div
         // Booleano de verdad: React 19 lo serializa solo. Con `''` se leería
@@ -167,15 +176,11 @@ export function HojaDiagramas({
         }`}
       >
         <div className="mx-auto w-full max-w-2xl">
-          <div className="flex items-center justify-between pt-1 pl-4">
-            <span className="text-[0.6875rem] text-texto-tenue">Acordes del canto</span>
-            <button
-              onClick={cerrar}
-              aria-label="Cerrar los diagramas"
-              className="tactil flex w-11 items-center justify-center rounded-lg text-texto-tenue transition-colors hover:text-texto"
-            >
-              ✕
-            </button>
+          <div className="flex items-center justify-between pt-1 pr-1 pl-4">
+            <span className="text-sm text-texto-tenue">Acordes del canto</span>
+            <BotonIcono etiqueta="Cerrar los diagramas" onClick={cerrar}>
+              <IconoCerrar />
+            </BotonIcono>
           </div>
 
           <div ref={tira} className="flex gap-2 overflow-x-auto px-4 pb-3">
@@ -202,9 +207,11 @@ export function CascaronCarta({ indice, children }: { indice: number; children: 
       data-tarjeta={indice}
       aria-current={enfocada ? 'true' : undefined}
       className={`shrink-0 rounded-lg transition-shadow ${
-        // El anillo va en `--color-acento`, que es el token de selección. Nunca
-        // en `--color-acorde`: ese señala el acorde, y si decora deja de señalar.
-        enfocada ? 'ring-2 ring-acento' : ''
+        // El anillo va en marfil (`--color-texto`). No en el halo: la hoja es
+        // parte de la lectura, y ahí el halo no aparece porque junto al ámbar
+        // se distingue solo por tono (rediseño 2026-10-17). Y nunca en
+        // `--color-acorde`: ese señala el acorde, y si decora deja de señalar.
+        enfocada ? 'ring-2 ring-texto' : ''
       }`}
     >
       {children}

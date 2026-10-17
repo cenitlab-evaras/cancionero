@@ -32,7 +32,12 @@ corrección que hace un músico le llegue a los demás.
 **Instrumento, no aplicación.** Técnico, denso, silencioso. La interfaz desaparece detrás del
 cifrado: en la vista de lectura, todo lo que no es acorde o letra está de más.
 
-Tres palabras: **preciso · sobrio · legible**.
+**Y es del coro** (2026-10-17). Fuera de la lectura, la app lleva la identidad del Coro San José de
+la Familia: su logo, su halo dorado sobre el café-negro, la letra del cancionero impreso en los
+títulos. No es una herramienta anónima que podría ser de cualquiera; es la carpeta del coro.
+
+Tres palabras: **preciso · cálido · legible**. («Sobrio» cedió su lugar el 2026-10-17: el dueño pidió
+calidez e identidad. Lo sobrio se mantiene en la lectura, donde sigue mandando el cifrado.)
 
 Voz de la interfaz: directa y en español de Chile, sin diminutivos ni entusiasmo de producto. Un
 estado vacío explica por qué está vacío. Un error dice qué pasó. Nada celebra nada.
@@ -43,8 +48,11 @@ estado vacío explica por qué está vacío. Un error dice qué pasó. Nada cele
   redondeada "amable". El cliché del software religioso.
 - **Ultimate Guitar tal como es.** Se copia su patrón de lectura —acorde cálido sobre monoespaciado,
   barra inferior de scroll— y nada de su ruido: publicidad, banners, botones compitiendo.
-- **App Android de 2019.** Material genérico, pestañas abajo, acento rojo, sombras por todos lados.
-  Es exactamente lo que era OpenChord, el antecedente del que este producto se separa.
+- **App Android de 2019.** Material genérico, acento rojo, sombras por todos lados. Es exactamente lo
+  que era OpenChord, el antecedente del que este producto se separa. (Hasta el 2026-10-17 esta línea
+  también decía «pestañas abajo». La barra inferior volvió por pedido del dueño y por el principio 2
+  —la mano ocupada—; lo que se evita es aquel estilo, no la posición: sin sombra, sin elevación,
+  texto siempre visible y color solo en el lugar activo.)
 - **Dashboard SaaS.** Tarjetas iguales en grilla, métricas grandes, gradientes, barra lateral. Un
   cancionero no es un panel de control.
 

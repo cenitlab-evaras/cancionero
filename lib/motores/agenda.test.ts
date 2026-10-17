@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { agruparMisas } from './agenda'
+import { agruparMisas, misaDeInicio } from './agenda'
 
 /**
  * Agrupar las misas por lo que el director pregunta el domingo.
@@ -76,5 +76,40 @@ describe('agruparMisas', () => {
   test('una lista vacía devuelve los tres grupos vacíos, no undefined', () => {
     const r = agruparMisas([], '2026-09-02')
     expect(r).toEqual({ proximas: [], pasadas: [], sinFecha: [] })
+  })
+})
+
+/**
+ * La misa que muestra Inicio (rediseño 2026-10-17).
+ *
+ * `agruparMisas` cuenta la misa de HOY como ya ocurrida —es el criterio del
+ * historial, y tiene que seguir siéndolo—. Pero Inicio contesta otra pregunta:
+ * «qué cantamos ahora». El domingo a las 11:50 la misa de las 12 es la que hay
+ * que mostrar, no la del domingo siguiente.
+ */
+describe('misaDeInicio', () => {
+  test('la de hoy gana a la próxima', () => {
+    const r = misaDeInicio(
+      [misa('siguiente', '2026-10-25'), misa('hoy', '2026-10-18')],
+      '2026-10-18'
+    )
+    expect(r?.nombre).toBe('hoy')
+  })
+
+  test('sin misa hoy, la más próxima', () => {
+    const r = misaDeInicio(
+      [misa('lejana', '2026-12-25'), misa('próxima', '2026-10-25'), misa('pasada', '2026-10-11')],
+      '2026-10-18'
+    )
+    expect(r?.nombre).toBe('próxima')
+  })
+
+  test('una lista sin fecha no es la próxima misa', () => {
+    expect(misaDeInicio([misa('lista', null), misa('pasada', '2026-10-11')], '2026-10-18')).toBeNull()
+  })
+
+  test('con dos misas hoy, la primera de la lista (el orden lo decide quien llama)', () => {
+    const r = misaDeInicio([misa('a', '2026-10-18'), misa('b', '2026-10-18')], '2026-10-18')
+    expect(r?.nombre).toBe('a')
   })
 })

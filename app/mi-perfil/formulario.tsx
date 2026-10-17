@@ -10,6 +10,12 @@ import {
 } from '@/lib/motores/ficha'
 import { guardarMiFicha } from './acciones'
 import type { FichaPropia } from '@/lib/datos/ficha'
+import { clasesBotonIcono } from '@/app/componentes/boton-icono'
+
+// `bg-fondo-suave` no existía en los tokens: los campos se pintaban sin fondo
+// y con el borde de separador (1,4:1). Ahora son controles: borde a 3:1 y 44 px.
+const CAMPO =
+  'tactil mt-1.5 w-full rounded-lg border border-borde-fuerte bg-superficie px-3 text-base text-texto transition-colors hover:border-texto-tenue focus:border-acento'
 
 /**
  * H14 · el formulario del perfil propio.
@@ -57,22 +63,24 @@ export default function FormularioFicha({ ficha }: { ficha: FichaPropia | null }
           name="fechaNacimiento"
           type="date"
           defaultValue={ficha?.fechaNacimiento ?? ''}
-          className="mt-1 w-full rounded-md border border-borde bg-fondo-suave px-3 py-2 text-sm"
+          className={CAMPO}
         />
-        <p className="mt-1 text-xs text-texto-tenue">
+        <p className="mt-1.5 text-sm text-texto-tenue">
           Solo se guarda el día: la edad se calcula cada vez que se mira.
         </p>
       </div>
 
       <div>
+        {/* «Tono» es la tonalidad de un canto; lo que se pregunta acá es la
+            tesitura, y en el coro se dice «cuerda» (PRD §18-22, §21.2). */}
         <label htmlFor="tesitura" className="block text-sm font-medium">
-          En qué tono cantas
+          Mi cuerda
         </label>
         <select
           id="tesitura"
           name="tesitura"
           defaultValue={ficha?.tesitura ?? ''}
-          className="mt-1 w-full rounded-md border border-borde bg-fondo-suave px-3 py-2 text-sm"
+          className={CAMPO}
         >
           <option value="">Sin declarar</option>
           {TESITURAS.map((t) => (
@@ -91,7 +99,7 @@ export default function FormularioFicha({ ficha }: { ficha: FichaPropia | null }
           id="disponibilidad"
           name="disponibilidad"
           defaultValue={ficha?.disponibilidad ?? ''}
-          className="mt-1 w-full rounded-md border border-borde bg-fondo-suave px-3 py-2 text-sm"
+          className={CAMPO}
         >
           <option value="">Sin declarar</option>
           {DISPONIBILIDADES.map((d) => (
@@ -116,7 +124,7 @@ export default function FormularioFicha({ ficha }: { ficha: FichaPropia | null }
       <button
         type="submit"
         disabled={guardando}
-        className="w-full rounded-md bg-acento px-4 py-2.5 text-sm font-medium text-fondo disabled:opacity-60"
+        className={clasesBotonIcono('lleno', 'w-full text-base')}
       >
         {guardando ? 'Guardando…' : 'Guardar mi perfil'}
       </button>

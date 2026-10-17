@@ -11,6 +11,7 @@ import {
   nombreEstado,
   type EstadoCanto,
 } from '@/lib/motores/estado-canto'
+import { clasesBotonIcono } from '@/app/componentes/boton-icono'
 import { crearCanto, editarCanto } from './acciones'
 
 /**
@@ -40,8 +41,38 @@ export type ValoresCanto = {
   fuentePagina: string
 }
 
+// Todo campo lleva el borde de control (3:1 contra el fondo, WCAG 1.4.11) y
+// letra de 16 px: con menos, Safari de iPhone agranda la página al enfocarlo.
 const CAMPO =
-  'rounded-lg border border-borde-fuerte bg-superficie px-3 py-2 text-texto transition-colors placeholder:text-texto-tenue hover:border-texto-tenue focus:border-acento'
+  'rounded-lg border border-borde-fuerte bg-superficie px-3 py-2 text-base text-texto transition-colors placeholder:text-texto-tenue hover:border-texto-tenue focus:border-acento'
+
+/** Lo que nombra un campo y lo que lo explica: legibles, no letra chica. */
+const ETIQUETA = 'text-sm text-texto-tenue'
+const AYUDA = 'text-sm leading-relaxed text-texto-tenue'
+
+/**
+ * Un botón de elección (momento, estado). Objetivo de 44 px, borde de control,
+ * y el elegido marcado con el halo y con peso: no solo por color (WCAG 1.4.1).
+ * Acá sí va el halo: es la edición, no la lectura. Los `!` porque `borde` ya
+ * trae color de borde, fondo y texto, y entre dos utilidades de la misma
+ * propiedad Tailwind no garantiza cuál gana.
+ */
+const eleccion = (elegido: boolean) =>
+  clasesBotonIcono(
+    'borde',
+    `px-3 text-sm ${elegido ? '!border-acento !bg-superficie-alta font-semibold' : '!text-texto-tenue'}`
+  )
+
+/** Notación latina → americana, para el aviso de cifrado sin acordes. */
+const EQUIVALENCIAS = [
+  ['DO', 'C'],
+  ['RE', 'D'],
+  ['MI', 'E'],
+  ['FA', 'F'],
+  ['SOL', 'G'],
+  ['LA', 'A'],
+  ['SI', 'B'],
+] as const
 
 export default function FormularioCanto({
   momentos,
@@ -160,13 +191,15 @@ export default function FormularioCanto({
     })
   }
 
-  const Error = ({ campo }: { campo: Campo }) =>
-    errores[campo] ? <span className="text-xs text-peligro">{errores[campo]}</span> : null
+  // Una función que devuelve JSX y no un componente: un componente declarado
+  // dentro del render se recrearía en cada tecla (react-hooks/static-components).
+  const mensajeDe = (campo: Campo) =>
+    errores[campo] ? <span className="text-sm text-peligro">{errores[campo]}</span> : null
 
   return (
     <form onSubmit={guardar} className="mt-6 flex flex-col gap-4 pb-10">
       <label className="flex flex-col gap-1.5">
-        <span className="text-xs text-texto-tenue">Título</span>
+        <span className={ETIQUETA}>Título</span>
         <input
           value={v.titulo}
           onChange={(e) => set('titulo', e.target.value)}
@@ -174,11 +207,11 @@ export default function FormularioCanto({
           className={`h-11 ${CAMPO}`}
           aria-invalid={!!errores.titulo}
         />
-        <Error campo="titulo" />
+        {mensajeDe('titulo')}
       </label>
 
       <label className="flex flex-col gap-1.5">
-        <span className="text-xs text-texto-tenue">Autor</span>
+        <span className={ETIQUETA}>Autor</span>
         <input
           value={v.autorNombre}
           onChange={(e) => set('autorNombre', e.target.value)}
@@ -196,7 +229,7 @@ export default function FormularioCanto({
       </label>
 
       <fieldset className="flex flex-col gap-1.5">
-        <legend className="text-xs text-texto-tenue">Momentos</legend>
+        <legend className={ETIQUETA}>Momentos</legend>
         <div className="flex flex-wrap gap-1.5">
           {momentos.map((m) => {
             const elegido = v.momentoIds.includes(m.id)
@@ -211,29 +244,21 @@ export default function FormularioCanto({
                   )
                 }
                 aria-pressed={elegido}
-                className={`rounded-lg border px-3 py-1.5 text-sm transition-colors ${
-                  elegido
-                    ? 'border-acento bg-superficie-alta text-texto'
-                    : 'border-borde text-texto-tenue hover:border-borde-fuerte'
-                }`}
+                className={eleccion(elegido)}
               >
                 {m.nombre}
               </button>
             )
           })}
         </div>
-        <span className="text-[0.6875rem] text-texto-tenue">
-          Un canto puede servir para más de uno.
-        </span>
+        <span className={AYUDA}>Un canto puede servir para más de uno.</span>
       </fieldset>
 
       {/* H10 · El estado es del CANTO, no de quien lo mira: lo mueve el director
           y lo ve todo el coro. Por eso está acá, en la edición del canto, y no
           en la vista de lectura junto a la transposición —que sí es privada. */}
       <fieldset className="flex flex-col gap-1.5">
-        <legend className="text-xs text-texto-tenue">
-          Estado{estaArchivado(v.estado) && ' · archivado'}
-        </legend>
+        <legend className={ETIQUETA}>Estado</legend>
         <div className="flex flex-wrap gap-1.5">
           {ESTADOS_EDITABLES.map((e) => {
             const elegido = v.estado === e
@@ -243,25 +268,29 @@ export default function FormularioCanto({
                 type="button"
                 onClick={() => set('estado', e)}
                 aria-pressed={elegido}
-                className={`rounded-lg border px-3 py-1.5 text-sm transition-colors ${
-                  elegido
-                    ? 'border-acento bg-superficie-alta text-texto'
-                    : 'border-borde text-texto-tenue hover:border-borde-fuerte'
-                }`}
+                className={eleccion(elegido)}
               >
                 {nombreEstado(e)}
               </button>
             )
           })}
         </div>
-        <span className="text-[0.6875rem] text-texto-tenue">
+        <span className={AYUDA}>
           «En ensayo» marca el canto en el repertorio para que el coro sepa que todavía se está
           sacando. No lo esconde ni impide agregarlo a una misa.
         </span>
+        {/* Antes era un «· archivado» pegado a la etiqueta. Dicho entero se
+            entiende qué implica: lo mismo que hace `guardar` más arriba. */}
+        {estaArchivado(v.estado) && (
+          <span className={AYUDA}>
+            Este canto está archivado. Puedes corregirlo, pero guardar no lo devuelve al
+            repertorio: eso se hace desde los archivados.
+          </span>
+        )}
       </fieldset>
 
       <label className="flex w-32 flex-col gap-1.5">
-        <span className="text-xs text-texto-tenue">Tonalidad</span>
+        <span className={ETIQUETA}>Tonalidad</span>
         <input
           value={v.tonalidadOriginal}
           onChange={(e) => set('tonalidadOriginal', e.target.value)}
@@ -269,22 +298,22 @@ export default function FormularioCanto({
           className={`h-11 font-cifrado ${CAMPO}`}
           aria-invalid={!!errores.tonalidadOriginal}
         />
-        <Error campo="tonalidadOriginal" />
+        {mensajeDe('tonalidadOriginal')}
       </label>
 
       <label className="flex flex-col gap-1.5">
-        <span className="text-xs text-texto-tenue">Cifrado (ChordPro)</span>
+        <span className={ETIQUETA}>Cifrado (ChordPro)</span>
         <textarea
           value={v.cifrado}
           onChange={(e) => set('cifrado', e.target.value)}
           rows={12}
           placeholder="[D]Señor, toma mi [G]vida nueva"
           spellCheck={false}
-          className={`font-cifrado text-sm ${CAMPO}`}
+          className={`font-cifrado ${CAMPO}`}
           aria-invalid={!!errores.cifrado}
         />
-        <Error campo="cifrado" />
-        <span className="text-[0.6875rem] text-texto-tenue">
+        {mensajeDe('cifrado')}
+        <span className={AYUDA}>
           El acorde entre corchetes, pegado a la sílaba donde cae. También puedes pegarlo tal como
           está en el cancionero.
         </span>
@@ -296,25 +325,32 @@ export default function FormularioCanto({
       {diagnostico && (
         <div
           className={`flex flex-col gap-2 rounded-lg border px-3 py-2.5 ${
-            diagnostico.tipo === 'convertible' ? 'border-acento/40 bg-superficie' : 'border-borde'
+            diagnostico.tipo === 'convertible' ? 'border-borde-fuerte bg-superficie' : 'border-borde'
           }`}
         >
-          <span className="text-xs text-texto-tenue">{diagnostico.texto}</span>
+          <span className="text-sm">{diagnostico.texto}</span>
 
           {diagnostico.tipo === 'convertible' ? (
             <button
               type="button"
               onClick={() => set('cifrado', desdeElCancionero(v.cifrado))}
-              className="tactil self-start rounded-lg border border-acento px-3 text-sm text-acento"
+              className={clasesBotonIcono('borde', 'self-start px-4')}
             >
               Convertir del cancionero
             </button>
           ) : (
-            <span className="text-[0.6875rem] leading-relaxed text-texto-tenue">
+            <span className={AYUDA}>
               Si tiene acordes, van entre corchetes y en notación americana:{' '}
               <span className="font-cifrado text-texto">[D]Esta ma[Em7]ñana</span>
-              <br />
-              DO=C · RE=D · MI=E · FA=F · SOL=G · LA=A · SI=B
+              {/* La equivalencia como lista y no como una cadena «A · B · C»:
+                  son siete pares, y así cada uno se lee solo. */}
+              <span className="mt-1 flex flex-wrap gap-x-4 font-cifrado text-texto">
+                {EQUIVALENCIAS.map(([latina, americana]) => (
+                  <span key={latina}>
+                    {latina} = {americana}
+                  </span>
+                ))}
+              </span>
             </span>
           )}
         </div>
@@ -322,7 +358,7 @@ export default function FormularioCanto({
 
       {/* La previa: el mismo motor que la vista de lectura, en vivo. */}
       <div className="flex flex-col gap-1.5">
-        <span className="text-xs text-texto-tenue">Cómo se va a ver</span>
+        <span className={ETIQUETA}>Cómo se va a ver</span>
         <div className="cifrado overflow-x-auto rounded-lg border border-borde bg-fondo px-3 py-3 text-sm">
           {previa.length === 0 ? (
             <span className="text-texto-tenue">Escribe el cifrado y aparece acá.</span>
@@ -353,12 +389,12 @@ export default function FormularioCanto({
       </div>
 
       <details className="rounded-lg border border-borde px-3 py-2">
-        <summary className="cursor-pointer text-xs text-texto-tenue">
+        <summary className={`tactil flex cursor-pointer items-center ${ETIQUETA}`}>
           Procedencia (de dónde salió)
         </summary>
         <div className="mt-3 flex flex-col gap-3">
           <label className="flex flex-col gap-1.5">
-            <span className="text-xs text-texto-tenue">Cancionero</span>
+            <span className={ETIQUETA}>Cancionero</span>
             <input
               value={v.fuenteTitulo}
               onChange={(e) => set('fuenteTitulo', e.target.value)}
@@ -368,40 +404,46 @@ export default function FormularioCanto({
           </label>
           <div className="flex gap-3">
             <label className="flex flex-1 flex-col gap-1.5">
-              <span className="text-xs text-texto-tenue">N.º de canto</span>
+              <span className={ETIQUETA}>N.º de canto</span>
               <input
                 value={v.fuenteNumero}
                 onChange={(e) => set('fuenteNumero', e.target.value.replace(/\D/g, ''))}
                 inputMode="numeric"
-                className={`h-11 font-cifrado ${CAMPO}`}
+                className={`h-11 ${CAMPO}`}
                 aria-invalid={!!errores.fuenteNumero}
               />
-              <Error campo="fuenteNumero" />
+              {mensajeDe('fuenteNumero')}
             </label>
             <label className="flex flex-1 flex-col gap-1.5">
-              <span className="text-xs text-texto-tenue">Página</span>
+              <span className={ETIQUETA}>Página</span>
               <input
                 value={v.fuentePagina}
                 onChange={(e) => set('fuentePagina', e.target.value.replace(/\D/g, ''))}
                 inputMode="numeric"
-                className={`h-11 font-cifrado ${CAMPO}`}
+                className={`h-11 ${CAMPO}`}
                 aria-invalid={!!errores.fuentePagina}
               />
-              <Error campo="fuentePagina" />
+              {mensajeDe('fuentePagina')}
             </label>
           </div>
-          <span className="text-[0.6875rem] leading-relaxed text-texto-tenue">
+          <span className={AYUDA}>
             Si lo dejas vacío, el canto no muestra procedencia al pie. Es preferible a inventarla.
           </span>
         </div>
       </details>
 
-      {error && <p className="text-sm text-peligro">{error}</p>}
+      {error && (
+        <p role="alert" className="text-sm text-peligro">
+          {error}
+        </p>
+      )}
 
+      {/* La acción principal de la pantalla, en el halo. El texto encima es el
+          del fondo, no blanco: blanco sobre el halo daba 1,6:1. */}
       <button
         type="submit"
         disabled={pendiente}
-        className="tactil rounded-lg bg-acento font-medium text-white disabled:opacity-40"
+        className={clasesBotonIcono('lleno', 'w-full px-5 text-base')}
       >
         {pendiente ? 'Guardando…' : cantoId ? 'Guardar cambios' : 'Crear canto'}
       </button>

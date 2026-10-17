@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { restaurarVersion } from './acciones'
+import { clasesBotonIcono } from '@/app/componentes/boton-icono'
 
 /**
  * Volver a una versión anterior (H19-A).
@@ -13,7 +14,9 @@ import { restaurarVersion } from './acciones'
  * director duda justo cuando debería usarlo.
  *
  * Por eso tampoco usa el color de peligro (§11.1): pintarlo de rojo prometería
- * una destrucción que no ocurre.
+ * una destrucción que no ocurre. Confirmar es la acción principal de este
+ * paso y va en el halo, con el texto en el color del fondo: el `text-white`
+ * de antes daba 1,6:1 sobre el halo.
  */
 export default function Restaurar({
   cantoId,
@@ -48,7 +51,7 @@ export default function Restaurar({
         <button
           type="button"
           onClick={() => setConfirmando(true)}
-          className="tactil rounded-lg border border-borde-fuerte px-3 text-sm"
+          className={clasesBotonIcono('borde', 'px-4')}
         >
           Volver a esta versión
         </button>
@@ -64,7 +67,7 @@ export default function Restaurar({
               type="button"
               onClick={restaurar}
               disabled={pendiente}
-              className="tactil rounded-lg bg-acento px-3 text-sm font-medium text-white disabled:opacity-40"
+              className={clasesBotonIcono('lleno', 'px-4')}
             >
               {pendiente ? 'Volviendo…' : 'Sí, volver'}
             </button>
@@ -72,7 +75,7 @@ export default function Restaurar({
               type="button"
               onClick={() => setConfirmando(false)}
               disabled={pendiente}
-              className="tactil rounded-lg px-3 text-sm text-texto-tenue"
+              className={clasesBotonIcono('plano', 'px-4')}
             >
               Cancelar
             </button>

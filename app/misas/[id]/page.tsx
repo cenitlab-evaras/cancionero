@@ -18,7 +18,11 @@ import {
   sePuedeInscribir,
 } from '@/lib/motores/inscripcion'
 import { etiquetaDisponibilidad } from '@/lib/motores/ficha'
+import { fechaLarga } from '@/lib/motores/fecha'
 import Cabecera from '@/app/componentes/cabecera'
+import TituloSeccion from '@/app/componentes/titulo-seccion'
+import { EnlaceIcono, clasesBotonIcono } from '@/app/componentes/boton-icono'
+import { IconoEditar, IconoReproducir, IconoVolver } from '@/app/componentes/iconos'
 import Inscripcion from './inscripcion'
 
 export const metadata = { title: 'Misa · Cantoral' }
@@ -46,8 +50,8 @@ export default async function MisaPage({
     return (
       <>
         <Cabecera sesion={sesion} />
-        <main className="mx-auto w-full max-w-2xl px-4 py-10">
-          <h1 className="text-lg font-semibold text-peligro">
+        <main className="mx-auto w-full max-w-2xl px-4 pt-6 pb-10">
+          <h1 className="titulo-libro text-[1.75rem] leading-tight text-peligro">
             No tienes acceso a esta misa
           </h1>
           <p className="mt-2 max-w-prose text-sm text-texto-tenue">
@@ -87,38 +91,52 @@ export default async function MisaPage({
   // `fichasDelCoro` lista a todo el coro, así que quien no la puede leer
   // tampoco puede saber quién falta: la lista queda vacía y no se dibuja.
   const faltan = quienFalta(fichas, inscritos, fichas)
-  const abierta = sePuedeInscribir(misa.fecha, hoyISO())
+  const hoy = hoyISO()
+  const abierta = sePuedeInscribir(misa.fecha, hoy)
+  // «Empezar la misa» es para la que viene. En una que ya pasó, el botón en el
+  // halo invitaba a «empezar» algo que ya ocurrió; ahí queda un enlace tenue
+  // para repasar. Una misa sin fecha (una lista) se puede empezar siempre.
+  const yaPaso = !!misa.fecha && misa.fecha < hoy
+
+  const cantos =
+    misa.cantos.length === 0
+      ? 'Sin cantos'
+      : misa.cantos.length === 1
+        ? '1 canto'
+        : `${misa.cantos.length} cantos`
 
   return (
     <>
       <Cabecera sesion={sesion} />
 
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 pb-10">
-        <div className="flex items-baseline gap-3 pt-4">
-          <Link
-            href="/misas"
-            className="-ml-1 shrink-0 rounded px-1 text-sm text-texto-tenue transition-colors hover:text-texto"
-            aria-label="Volver a las misas"
-          >
-            ←
-          </Link>
-          <h1 className="min-w-0 text-[1.375rem] leading-tight font-semibold text-balance">
-            {misa.nombre}
-          </h1>
+        <div className="-ml-3 pt-2">
+          <EnlaceIcono href="/misas" etiqueta="Volver a las misas">
+            <IconoVolver />
+          </EnlaceIcono>
         </div>
 
-        <div className="mt-1.5 flex items-baseline justify-between gap-3 pl-7">
-          <p className="text-xs text-texto-tenue">
-            {misa.cantos.length === 0
-              ? 'sin cantos'
-              : misa.cantos.length === 1
-                ? '1 canto'
-                : `${misa.cantos.length} cantos`}
-          </p>
+        <h1 className="titulo-libro mt-1 text-[1.75rem] leading-tight text-balance">
+          {misa.nombre}
+        </h1>
+        {/* La fecha no aparecía en ninguna parte del detalle: había que volver
+            a la lista para saber de qué domingo era. */}
+        <p className="mt-1 text-base text-texto-tenue">
+          {misa.fecha ? fechaLarga(misa.fecha) : 'Sin fecha'}
+        </p>
+
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <p className="text-sm text-texto-tenue">{cantos}</p>
           {puedeEditar && (
-            <Link href={`/misas/${misa.id}/editar`} className="text-sm text-acento">
-              Armar
-            </Link>
+            <EnlaceIcono
+              href={`/misas/${misa.id}/editar`}
+              etiqueta="Armar la misa"
+              texto="Armar la misa"
+              apariencia="borde"
+              className="pr-4"
+            >
+              <IconoEditar tamano={18} />
+            </EnlaceIcono>
           )}
         </div>
 
@@ -126,24 +144,25 @@ export default async function MisaPage({
           <p className="mt-8 max-w-prose text-sm text-texto-tenue">
             Esta misa todavía no tiene cantos.
             {puedeEditar
-              ? ' Toca «Armar» para asignarle uno por momento.'
+              ? ' Toca «Armar la misa» para asignarle uno por momento.'
               : ' Cuando tu director la arme, aparecen acá.'}
           </p>
         ) : (
           <>
+            {/* Sin el número de orden a la izquierda: el orden ya lo dice la
+                lista, y esa columna es la del número del cancionero en el
+                resto de la app. El momento va debajo del título, en tenue. La
+                tonalidad sí va en ámbar: es un acorde. */}
             <ol className="mt-4 divide-y divide-borde border-t border-borde">
-              {misa.cantos.map((c, i) => (
+              {misa.cantos.map((c) => (
                 <li key={c.id}>
                   <Link
                     href={`/misas/${misa.id}/${c.id}`}
-                    className="flex min-h-14 items-center gap-3 py-2 transition-colors hover:bg-superficie"
+                    className="-mx-2 flex min-h-14 items-center gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-superficie"
                   >
-                    <span className="w-5 shrink-0 text-right font-cifrado text-xs text-texto-tenue">
-                      {i + 1}
-                    </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate">{c.titulo}</span>
-                      <span className="block text-xs text-texto-tenue">{c.momentoNombre}</span>
+                      <span className="block truncate text-base">{c.titulo}</span>
+                      <span className="block text-sm text-texto-tenue">{c.momentoNombre}</span>
                     </span>
                     {c.tonalidadOriginal && (
                       <span className="shrink-0 font-cifrado text-sm text-acorde">
@@ -155,12 +174,22 @@ export default async function MisaPage({
               ))}
             </ol>
 
-            <Link
-              href={`/misas/${misa.id}/${misa.cantos[0].id}`}
-              className="tactil mt-6 flex items-center justify-center rounded-lg bg-acento font-medium text-white"
-            >
-              Empezar la misa
-            </Link>
+            {yaPaso ? (
+              <Link
+                href={`/misas/${misa.id}/${misa.cantos[0].id}`}
+                className="tactil mt-4 inline-flex items-center text-sm text-acento underline underline-offset-2"
+              >
+                Repasar los cantos
+              </Link>
+            ) : (
+              <Link
+                href={`/misas/${misa.id}/${misa.cantos[0].id}`}
+                className={clasesBotonIcono('lleno', 'mt-6 w-full gap-2 text-base')}
+              >
+                <IconoReproducir />
+                Empezar la misa
+              </Link>
+            )}
           </>
         )}
 
@@ -170,27 +199,32 @@ export default async function MisaPage({
             ruido en la pantalla que se abre para tocar. */}
         {pedidosRankeados.length > 0 && (
           <section className="mt-10 border-t border-borde pt-6">
-            <h2 className="text-[0.8125rem] font-semibold text-texto-tenue uppercase">
-              Pedidos para esta misa
-            </h2>
+            <TituloSeccion>Pedidos para esta misa</TituloSeccion>
             <ul className="mt-2 divide-y divide-borde border-t border-borde">
               {pedidosRankeados.map((f) => (
-                <li key={`${f.cantoId}·${f.momentoId}`} className="py-2">
-                  <div className="flex items-baseline gap-3">
-                    <Link href={`/repertorio/${f.cantoId}`} className="min-w-0 flex-1 truncate text-sm">
+                <li key={`${f.cantoId}·${f.momentoId}`} className="flex items-start gap-3 py-2.5">
+                  <span className="min-w-0 flex-1">
+                    <Link
+                      href={`/repertorio/${f.cantoId}`}
+                      className="block truncate text-base hover:underline"
+                    >
                       {f.titulo}
                     </Link>
-                    <span className="shrink-0 font-cifrado text-sm text-acorde">{f.cuantas}</span>
-                  </div>
-                  <p className="text-xs text-texto-tenue">
-                    {f.momentoNombre} · {f.quienes.join(', ')}
-                  </p>
+                    <span className="block text-sm text-texto-tenue">{f.momentoNombre}</span>
+                    <span className="block text-sm text-texto-tenue">
+                      Lo {f.quienes.length === 1 ? 'pide' : 'piden'} {f.quienes.join(', ')}
+                    </span>
+                  </span>
+                  {/* El contador no es un acorde: va en tenue y con su unidad. */}
+                  <span className="shrink-0 text-sm text-texto-tenue">
+                    {f.cuantas} {f.cuantas === 1 ? 'pedido' : 'pedidos'}
+                  </span>
                 </li>
               ))}
             </ul>
             {puedeEditar && (
-              <p className="mt-2 text-xs text-texto-tenue">
-                Pedir no es asignar: los metes tú desde «Armar».
+              <p className="mt-2 text-sm text-texto-tenue">
+                Pedir no es asignar: los metes tú desde «Armar la misa».
               </p>
             )}
           </section>
@@ -200,7 +234,15 @@ export default async function MisaPage({
             arriba de todo estaría compitiendo con lo que se viene a leer. */}
         {puedeVerQuienVa && (
           <section className="mt-10 border-t border-borde pt-6">
-            <h2 className="text-[0.8125rem] font-semibold text-texto-tenue uppercase">Quién va</h2>
+            <TituloSeccion
+              detalle={
+                resumen.total > 0
+                  ? `${resumen.total} ${resumen.total === 1 ? 'anotado' : 'anotados'}`
+                  : undefined
+              }
+            >
+              Quién va
+            </TituloSeccion>
 
             <Inscripcion misaId={misa.id} mia={miInscripcion} editable={abierta} />
 
@@ -213,27 +255,24 @@ export default async function MisaPage({
               </p>
             ) : (
               <>
-                <p className="mt-5 text-xs text-texto-tenue">
-                  {resumen.total} {resumen.total === 1 ? 'anotado' : 'anotados'}
+                {/* El desglose por voz e instrumento, cada uno con su espacio:
+                    antes era una sola línea de 12 px cosida con puntos medios. */}
+                <ul className="mt-5 flex flex-wrap gap-x-4 gap-y-1 text-sm text-texto-tenue">
                   {resumen.voces.map((v) => (
-                    <span key={v.tesitura ?? 'sin'}>
-                      {' · '}
-                      {contarVoces(v.tesitura, v.cuantos)}
-                    </span>
+                    <li key={v.tesitura ?? 'sin'}>{contarVoces(v.tesitura, v.cuantos)}</li>
                   ))}
                   {resumen.instrumentos.map((i) => (
-                    <span key={i.instrumento ?? 'sin'}>
-                      {' · '}
+                    <li key={i.instrumento ?? 'sin'}>
                       {contarInstrumento(i.instrumento, i.cuantos)}
-                    </span>
+                    </li>
                   ))}
-                </p>
+                </ul>
 
                 <ul className="mt-2 divide-y divide-borde border-t border-borde">
                   {inscritos.map((i) => (
                     <li key={i.perfilId} className="flex min-h-12 items-center gap-3 py-1.5">
-                      <span className="min-w-0 flex-1 truncate text-sm">{i.nombre}</span>
-                      <span className="shrink-0 text-xs text-texto-tenue">
+                      <span className="min-w-0 flex-1 truncate">{i.nombre}</span>
+                      <span className="shrink-0 text-sm text-texto-tenue">
                         {i.aporte === 'vocal'
                           ? etiquetaAporte(i.aporte)
                           : nombreInstrumento(i.instrumento)}
@@ -249,16 +288,21 @@ export default async function MisaPage({
                 predicción deja de mostrarse. Es la tensión de §18-11, cerrada:
                 manda la inscripción. */}
             {faltan.length > 0 && (
-              <p className="mt-4 max-w-prose text-xs text-texto-tenue">
-                Faltan {faltan.length}
-                {faltan.map((f) => (
-                  <span key={f.perfilId}>
-                    {' · '}
-                    {f.nombre}
-                    {f.disponibilidad && ` (${etiquetaDisponibilidad(f.disponibilidad).toLowerCase()})`}
-                  </span>
-                ))}
-              </p>
+              <div className="mt-6">
+                <TituloSeccion detalle={String(faltan.length)}>Faltan</TituloSeccion>
+                <ul className="mt-2 divide-y divide-borde border-t border-borde">
+                  {faltan.map((f) => (
+                    <li key={f.perfilId} className="flex min-h-11 items-center gap-3 py-1.5">
+                      <span className="min-w-0 flex-1 truncate text-texto-tenue">{f.nombre}</span>
+                      {f.disponibilidad && (
+                        <span className="shrink-0 text-sm text-texto-tenue">
+                          {etiquetaDisponibilidad(f.disponibilidad)}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
           </section>
         )}

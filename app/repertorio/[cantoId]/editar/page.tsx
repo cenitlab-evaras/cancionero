@@ -4,6 +4,8 @@ import { obtenerSesion } from '@/lib/sesion'
 import { puede } from '@/lib/permisos'
 import { cantoParaEditar, catalogosParaEditar, vecesEnMisas } from '@/lib/datos/repertorio'
 import Cabecera from '@/app/componentes/cabecera'
+import { EnlaceIcono, clasesBotonIcono } from '@/app/componentes/boton-icono'
+import { IconoVolver } from '@/app/componentes/iconos'
 import FormularioCanto from '../../formulario-canto'
 import Archivar from './archivar'
 
@@ -32,10 +34,7 @@ export default async function EditarCantoPage({
             Corregir un canto es trabajo del director del coro. Sí puedes ajustar tu propia
             transposición y el tamaño de letra desde la vista de lectura.
           </p>
-          <Link
-            href={`/repertorio/${cantoId}`}
-            className="mt-6 inline-block text-sm text-acento underline underline-offset-2"
-          >
+          <Link href={`/repertorio/${cantoId}`} className={clasesBotonIcono('borde', 'mt-6 px-4')}>
             Ver el canto
           </Link>
         </main>
@@ -56,10 +55,7 @@ export default async function EditarCantoPage({
         <Cabecera sesion={sesion} />
         <main className="mx-auto w-full max-w-2xl px-4 py-10">
           <h1 className="text-lg font-semibold text-peligro">No tienes acceso a este canto</h1>
-          <Link
-            href="/repertorio"
-            className="mt-6 inline-block text-sm text-acento underline underline-offset-2"
-          >
+          <Link href="/repertorio" className={clasesBotonIcono('borde', 'mt-6 px-4')}>
             Volver al repertorio
           </Link>
         </main>
@@ -70,18 +66,15 @@ export default async function EditarCantoPage({
   return (
     <>
       <Cabecera sesion={sesion} />
-      <main className="mx-auto w-full max-w-2xl flex-1 px-4">
-        <div className="flex items-baseline gap-3 pt-4">
-          <Link
-            href={`/repertorio/${cantoId}`}
-            className="-ml-1 shrink-0 rounded px-1 text-sm text-texto-tenue transition-colors hover:text-texto"
-            aria-label="Volver al canto"
-          >
-            ←
-          </Link>
-          <h1 className="min-w-0 truncate text-[1.375rem] leading-tight font-semibold">
-            {canto.titulo}
-          </h1>
+      <main className="mx-auto w-full max-w-2xl flex-1 px-4 pt-6">
+        {/* Segundo nivel: se vuelve al canto, que es desde donde se entra. El
+            título ya no se trunca: un canto largo partido en dos líneas se lee
+            entero, cortado con «…» no se sabe cuál se está editando. */}
+        <div className="-ml-3 flex items-center gap-1">
+          <EnlaceIcono href={`/repertorio/${cantoId}`} etiqueta="Volver al canto">
+            <IconoVolver />
+          </EnlaceIcono>
+          <h1 className="titulo-libro min-w-0 text-[1.75rem] leading-tight">{canto.titulo}</h1>
         </div>
 
         <FormularioCanto

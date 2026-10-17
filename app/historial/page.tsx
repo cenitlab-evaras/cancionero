@@ -4,6 +4,7 @@ import { obtenerSesion } from '@/lib/sesion'
 import { repertorioConHistorial } from '@/lib/datos/historial'
 import { describirAntiguedad, ordenarPorUso } from '@/lib/motores/historial'
 import Cabecera from '@/app/componentes/cabecera'
+import TituloSeccion from '@/app/componentes/titulo-seccion'
 
 export const metadata = { title: 'Historial · Cantoral' }
 
@@ -25,8 +26,9 @@ export default async function HistorialPage() {
     return (
       <>
         <Cabecera sesion={sesion} />
-        <main className="mx-auto w-full max-w-2xl px-4 py-10">
-          <h1 className="text-lg font-semibold">Todavía no perteneces a ningún coro</h1>
+        <main className="mx-auto w-full max-w-2xl px-4 pt-6 pb-10">
+          <h1 className="titulo-libro text-[1.75rem] leading-tight">Historial</h1>
+          <p className="mt-2 max-w-prose text-base">Todavía no perteneces a ningún coro.</p>
           <p className="mt-2 max-w-prose text-sm text-texto-tenue">
             El historial se arma con las misas de un coro. Cuando pertenezcas a uno, vas a verlo acá.
           </p>
@@ -43,21 +45,10 @@ export default async function HistorialPage() {
     <>
       <Cabecera sesion={sesion} />
 
-      <main className="mx-auto w-full max-w-2xl px-4 pb-16">
-        <div className="flex items-baseline gap-3 pt-4">
-          <Link
-            href="/repertorio"
-            className="-ml-1 shrink-0 rounded px-1 text-sm text-texto-tenue transition-colors hover:text-texto"
-            aria-label="Volver al repertorio"
-          >
-            ←
-          </Link>
-          <h1 className="text-[1.375rem] leading-tight font-semibold">Historial</h1>
-        </div>
-
-        <p className="mt-1.5 max-w-prose pl-7 text-xs text-texto-tenue">
-          Se cuenta lo que ya se cantó: una misa con fecha futura o una lista sin fecha no suman.
-        </p>
+      {/* Destino de primer nivel (se llega desde «Más»): sin flecha de volver. */}
+      <main className="mx-auto w-full max-w-2xl px-4 pt-6 pb-16">
+        <h1 className="titulo-libro text-[1.75rem] leading-tight">Historial</h1>
+        <p className="mt-1 max-w-prose text-sm text-texto-tenue">Cuentan las misas que ya pasaron.</p>
 
         {cantados.length === 0 && nunca.length === 0 && (
           <p className="py-10 text-sm text-texto-tenue">Este coro todavía no tiene repertorio.</p>
@@ -71,41 +62,41 @@ export default async function HistorialPage() {
         )}
 
         {cantados.length > 0 && (
-          <section className="pt-7">
-            <h2 className="flex items-center gap-3 text-[0.8125rem] font-semibold tracking-[0.14em] text-texto-tenue uppercase">
-              Lo que cantamos
-              <span className="h-px flex-1 bg-borde" aria-hidden />
-            </h2>
+          <section className="pt-8">
+            <TituloSeccion detalle={String(cantados.length)}>Lo que cantamos</TituloSeccion>
 
-            <ul className="mt-1">
+            <ul className="mt-2 border-t border-borde">
               {cantados.map((canto) => (
                 <li key={canto.id} className="border-b border-borde/70 last:border-b-0">
                   <Link
                     href={`/repertorio/${canto.id}`}
                     className="tactil -mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5 hover:bg-superficie"
                   >
-                    {/* El número a la izquierda, como el del cancionero en el
-                        listado: la columna donde el ojo ya sabe buscar.
+                    {/* La columna izquierda es la del número del cancionero,
+                        como en el repertorio: la columna donde el ojo ya sabe
+                        buscar. Las veces se fueron a la derecha, con su unidad
+                        (rediseño 2026-10-17): antes ocupaban esta columna y se
+                        confundían con el número del libro.
 
-                        NO va en `--color-acorde`: ese cálido está reservado a
+                        NO van en `--color-acorde`: ese cálido está reservado a
                         los acordes y a la tonalidad (§DESIGN, «la regla del
-                        acorde»). Acá no hay ningún acorde en pantalla, pero
-                        usarlo igual entrena al ojo a leer el naranja como
-                        «número importante», y esa lectura se lleva puesta la
-                        vista del canto, que es donde el color decide algo.
-                        La jerarquía la dan la mono, el ancho fijo y la
-                        alineación a la derecha. */}
-                    <span className="w-7 shrink-0 text-right font-cifrado text-sm text-texto">
-                      {canto.historial.veces}
+                        acorde»). Usarlo igual entrena al ojo a leer el ámbar
+                        como «número importante», y esa lectura se lleva puesta
+                        la vista del canto, que es donde el color decide algo. */}
+                    <span className="numero-libro w-7 shrink-0 text-right text-texto-tenue" aria-hidden>
+                      {canto.fuenteNumero ?? ''}
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate">{canto.titulo}</span>
-                      <span className="block truncate text-xs text-texto-tenue">
+                      <span className="block truncate text-sm text-texto-tenue">
                         {describirAntiguedad(canto.historial.diasDesdeUltima)}
                         {canto.historial.porMomento.length > 0 && (
                           <> · {canto.historial.porMomento[0].momento}</>
                         )}
                       </span>
+                    </span>
+                    <span className="shrink-0 text-sm text-texto-tenue">
+                      {canto.historial.veces === 1 ? '1 vez' : `${canto.historial.veces} veces`}
                     </span>
                   </Link>
                 </li>
@@ -115,31 +106,28 @@ export default async function HistorialPage() {
         )}
 
         {nunca.length > 0 && (
-          <section className="pt-7">
-            <h2 className="flex items-center gap-3 text-[0.8125rem] font-semibold tracking-[0.14em] text-texto-tenue uppercase">
-              Nunca cantados
-              <span className="h-px flex-1 bg-borde" aria-hidden />
-            </h2>
-            <p className="mt-1.5 max-w-prose text-xs text-texto-tenue">
+          <section className="pt-8">
+            <TituloSeccion detalle={String(nunca.length)}>Nunca cantados</TituloSeccion>
+            <p className="mt-1 max-w-prose text-sm text-texto-tenue">
               Están en el repertorio pero no han sonado en ninguna misa.
             </p>
 
-            <ul className="mt-2">
+            <ul className="mt-2 border-t border-borde">
               {nunca.map((canto) => (
                 <li key={canto.id} className="border-b border-borde/70 last:border-b-0">
                   <Link
                     href={`/repertorio/${canto.id}`}
                     className="tactil -mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5 hover:bg-superficie"
                   >
-                    <span className="w-7 shrink-0 text-right font-cifrado text-sm text-texto-tenue">
-                      —
+                    <span className="numero-libro w-7 shrink-0 text-right text-texto-tenue" aria-hidden>
+                      {canto.fuenteNumero ?? ''}
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate">{canto.titulo}</span>
                       {/* Un canto agendado no está olvidado: está por sonar. */}
                       {canto.historial.agendadas.length > 0 && (
-                        <span className="block truncate text-xs text-texto-tenue">
-                          agendado en {canto.historial.agendadas[0].misaNombre}
+                        <span className="block truncate text-sm text-texto-tenue">
+                          Agendado en {canto.historial.agendadas[0].misaNombre}
                         </span>
                       )}
                     </span>
@@ -151,7 +139,7 @@ export default async function HistorialPage() {
         )}
 
         {cantados.length > 0 && (
-          <p className="pt-8 text-xs text-texto-tenue">
+          <p className="pt-8 text-sm text-texto-tenue">
             {cantados.length} de {cantos.length} cantos se han cantado alguna vez en{' '}
             {sesion.coroActivo.nombre}
           </p>

@@ -4,6 +4,8 @@ import { obtenerSesion } from '@/lib/sesion'
 import { puede } from '@/lib/permisos'
 import { cantosArchivados } from '@/lib/datos/repertorio'
 import Cabecera from '@/app/componentes/cabecera'
+import { EnlaceIcono, clasesBotonIcono } from '@/app/componentes/boton-icono'
+import { IconoVolver } from '@/app/componentes/iconos'
 import ListaArchivados from './lista'
 
 export const metadata = { title: 'Archivados · Cantoral' }
@@ -11,8 +13,10 @@ export const metadata = { title: 'Archivados · Cantoral' }
 /**
  * Los cantos que salieron de circulación (§16, cerrado el 2026-09-03).
  *
- * Vive bajo `/repertorio` y no en la cabecera: se consulta al planificar, no
- * mientras se toca, igual que el historial de H13.
+ * Vive bajo `/repertorio` y no en la barra de abajo: se consulta al planificar,
+ * no mientras se toca, igual que el historial de H13. Desde el rediseño del
+ * 2026-10-17 se entra por «Más» —antes era un enlace al pie del repertorio—,
+ * así que es de segundo nivel y su volver lleva ahí.
  */
 export default async function ArchivadosPage() {
   const sesion = await obtenerSesion()
@@ -31,10 +35,7 @@ export default async function ArchivadosPage() {
           <p className="mt-2 max-w-prose text-sm text-texto-tenue">
             Sacar un canto del repertorio y devolverlo es trabajo del director del coro.
           </p>
-          <Link
-            href="/repertorio"
-            className="mt-6 inline-block text-sm text-acento underline underline-offset-2"
-          >
+          <Link href="/repertorio" className={clasesBotonIcono('borde', 'mt-6 px-4')}>
             Volver al repertorio
           </Link>
         </main>
@@ -47,27 +48,28 @@ export default async function ArchivadosPage() {
   return (
     <>
       <Cabecera sesion={sesion} />
-      <main className="mx-auto w-full max-w-2xl flex-1 px-4 pb-10">
-        <div className="flex items-baseline gap-3 pt-4">
-          <Link
-            href="/repertorio"
-            className="-ml-1 shrink-0 rounded px-1 text-sm text-texto-tenue transition-colors hover:text-texto"
-            aria-label="Volver al repertorio"
-          >
-            ←
-          </Link>
-          <h1 className="min-w-0 text-[1.375rem] leading-tight font-semibold">Archivados</h1>
+      <main className="mx-auto w-full max-w-2xl flex-1 px-4 pt-6 pb-10">
+        <div className="-ml-3 flex items-center gap-1">
+          <EnlaceIcono href="/mas" etiqueta="Volver a Más">
+            <IconoVolver />
+          </EnlaceIcono>
+          <h1 className="titulo-libro min-w-0 text-[1.75rem] leading-tight">Cantos archivados</h1>
         </div>
 
         {cantos.length === 0 ? (
           // Un estado vacío explica POR QUÉ está vacío (PRD §14).
-          <p className="mt-4 max-w-prose text-sm text-texto-tenue">
-            No hay ningún canto archivado. Cuando saques uno del repertorio desde «Editar», va a
-            aparecer acá y vas a poder devolverlo.
-          </p>
+          <div className="mt-4">
+            <p className="max-w-prose text-texto-tenue">
+              No hay ningún canto archivado. Cuando saques uno del repertorio desde «Editar», va a
+              aparecer acá y vas a poder devolverlo.
+            </p>
+            <Link href="/repertorio" className={clasesBotonIcono('borde', 'mt-5 px-4')}>
+              Ir al repertorio
+            </Link>
+          </div>
         ) : (
           <>
-            <p className="mt-1.5 max-w-prose pl-7 text-xs text-texto-tenue">
+            <p className="mt-2 max-w-prose text-sm text-texto-tenue">
               Fuera del repertorio y de la búsqueda. Siguen en las misas donde se cantaron y en el
               historial.
             </p>

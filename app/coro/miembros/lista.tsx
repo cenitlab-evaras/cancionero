@@ -6,6 +6,8 @@ import { agregarMiembro, cambiarRolLocal } from '../acciones'
 import type { PerfilConVinculo } from '@/lib/datos/gobierno'
 import type { FichaDeMiembro } from '@/lib/datos/ficha'
 import { etiquetaDisponibilidad, etiquetaTesitura } from '@/lib/motores/ficha'
+import TituloSeccion from '@/app/componentes/titulo-seccion'
+import { clasesBotonIcono } from '@/app/componentes/boton-icono'
 
 /**
  * Admitir gente al coro y cambiarle el rol.
@@ -48,42 +50,49 @@ export default function ListaMiembros({
   const fichaDe = new Map(fichas.map((f) => [f.perfilId, f]))
 
   /** Lo declarado, y solo lo declarado: un «Sin declarar · Sin declarar · —»
-      repetido en cada fila es ruido, y el pie ya dice cuántos faltan. */
-  function resumenFicha(perfilId: string): string | null {
+      repetido en cada fila es ruido, y el pie ya dice cuántos faltan.
+      Cada dato va en su propio trozo y no cosido con puntos medios: son tres
+      cosas distintas (rediseño 2026-10-17). */
+  function resumenFicha(perfilId: string): string[] {
     const f = fichaDe.get(perfilId)
-    if (!f) return null
-    const partes = [
+    if (!f) return []
+    return [
       f.tesitura ? etiquetaTesitura(f.tesitura) : null,
       f.disponibilidad ? etiquetaDisponibilidad(f.disponibilidad) : null,
       f.edad === null ? null : `${f.edad} años`,
-    ].filter(Boolean)
-    return partes.length > 0 ? partes.join(' · ') : null
+    ].filter((x): x is string => !!x)
   }
 
   return (
     <div className={pendiente ? 'opacity-60 transition-opacity' : 'transition-opacity'}>
-      {error && <p className="mt-4 text-sm text-peligro">{error}</p>}
+      {error && (
+        <p role="status" className="mt-4 text-sm text-peligro">
+          {error}
+        </p>
+      )}
 
-      <h2 className="mt-6 text-[0.8125rem] font-semibold text-texto-tenue uppercase">
+      <TituloSeccion className="mt-6" detalle={String(enElCoro.length)}>
         En el coro
-      </h2>
+      </TituloSeccion>
 
       <ul className="mt-2 divide-y divide-borde border-t border-borde">
         {enElCoro.map((p) => (
           <li key={p.id} className="flex min-h-14 items-center gap-3 py-2">
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm">
+              <span className="block truncate">
                 {nombreDe(p)}
-                {p.id === yoId && <span className="text-texto-tenue"> · tú</span>}
+                {p.id === yoId && <span className="text-sm text-texto-tenue"> (tú)</span>}
               </span>
-              <span className="block truncate text-xs text-texto-tenue">{p.email}</span>
-              {resumenFicha(p.id) && (
-                <span className="mt-0.5 block truncate text-xs text-texto-tenue">
-                  {resumenFicha(p.id)}
+              <span className="block truncate text-sm text-texto-tenue">{p.email}</span>
+              {resumenFicha(p.id).length > 0 && (
+                <span className="mt-0.5 flex flex-wrap gap-x-3 text-sm text-texto-tenue">
+                  {resumenFicha(p.id).map((dato) => (
+                    <span key={dato}>{dato}</span>
+                  ))}
                   {fichaDe.get(p.id)?.esMenor === true && (
                     /* Se dice, no se deduce: en contexto parroquial tiene
                        consecuencias reales. */
-                    <span className="ml-1.5 font-medium text-texto">menor</span>
+                    <span className="font-medium text-texto">Menor de edad</span>
                   )}
                 </span>
               )}
@@ -101,10 +110,10 @@ export default function ListaMiembros({
               }
               disabled={pendiente}
               aria-label={`Rol de ${nombreDe(p)} en el coro`}
-              className="tactil shrink-0 rounded-lg border border-borde-fuerte bg-superficie px-2 text-sm"
+              className="tactil shrink-0 rounded-lg border border-borde-fuerte bg-superficie px-3 text-sm"
             >
-              <option value="miembro">miembro</option>
-              <option value="director">director</option>
+              <option value="miembro">Miembro</option>
+              <option value="director">Director</option>
             </select>
           </li>
         ))}
@@ -113,14 +122,12 @@ export default function ListaMiembros({
       {directores <= 1 && (
         // Avisar ANTES, no cuando la acción ya falló: el director tiene que
         // poder anticipar por qué el selector le va a decir que no.
-        <p className="mt-2 text-xs text-texto-tenue">
+        <p className="mt-2 text-sm text-texto-tenue">
           Hay un solo director. Para cambiarle el rol, primero nombra a otro.
         </p>
       )}
 
-      <h2 className="mt-10 text-[0.8125rem] font-semibold text-texto-tenue uppercase">
-        Agregar al coro
-      </h2>
+      <TituloSeccion className="mt-10">Agregar al coro</TituloSeccion>
 
       {disponibles.length === 0 ? (
         <p className="mt-2 max-w-prose text-sm text-texto-tenue">
@@ -132,13 +139,14 @@ export default function ListaMiembros({
           {disponibles.map((p) => (
             <li key={p.id} className="flex min-h-14 items-center gap-3 py-2">
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm">{nombreDe(p)}</span>
-                <span className="block truncate text-xs text-texto-tenue">{p.email}</span>
+                <span className="block truncate">{nombreDe(p)}</span>
+                <span className="block truncate text-sm text-texto-tenue">{p.email}</span>
               </span>
               <button
+                type="button"
                 onClick={() => correr(() => agregarMiembro({ perfilId: p.id, rolLocal: 'miembro' }))}
                 disabled={pendiente}
-                className="tactil shrink-0 rounded-lg px-3 text-sm text-acento disabled:opacity-40"
+                className={clasesBotonIcono('borde', 'px-4 text-sm')}
               >
                 Agregar
               </button>

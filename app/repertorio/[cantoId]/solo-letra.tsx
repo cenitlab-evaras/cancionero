@@ -3,17 +3,20 @@
 import { useRouter } from 'next/navigation'
 import { useOptimistic, useTransition } from 'react'
 import { guardarMostrarAcordes } from './acciones'
+import { clasesBotonIcono } from '@/app/componentes/boton-icono'
+import { IconoAcordes } from '@/app/componentes/iconos'
 
 /**
  * El interruptor de acordes (H11).
  *
  * Vive en la cabecera del canto, no en la barra inferior: esa barra es para lo
- * que se toca MIENTRAS se canta —transponer, velocidad, tamaño— y ya declaraba
- * que en 360 px no entraba un control más. Esto se elige una vez.
+ * que se toca MIENTRAS se canta. Esto se elige una vez, y lo que guarda vale
+ * para TODO el repertorio, no para este canto.
  *
- * Y lo que guarda vale para TODO el repertorio, no para este canto: quien canta
- * sin instrumento no quiere apagarlos canto por canto. Por eso el texto dice
- * "acordes" a secas y no "acordes de este canto".
+ * Rediseño 2026-10-17: era una píldora de 60×23 px con la palabra «acordes»
+ * que no decía qué hacía. Ahora es un control de 44 px con su ícono y su texto,
+ * y el estado se dice con superficie y con una barra que tacha el ícono —
+ * nunca con el color del acorde, que es solo para los acordes.
  */
 export default function SoloLetra({ mostrarAcordes }: { mostrarAcordes: boolean }) {
   const router = useRouter()
@@ -37,18 +40,17 @@ export default function SoloLetra({ mostrarAcordes }: { mostrarAcordes: boolean 
       // "Ver acordes, activado", que es la forma en que se lee un interruptor.
       aria-label="Ver acordes"
       title={optimista ? 'Ocultar los acordes en todo el repertorio' : 'Volver a ver los acordes'}
-      // El estado se dice con SUPERFICIE, no con el color del acorde. Pintarlo
-      // de `--color-acorde` hacía que un control compitiera con lo único que el
-      // miembro busca de reojo a un metro (§DESIGN, «la regla del acorde»): el
-      // toggle y los acordes tenían el mismo valor de color, medido.
-      // Apagado va tachado, que dice lo que pasó sin depender del color.
-      className={`shrink-0 rounded-full border px-2 py-0.5 text-[0.6875rem] transition-colors ${
-        optimista
-          ? 'border-borde-fuerte bg-superficie-alta text-texto'
-          : 'border-transparent text-texto-tenue line-through decoration-1 hover:text-texto'
-      }`}
+      className={clasesBotonIcono(optimista ? 'activo' : 'plano')}
     >
-      acordes
+      <span className="relative">
+        <IconoAcordes />
+        {!optimista && (
+          <span
+            aria-hidden
+            className="absolute top-1/2 left-1/2 h-[1.75px] w-7 -translate-x-1/2 -translate-y-1/2 -rotate-45 rounded bg-current"
+          />
+        )}
+      </span>
     </button>
   )
 }

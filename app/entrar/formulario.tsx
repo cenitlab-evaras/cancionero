@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { clasesBotonIcono } from '@/app/componentes/boton-icono'
 
 /**
  * Único Client Component de la entrada: Auth necesita correr en el navegador
@@ -35,12 +36,12 @@ export default function FormularioEntrar() {
   }
 
   const campo =
-    'h-11 rounded-lg border border-borde-fuerte bg-superficie px-3 text-texto transition-colors placeholder:text-texto-tenue hover:border-texto-tenue focus:border-acento'
+    'tactil rounded-lg border border-borde-fuerte bg-superficie px-3 text-base text-texto transition-colors placeholder:text-texto-tenue hover:border-texto-tenue focus:border-acento'
 
   return (
     <form onSubmit={entrar} className="mt-8 flex flex-col gap-4">
       <label className="flex flex-col gap-1.5">
-        <span className="text-xs text-texto-tenue">Correo</span>
+        <span className="text-sm text-texto-tenue">Correo</span>
         <input
           type="email"
           required
@@ -53,7 +54,7 @@ export default function FormularioEntrar() {
       </label>
 
       <label className="flex flex-col gap-1.5">
-        <span className="text-xs text-texto-tenue">Contraseña</span>
+        <span className="text-sm text-texto-tenue">Contraseña</span>
         <input
           type="password"
           required
@@ -73,7 +74,7 @@ export default function FormularioEntrar() {
       <button
         type="submit"
         disabled={cargando}
-        className="tactil mt-2 rounded-lg bg-acento px-4 font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+        className={clasesBotonIcono('lleno', 'mt-2 px-4 text-base')}
       >
         {cargando ? 'Entrando…' : 'Entrar'}
       </button>

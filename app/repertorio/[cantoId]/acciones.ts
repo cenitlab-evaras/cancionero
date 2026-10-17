@@ -7,35 +7,34 @@ import { obtenerSesion } from '@/lib/sesion'
 import { puede } from '@/lib/permisos'
 import { normalizarSemitonos, transponer, transponerAcorde } from '@/lib/motores/transponer'
 import { aplicarCorreccion, normalizarAcorde } from '@/lib/motores/corregir-acorde'
+import { esTamanoValido } from '@/lib/motores/tamano-letra'
 
 /**
- * Guarda la preferencia de lectura del usuario para un canto (H3).
+ * Guarda la transposición del usuario para un canto (H3).
  *
  * Una server action es alcanzable por POST directo, no solo desde la UI, así
  * que valida la entrada con Zod y comprueba el rol en el servidor ADEMÁS de la
  * RLS. Sin esa comprobación previa, la RLS rechazaría en silencio con cero
  * filas afectadas y el usuario creería que guardó (PRD §8.3).
+ *
+ * El tamaño de letra ya no viaja acá: desde el 2026-10-17 es de la persona y se
+ * guarda con `guardarTamanoLetra`. La columna vieja toma su default al insertar
+ * y no se toca al actualizar.
  */
 
 const Entrada = z.object({
   cantoId: z.string().uuid(),
   coroId: z.string().uuid(),
   transposicion: z.number().int().min(-11).max(11),
-  tamanoLetra: z
-    .number()
-    .int()
-    .min(14)
-    .max(24)
-    .refine((n) => n % 2 === 0, 'El tamaño va en pasos de 2 (RN-14)'),
 })
 
 export type ResultadoPreferencia = { ok: true } | { ok: false; error: string }
 
-export async function guardarPreferencia(raw: unknown): Promise<ResultadoPreferencia> {
+export async function guardarTransposicion(raw: unknown): Promise<ResultadoPreferencia> {
   const datos = Entrada.parse(raw)
 
   const sesion = await obtenerSesion()
-  if (!sesion) return { ok: false, error: 'Sesión expirada. Volvé a entrar.' }
+  if (!sesion) return { ok: false, error: 'Tu sesión expiró. Vuelve a entrar.' }
 
   if (!puede(sesion.sujeto, 'guardar_preferencia_propia')) {
     return { ok: false, error: 'Tu cuenta todavía no está habilitada.' }
@@ -52,15 +51,51 @@ export async function guardarPreferencia(raw: unknown): Promise<ResultadoPrefere
       canto_id: datos.cantoId,
       coro_id: datos.coroId,
       transposicion: normalizarSemitonos(datos.transposicion),
-      tamano_letra: datos.tamanoLetra,
       updated_at: new Date().toISOString(),
     },
     { onConflict: 'perfil_id,canto_id' }
   )
 
-  if (error) return { ok: false, error: 'No pudimos guardar tu preferencia.' }
+  if (error) return { ok: false, error: 'No se guardó el cambio de tono. Revisa tu conexión.' }
 
   revalidatePath(`/repertorio/${datos.cantoId}`)
+  return { ok: true }
+}
+
+/**
+ * Guarda el tamaño de letra de esta PERSONA (2026-10-17, antes era por canto).
+ *
+ * Vale en todo el repertorio y en toda la misa: quien ve poco lo elige una vez.
+ * Misma tabla y misma política que «ver acordes» (H11): cada uno escribe solo
+ * la suya, y no cuelga de ningún coro.
+ */
+export async function guardarTamanoLetra(valor: unknown): Promise<ResultadoPreferencia> {
+  if (!esTamanoValido(valor)) {
+    return { ok: false, error: 'Ese tamaño de letra no está disponible.' }
+  }
+
+  const sesion = await obtenerSesion()
+  if (!sesion) return { ok: false, error: 'Tu sesión expiró. Vuelve a entrar.' }
+
+  if (!puede(sesion.sujeto, 'guardar_preferencia_propia')) {
+    return { ok: false, error: 'Tu cuenta todavía no está habilitada.' }
+  }
+
+  const supabase = await createClient()
+
+  const { error } = await supabase.from('preferencias_perfil').upsert(
+    {
+      perfil_id: sesion.usuarioId,
+      tamano_letra: valor,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'perfil_id' }
+  )
+
+  if (error) return { ok: false, error: 'No se guardó el tamaño de letra. Revisa tu conexión.' }
+
+  // Todo canto que se abra después, en el repertorio o en la misa.
+  revalidatePath('/', 'layout')
   return { ok: true }
 }
 
@@ -78,7 +113,7 @@ export async function guardarMostrarAcordes(valor: unknown): Promise<ResultadoPr
   const mostrar = z.boolean().parse(valor)
 
   const sesion = await obtenerSesion()
-  if (!sesion) return { ok: false, error: 'Sesión expirada. Volvé a entrar.' }
+  if (!sesion) return { ok: false, error: 'Tu sesión expiró. Vuelve a entrar.' }
 
   if (!puede(sesion.sujeto, 'guardar_preferencia_propia')) {
     return { ok: false, error: 'Tu cuenta todavía no está habilitada.' }

@@ -2,12 +2,24 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { obtenerSesion } from '@/lib/sesion'
 import { puede } from '@/lib/permisos'
-import { contarArchivados, repertorioPorMomento } from '@/lib/datos/repertorio'
+import { repertorioPorMomento } from '@/lib/datos/repertorio'
 import { contarEnEnsayo, etiquetaEstado } from '@/lib/motores/estado-canto'
 import Cabecera from '@/app/componentes/cabecera'
+import TituloSeccion from '@/app/componentes/titulo-seccion'
+import { EnlaceIcono, clasesBotonIcono } from '@/app/componentes/boton-icono'
+import { IconoAgregar } from '@/app/componentes/iconos'
 import Buscador from './buscador'
 
 export const metadata = { title: 'Repertorio · Cantoral' }
+
+/**
+ * El repertorio del coro, ordenado como el cancionero (rediseño 2026-10-17).
+ *
+ * Es destino de primer nivel —se llega por la barra de abajo—, así que no
+ * lleva flecha de volver. Y es SOLO el repertorio: Historial, Sugerencias y
+ * los archivados, que antes colgaban del pie de esta lista de 4 700 px, ahora
+ * viven en «Más», donde se encuentran sin tener que recorrerla entera.
+ */
 
 export default async function RepertorioPage({
   searchParams,
@@ -24,9 +36,11 @@ export default async function RepertorioPage({
     return (
       <>
         <Cabecera sesion={sesion} />
-        <main className="mx-auto w-full max-w-2xl px-4 py-10">
-          <h1 className="text-lg font-semibold">Todavía no perteneces a ningún coro</h1>
-          <p className="mt-2 max-w-prose text-sm text-texto-tenue">
+        <main className="mx-auto w-full max-w-2xl px-4 pt-6 pb-10">
+          <h1 className="titulo-libro text-[1.75rem] leading-tight">
+            Todavía no perteneces a ningún coro
+          </h1>
+          <p className="mt-2 max-w-prose text-texto-tenue">
             {sesion.sujeto.rol === 'admin'
               ? 'Como administrador puedes ver los coros de la instalación, pero para leer un repertorio tienes que ser miembro de uno. Puedes asignarte desde la pantalla de miembros del coro.'
               : 'Pídele a tu director que te agregue. Cuando lo haga, acá vas a ver su repertorio.'}
@@ -37,12 +51,8 @@ export default async function RepertorioPage({
   }
 
   const { q = '' } = await searchParams
-  const puedeArchivar = puede(sesion.sujeto, 'archivar_canto')
-  const [grupos, archivados] = await Promise.all([
-    repertorioPorMomento(sesion.coroActivo.id, q),
-    // Solo se pregunta si hay a quién ofrecerle el enlace.
-    puedeArchivar ? contarArchivados(sesion.coroActivo.id) : Promise.resolve(0),
-  ])
+  const puedeEditar = puede(sesion.sujeto, 'editar_canto')
+  const grupos = await repertorioPorMomento(sesion.coroActivo.id, q)
   const total = grupos.reduce((n, g) => n + g.cantos.length, 0)
   // Se calcula al leer, nunca se guarda (innegociable 4). El motor cuenta por
   // id: un canto asignado a tres momentos aparece tres veces en `grupos`.
@@ -52,47 +62,53 @@ export default async function RepertorioPage({
     <>
       <Cabecera sesion={sesion} />
 
-      <main className="mx-auto w-full max-w-2xl px-4 pb-16">
-        <div className="sticky top-14 z-(--z-barra) -mx-4 flex items-center gap-2 bg-fondo/95 px-4 pt-3 pb-3 backdrop-blur">
+      <main className="mx-auto w-full max-w-2xl px-4 pt-6 pb-16">
+        <h1 className="titulo-libro text-[1.75rem] leading-tight">Repertorio</h1>
+
+        {/* El buscador queda a mano mientras se recorre la lista. Cuelga justo
+            bajo la cabecera, que mide 56 px (`top-14`). El fondo es opaco y
+            sin `backdrop-blur`: con el 95 % de antes las filas se veían pasar
+            en fantasma por detrás. */}
+        <div className="sticky top-14 z-(--z-barra) -mx-4 mt-3 flex items-center gap-2 bg-fondo px-4 py-3">
           <div className="min-w-0 flex-1">
             <Buscador valorInicial={q} />
           </div>
-          {puede(sesion.sujeto, 'editar_canto') && (
-            <Link
+          {/* Con texto visible: un «+» solo no dice qué agrega. */}
+          {puedeEditar && (
+            <EnlaceIcono
               href="/repertorio/nuevo"
-              aria-label="Cargar un canto nuevo"
-              className="tactil flex w-11 shrink-0 items-center justify-center rounded-lg border border-borde-fuerte text-lg text-acento"
+              etiqueta="Cargar un canto nuevo"
+              apariencia="borde"
+              texto="Nuevo"
             >
-              +
-            </Link>
+              <IconoAgregar tamano={18} />
+            </EnlaceIcono>
           )}
         </div>
 
         {total === 0 && q !== '' && (
-          <p className="py-10 text-sm text-texto-tenue">
-            Ningún canto coincide con «{q}».{' '}
-            <Link href="/repertorio" className="text-acento underline underline-offset-2">
-              Limpiar búsqueda
+          <div className="py-10">
+            <p className="text-texto-tenue">Ningún canto coincide con «{q}».</p>
+            <Link href="/repertorio" className={clasesBotonIcono('borde', 'mt-4 px-4')}>
+              Limpiar la búsqueda
             </Link>
-          </p>
+          </div>
         )}
 
+        {/* Un estado vacío explica por qué está vacío (PRD §14). */}
         {total === 0 && q === '' && (
           <div className="py-10">
-            <p className="text-sm">Este coro todavía no tiene repertorio.</p>
-            <p className="mt-2 max-w-prose text-sm text-texto-tenue">
-              {puede(sesion.sujeto, 'editar_canto') ? (
-                <>
-                  Como director puedes{' '}
-                  <Link href="/repertorio/nuevo" className="text-acento underline underline-offset-2">
-                    cargar el primero
-                  </Link>
-                  .
-                </>
-              ) : (
-                'Cuando el director cargue cantos, vas a verlos acá.'
-              )}
+            <p>Este coro todavía no tiene repertorio.</p>
+            <p className="mt-2 max-w-prose text-texto-tenue">
+              {puedeEditar
+                ? 'Como director puedes cargar el primero.'
+                : 'Cuando el director cargue cantos, vas a verlos acá.'}
             </p>
+            {puedeEditar && (
+              <Link href="/repertorio/nuevo" className={clasesBotonIcono('lleno', 'mt-5 px-5')}>
+                Cargar el primer canto
+              </Link>
+            )}
           </div>
         )}
 
@@ -100,13 +116,12 @@ export default async function RepertorioPage({
             numerados. No hay tarjetas — las filas continuas dejan que el ojo
             recorra la lista sin tropezar con un marco por canto. */}
         {grupos.map((grupo) => (
-          <section key={grupo.codigo} className="pt-7 first:pt-4">
-            {/* Sin contador por sección: al lado de los números de canto se lee
-                como uno más, y la cuenta total ya está al pie. */}
-            <h2 className="flex items-center gap-3 text-[0.8125rem] font-semibold tracking-[0.14em] text-texto-tenue uppercase">
-              {grupo.nombre}
-              <span className="h-px flex-1 bg-borde" aria-hidden />
-            </h2>
+          <section key={grupo.codigo} className="pt-6">
+            {/* El título de sección único de la app (sin mayúsculas espaciadas,
+                que a 13 px y en tenue se leían lento). Sin contador: al lado de
+                los números de canto se lee como uno más, y la cuenta total ya
+                está al pie. */}
+            <TituloSeccion>{grupo.nombre}</TituloSeccion>
 
             <ul className="mt-1">
               {grupo.cantos.map((canto) => {
@@ -114,16 +129,20 @@ export default async function RepertorioPage({
                 // caso normal y etiquetar cada fila no informaría nada.
                 const marca = etiquetaEstado(canto.estado)
                 return (
-                  <li key={canto.id} className="border-b border-borde/70 last:border-b-0">
+                  <li key={canto.id} className="border-b border-borde last:border-b-0">
                     <Link
                       href={`/repertorio/${canto.id}`}
                       className="tactil group -mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5 hover:bg-superficie"
                     >
+                      {/* El número del cancionero, en los números de estilo
+                          antiguo del libro: no es un dato técnico, así que no
+                          va en la monoespaciada del cifrado. Sin número, el
+                          hueco queda vacío y la columna no se corre. */}
                       <span
-                        className="w-7 shrink-0 text-right font-cifrado text-xs text-texto-tenue"
+                        className="numero-libro w-7 shrink-0 text-right text-texto-tenue"
                         aria-hidden
                       >
-                        {canto.fuenteNumero ?? '·'}
+                        {canto.fuenteNumero ?? ''}
                       </span>
 
                       <span className="min-w-0 flex-1">
@@ -134,12 +153,12 @@ export default async function RepertorioPage({
                         {(marca || canto.autor) && (
                           <span className="flex min-w-0 items-center gap-2">
                             {marca && (
-                              <span className="shrink-0 rounded border border-borde-fuerte px-1 py-px text-[0.625rem] tracking-[0.08em] text-texto-tenue uppercase">
+                              <span className="shrink-0 rounded border border-borde-fuerte px-1.5 text-xs font-bold text-texto">
                                 {marca}
                               </span>
                             )}
                             {canto.autor && (
-                              <span className="truncate text-xs text-texto-tenue">{canto.autor}</span>
+                              <span className="truncate text-sm text-texto-tenue">{canto.autor}</span>
                             )}
                           </span>
                         )}
@@ -158,44 +177,17 @@ export default async function RepertorioPage({
           </section>
         ))}
 
+        {/* Solo la cuenta. Los enlaces a historial, sugerencias y archivados
+            que vivían en este pie se mudaron a «Más» (2026-10-17): al final de
+            una lista de 86 cantos no los encontraba nadie, y en «Más» cada uno
+            tiene su fila de 44 px. Queda el resumen de H10, que no es un
+            enlace sino parte de la cuenta; la de ensayo es de cantos
+            distintos, no de filas, porque el listado repite un canto en cada
+            momento. */}
         {total > 0 && (
-          <p className="pt-8 text-xs text-texto-tenue">
+          <p className="pt-8 text-sm text-texto-tenue">
             {total} {total === 1 ? 'canto' : 'cantos'} en {sesion.coroActivo.nombre}
-            {/* El resumen de H10. La cuenta es de cantos distintos, no de filas:
-                el listado repite un canto en cada momento que tenga. */}
-            {enEnsayo > 0 && ` · ${enEnsayo} en ensayo`}
-            {' · '}
-            {/* H13 · El acceso al historial vive acá y no en la cabecera: esa
-                barra es para moverse MIENTRAS se toca, y a 360 px un director
-                ya tiene Misas, Miembros y Salir. El historial se consulta al
-                planificar la misa, y se planifica mirando el repertorio. */}
-            <Link href="/historial" className="text-acento underline underline-offset-2">
-              ver historial
-            </Link>
-            {/* H17 · El ranking se consulta al planificar, igual que el
-                historial, y por eso vive en este pie y no en la cabecera. */}
-            {puede(sesion.sujeto, 'ver_sugerencias') && (
-              <>
-                {' · '}
-                <Link href="/sugerencias" className="text-acento underline underline-offset-2">
-                  ver sugerencias
-                </Link>
-              </>
-            )}
-            {/* Los archivados se ofrecen solo a quien puede traerlos de vuelta,
-                y solo si hay alguno: un enlace a una papelera vacía es ruido en
-                una pantalla que se mira de reojo. */}
-            {puedeArchivar && archivados > 0 && (
-              <>
-                {' · '}
-                <Link
-                  href="/repertorio/archivados"
-                  className="text-acento underline underline-offset-2"
-                >
-                  {archivados} {archivados === 1 ? 'archivado' : 'archivados'}
-                </Link>
-              </>
-            )}
+            {enEnsayo > 0 && `, ${enEnsayo} en ensayo`}
           </p>
         )}
       </main>

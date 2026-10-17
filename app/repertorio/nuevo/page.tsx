@@ -4,6 +4,8 @@ import { obtenerSesion } from '@/lib/sesion'
 import { puede } from '@/lib/permisos'
 import { catalogosParaEditar } from '@/lib/datos/repertorio'
 import Cabecera from '@/app/componentes/cabecera'
+import { EnlaceIcono, clasesBotonIcono } from '@/app/componentes/boton-icono'
+import { IconoVolver } from '@/app/componentes/iconos'
 import FormularioCanto from '../formulario-canto'
 
 export const metadata = { title: 'Canto nuevo · Cantoral' }
@@ -26,10 +28,7 @@ export default async function NuevoCantoPage() {
           <p className="mt-2 max-w-prose text-sm text-texto-tenue">
             Cargar y corregir cantos es trabajo del director del coro.
           </p>
-          <Link
-            href="/repertorio"
-            className="mt-6 inline-block text-sm text-acento underline underline-offset-2"
-          >
+          <Link href="/repertorio" className={clasesBotonIcono('borde', 'mt-6 px-4')}>
             Volver al repertorio
           </Link>
         </main>
@@ -42,16 +41,15 @@ export default async function NuevoCantoPage() {
   return (
     <>
       <Cabecera sesion={sesion} />
-      <main className="mx-auto w-full max-w-2xl flex-1 px-4">
-        <div className="flex items-baseline gap-3 pt-4">
-          <Link
-            href="/repertorio"
-            className="-ml-1 shrink-0 rounded px-1 text-sm text-texto-tenue transition-colors hover:text-texto"
-            aria-label="Volver al repertorio"
-          >
-            ←
-          </Link>
-          <h1 className="text-[1.375rem] leading-tight font-semibold">Canto nuevo</h1>
+      <main className="mx-auto w-full max-w-2xl flex-1 px-4 pt-6">
+        {/* Segundo nivel: se llega desde el repertorio y se vuelve a él. El
+            `-ml-3` alinea el trazo de la flecha con el borde del texto: lo que
+            se toca es la caja de 44 px, no el dibujo. */}
+        <div className="-ml-3 flex items-center gap-1">
+          <EnlaceIcono href="/repertorio" etiqueta="Volver al repertorio">
+            <IconoVolver />
+          </EnlaceIcono>
+          <h1 className="titulo-libro min-w-0 text-[1.75rem] leading-tight">Canto nuevo</h1>
         </div>
 
         <FormularioCanto

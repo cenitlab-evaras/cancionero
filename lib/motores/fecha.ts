@@ -34,3 +34,30 @@ export const ZONA_DEL_CORO = 'America/Santiago'
 export function fechaEnZona(instante: Date, zona: string = ZONA_DEL_CORO): string {
   return instante.toLocaleDateString('sv-SE', { timeZone: zona })
 }
+
+/** Un `YYYY-MM-DD` como día del calendario, sin hora ni zona que lo corra. */
+function comoDiaUTC(iso: string): Date {
+  const [a, m, d] = iso.split('-').map(Number)
+  return new Date(Date.UTC(a, m - 1, d))
+}
+
+/**
+ * «domingo 18 de octubre»: la misa se nombra por su día, como en el coro.
+ *
+ * Se arma en UTC a propósito: la fecha guardada no tiene hora, y leerla en la
+ * zona del proceso podía correrla un día hacia atrás.
+ */
+export function fechaLarga(iso: string): string {
+  return comoDiaUTC(iso)
+    .toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })
+    .replace(',', '')
+}
+
+/** «Hoy», «Mañana», «En 7 días» — o `null` si ya pasó. `hoy` entra por parámetro. */
+export function cuantoFalta(iso: string, hoy: string): string | null {
+  const dias = Math.round((comoDiaUTC(iso).getTime() - comoDiaUTC(hoy).getTime()) / 86_400_000)
+  if (dias < 0) return null
+  if (dias === 0) return 'Hoy'
+  if (dias === 1) return 'Mañana'
+  return `En ${dias} días`
+}

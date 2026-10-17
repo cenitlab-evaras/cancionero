@@ -28,7 +28,7 @@ type Contexto = { ok: false; error: string } | { ok: true; coroId: string }
 
 async function exigir(capacidad: Capacidad): Promise<Contexto> {
   const sesion = await obtenerSesion()
-  if (!sesion) return { ok: false, error: 'Sesión expirada. Volvé a entrar.' }
+  if (!sesion) return { ok: false, error: 'Tu sesión expiró. Vuelve a entrar.' }
   if (!sesion.coroActivo) return { ok: false, error: 'No tienes un coro activo.' }
   if (!puede(sesion.sujeto, capacidad)) return { ok: false, error: NO_HABILITADO }
   return { ok: true, coroId: sesion.coroActivo.id }
@@ -259,7 +259,7 @@ export async function guardarMiInscripcion(
   if (!id.success) return { ok: false, error: 'Esa misa no existe.' }
 
   const sesion = await obtenerSesion()
-  if (!sesion) return { ok: false, error: 'Sesión expirada. Volvé a entrar.' }
+  if (!sesion) return { ok: false, error: 'Tu sesión expiró. Vuelve a entrar.' }
   if (!puede(sesion.sujeto, 'inscribirse_a_misa')) {
     return { ok: false, error: 'No perteneces a este coro.' }
   }
@@ -302,7 +302,7 @@ export async function retirarMiInscripcion(misaId: string): Promise<Resultado> {
   if (!id.success) return { ok: false, error: 'Esa misa no existe.' }
 
   const sesion = await obtenerSesion()
-  if (!sesion) return { ok: false, error: 'Sesión expirada. Volvé a entrar.' }
+  if (!sesion) return { ok: false, error: 'Tu sesión expiró. Vuelve a entrar.' }
   if (!puede(sesion.sujeto, 'inscribirse_a_misa')) {
     return { ok: false, error: 'No perteneces a este coro.' }
   }

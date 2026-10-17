@@ -79,6 +79,8 @@ export type CantoConHistorial = {
   id: string
   titulo: string
   autor: string | null
+  /** El número del cancionero: la columna izquierda de toda lista de cantos. */
+  fuenteNumero: number | null
   historial: HistorialCanto
 }
 
@@ -93,7 +95,7 @@ export async function repertorioConHistorial(coroId: string): Promise<CantoConHi
   const supabase = await createClient()
 
   const [{ data: cantos, error }, ejecuciones] = await Promise.all([
-    supabase.from('cantos').select('id, titulo, autores(nombre)').eq('coro_id', coroId),
+    supabase.from('cantos').select('id, titulo, fuente_numero, autores(nombre)').eq('coro_id', coroId),
     ejecucionesDelCoro(coroId),
   ])
 
@@ -110,11 +112,19 @@ export async function repertorioConHistorial(coroId: string): Promise<CantoConHi
     porMomento: [],
   }
 
-  return ((cantos ?? []) as unknown as { id: string; titulo: string; autores: { nombre: string } | null }[]).map(
+  return (
+    (cantos ?? []) as unknown as {
+      id: string
+      titulo: string
+      fuente_numero: number | null
+      autores: { nombre: string } | null
+    }[]
+  ).map(
     (c) => ({
       id: c.id,
       titulo: c.titulo,
       autor: c.autores?.nombre ?? null,
+      fuenteNumero: c.fuente_numero,
       historial: porCanto.get(c.id) ?? vacio,
     })
   )

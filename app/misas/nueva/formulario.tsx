@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { crearMisa } from '../acciones'
+import { clasesBotonIcono } from '@/app/componentes/boton-icono'
 
 const CAMPO =
   'h-11 rounded-lg border border-borde-fuerte bg-superficie px-3 text-texto transition-colors placeholder:text-texto-tenue hover:border-texto-tenue focus:border-acento'
@@ -25,7 +26,7 @@ export default function FormularioMisa() {
   return (
     <form onSubmit={guardar} className="mt-6 flex flex-col gap-4">
       <label className="flex flex-col gap-1.5">
-        <span className="text-xs text-texto-tenue">Nombre</span>
+        <span className="text-sm text-texto-tenue">Nombre</span>
         <input
           value={nombre}
           onChange={(e) => setNombre(e.target.value)}
@@ -36,7 +37,7 @@ export default function FormularioMisa() {
       </label>
 
       <label className="flex flex-col gap-1.5">
-        <span className="text-xs text-texto-tenue">Fecha</span>
+        <span className="text-sm text-texto-tenue">Fecha</span>
         <input
           type="date"
           value={fecha}
@@ -45,19 +46,23 @@ export default function FormularioMisa() {
         />
         {/* Sin fecha también vale: un ensayo o una lista de trabajo no la tiene
             (PRD §18-6). Se dice acá para que el campo vacío no parezca un olvido. */}
-        <span className="text-[0.6875rem] text-texto-tenue">
+        <span className="text-sm text-texto-tenue">
           Puedes dejarla vacía si todavía no sabes cuándo es.
         </span>
       </label>
 
-      {error && <p className="text-sm text-peligro">{error}</p>}
+      {error && (
+        <p role="status" className="text-sm text-peligro">
+          {error}
+        </p>
+      )}
 
       <button
         type="submit"
         disabled={pendiente || nombre.trim() === ''}
-        className="tactil mt-2 rounded-lg bg-acento font-medium text-white disabled:opacity-40"
+        className={clasesBotonIcono('lleno', 'mt-2 text-base')}
       >
-        {pendiente ? 'Creando…' : 'Crear'}
+        {pendiente ? 'Creando…' : 'Crear la misa'}
       </button>
     </form>
   )

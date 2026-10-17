@@ -3,14 +3,21 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { archivarCanto } from '../../acciones'
+import TituloSeccion from '@/app/componentes/titulo-seccion'
+import { clasesBotonIcono } from '@/app/componentes/boton-icono'
 
 /**
  * Sacar un canto de circulación (§16, cerrado el 2026-09-03).
  *
  * NO es un borrado y la pantalla lo dice, no lo insinúa: el canto sale del
  * repertorio y de la búsqueda, pero sigue en las misas donde ya se cantó y en
- * el historial. Por eso tampoco usa el color de peligro (§11.1) — pintarlo de
- * rojo prometería una destrucción que no ocurre.
+ * el historial. Por eso el botón que confirma lleva el color de peligro en el
+ * texto y el borde, pero sin relleno (rediseño 2026-10-17): avisa que el canto sale de la
+ * lista, pero un botón rojo lleno prometería una destrucción que no ocurre. El
+ * primer paso, que solo abre la confirmación, sigue siendo un control normal.
+ * Y nunca `text-white` sobre el halo: daba 1,6:1. Los `!` hacen falta porque
+ * `borde` ya trae su color de borde y de texto, y entre dos utilidades de la
+ * misma propiedad Tailwind no garantiza cuál gana.
  *
  * La confirmación es de dos pasos y **dice en cuántas misas aparece**. Un
  * «¿seguro?» pelado no informa nada: el número es justamente lo que hace que el
@@ -45,9 +52,7 @@ export default function Archivar({
 
   return (
     <section className="mt-10 border-t border-borde pt-6 pb-10">
-      <h2 className="text-[0.8125rem] font-semibold text-texto-tenue uppercase">
-        Sacar del repertorio
-      </h2>
+      <TituloSeccion>Sacar del repertorio</TituloSeccion>
 
       {!confirmando ? (
         <>
@@ -58,7 +63,7 @@ export default function Archivar({
           <button
             type="button"
             onClick={() => setConfirmando(true)}
-            className="tactil mt-3 rounded-lg border border-borde-fuerte px-3 text-sm"
+            className={clasesBotonIcono('borde', 'mt-3 px-4')}
           >
             Archivar este canto
           </button>
@@ -77,7 +82,7 @@ export default function Archivar({
               type="button"
               onClick={archivar}
               disabled={pendiente}
-              className="tactil rounded-lg bg-acento px-3 text-sm font-medium text-white disabled:opacity-40"
+              className={clasesBotonIcono('borde', 'px-4 font-semibold !border-peligro !text-peligro')}
             >
               {pendiente ? 'Archivando…' : 'Sí, archivar'}
             </button>
@@ -85,7 +90,7 @@ export default function Archivar({
               type="button"
               onClick={() => setConfirmando(false)}
               disabled={pendiente}
-              className="tactil rounded-lg px-3 text-sm text-texto-tenue"
+              className={clasesBotonIcono('plano', 'px-4')}
             >
               Cancelar
             </button>

@@ -8,6 +8,9 @@ import { armarHistorial, diffLineas } from '@/lib/motores/version-cifrado'
 import { describirAntiguedad } from '@/lib/motores/historial'
 import { fechaEnZona } from '@/lib/motores/fecha'
 import Cabecera from '@/app/componentes/cabecera'
+import TituloSeccion from '@/app/componentes/titulo-seccion'
+import { EnlaceIcono, clasesBotonIcono } from '@/app/componentes/boton-icono'
+import { IconoAgregar, IconoQuitar, IconoVolver } from '@/app/componentes/iconos'
 import Restaurar from './restaurar'
 
 export const metadata = { title: 'Historial de cambios · Cantoral' }
@@ -29,6 +32,9 @@ function diasEntre(desde: string, hasta: string): number {
  * El despliegue de cada cambio es un `<details>` nativo: sin JavaScript, con
  * teclado, y sin que el estado abierto/cerrado dependa de una hidratación que
  * en la iglesia puede llegar tarde.
+ *
+ * Rediseño 2026-10-17: es de segundo nivel —se entra desde el canto y se
+ * vuelve a él—, y los cambios son filas separadas por una línea, no tarjetas.
  */
 export default async function VersionesPage({ params }: { params: Promise<{ cantoId: string }> }) {
   const sesion = await obtenerSesion()
@@ -49,10 +55,7 @@ export default async function VersionesPage({ params }: { params: Promise<{ cant
           <p className="mt-2 max-w-prose text-sm text-texto-tenue">
             El historial de un canto lo ve el coro al que pertenece.
           </p>
-          <Link
-            href="/repertorio"
-            className="mt-6 inline-block text-sm text-acento underline underline-offset-2"
-          >
+          <Link href="/repertorio" className={clasesBotonIcono('borde', 'mt-6 px-4')}>
             Volver al repertorio
           </Link>
         </main>
@@ -73,10 +76,7 @@ export default async function VersionesPage({ params }: { params: Promise<{ cant
           <p className="mt-2 max-w-prose text-sm text-texto-tenue">
             O no existe, o es de un coro al que no perteneces.
           </p>
-          <Link
-            href="/repertorio"
-            className="mt-6 inline-block text-sm text-acento underline underline-offset-2"
-          >
+          <Link href="/repertorio" className={clasesBotonIcono('borde', 'mt-6 px-4')}>
             Volver al repertorio
           </Link>
         </main>
@@ -91,35 +91,40 @@ export default async function VersionesPage({ params }: { params: Promise<{ cant
   return (
     <>
       <Cabecera sesion={sesion} />
-      <main className="mx-auto w-full max-w-2xl flex-1 px-4 pb-16">
-        <div className="flex items-baseline gap-3 pt-4">
-          <Link
-            href={`/repertorio/${cantoId}`}
-            className="-ml-1 shrink-0 rounded px-1 text-sm text-texto-tenue transition-colors hover:text-texto"
-            aria-label="Volver al canto"
-          >
-            ←
-          </Link>
-          <h1 className="min-w-0 text-[1.375rem] leading-tight font-semibold">Historial</h1>
+      <main className="mx-auto w-full max-w-2xl flex-1 px-4 pt-6 pb-16">
+        <div className="-ml-3 flex items-center gap-1">
+          <EnlaceIcono href={`/repertorio/${cantoId}`} etiqueta="Volver al canto">
+            <IconoVolver />
+          </EnlaceIcono>
+          {/* «Historial de cambios» y no «Historial» a secas: ese nombre ya es
+              el de la pantalla de qué se canta seguido, en «Más». */}
+          <h1 className="titulo-libro min-w-0 text-[1.75rem] leading-tight">Historial de cambios</h1>
         </div>
-        <p className="mt-0.5 pl-7 text-sm text-texto-tenue">{canto.titulo}</p>
+        <p className="mt-1 text-texto-tenue">{canto.titulo}</p>
 
         {cambios.length === 0 ? (
           // Un estado vacío explica POR QUÉ está vacío (§14). Y acá dice algo
           // que importa: no es que falte el dato, es que el cifrado es el
           // original tal como se cargó.
-          <p className="mt-6 max-w-prose text-sm text-texto-tenue">
-            Este canto no se editó nunca. El cifrado es el que se cargó la primera vez; cuando
-            alguien lo corrija, cada cambio va a quedar acá con quién lo hizo y cuándo.
-          </p>
+          <div className="mt-6">
+            <p className="max-w-prose text-texto-tenue">
+              Este canto no se editó nunca. El cifrado es el que se cargó la primera vez; cuando
+              alguien lo corrija, cada cambio va a quedar acá con quién lo hizo y cuándo.
+            </p>
+            <Link
+              href={`/repertorio/${cantoId}`}
+              className={clasesBotonIcono('borde', 'mt-5 px-4')}
+            >
+              Volver al canto
+            </Link>
+          </div>
         ) : (
           <>
-            <p className="mt-4 text-xs text-texto-tenue">
-              {cambios.length === 1 ? '1 cambio' : `${cambios.length} cambios`} · del más reciente
-              al más antiguo
-            </p>
+            <TituloSeccion detalle="del más reciente al más antiguo" className="mt-8">
+              {cambios.length === 1 ? '1 cambio' : `${cambios.length} cambios`}
+            </TituloSeccion>
 
-            <ol className="mt-3 space-y-3">
+            <ol className="mt-2 divide-y divide-borde border-t border-borde">
               {cambios.map((cambio, i) => {
                 const lineas = diffLineas(cambio.antes, cambio.despues)
                 const sinCambios = lineas.filter((l) => l.tipo === 'igual').length
@@ -127,16 +132,18 @@ export default async function VersionesPage({ params }: { params: Promise<{ cant
                 const cuando = cambio.cuando.slice(0, 10)
 
                 return (
-                  <li key={cambio.id} className="rounded-lg border border-borde px-3 py-2.5">
-                    <p className="text-sm font-medium">{cambio.descripcion}</p>
-                    <p className="mt-0.5 text-xs text-texto-tenue">
+                  <li key={cambio.id} className="py-4">
+                    <p className="font-semibold">{cambio.descripcion}</p>
+                    <p className="mt-0.5 text-sm text-texto-tenue">
                       {/* Sin quién, no se inventa un nombre: se dice qué se sabe. */}
                       {cambio.quien ?? 'Sin identificar'} · {describirAntiguedad(diasEntre(cuando, hoy))}
-                      {i === 0 && ' · es lo que se canta hoy'}
                     </p>
+                    {/* En su propia línea y no como un tercer «· …» colgado
+                        del par de arriba: es otro dato, y el que más importa. */}
+                    {i === 0 && <p className="text-sm text-texto">Es lo que se canta hoy.</p>}
 
-                    <details className="mt-2 group">
-                      <summary className="tactil inline-flex cursor-pointer items-center text-xs text-acento underline underline-offset-2">
+                    <details className="mt-1 group">
+                      <summary className="tactil inline-flex cursor-pointer items-center text-sm text-acento underline underline-offset-2">
                         Ver qué cambió
                       </summary>
 
@@ -144,24 +151,31 @@ export default async function VersionesPage({ params }: { params: Promise<{ cant
                           cuarenta que quedaron iguales esconde justo lo que se
                           vino a mirar. */}
                       <div className="mt-2 overflow-x-auto">
-                        <pre className="font-mono text-[0.6875rem] leading-relaxed whitespace-pre">
+                        {/* Quitada en peligro, agregada en éxito, y además un
+                            ícono y un texto para lector: el color solo no
+                            alcanza (WCAG 1.4.1). Antes el «+» y el «−» eran
+                            glifos, y la agregada iba en el halo escrito a mano. */}
+                        <pre className="font-cifrado text-sm leading-relaxed whitespace-pre">
                           {cambiadas.map((l, k) => (
                             <span
                               key={k}
-                              className={
-                                l.tipo === 'quitada'
-                                  ? 'block text-peligro'
-                                  : 'block text-[var(--color-acento)]'
-                              }
+                              className={`block ${l.tipo === 'quitada' ? 'text-peligro' : 'text-exito'}`}
                             >
-                              {l.tipo === 'quitada' ? '− ' : '+ '}
+                              {l.tipo === 'quitada' ? (
+                                <IconoQuitar tamano={12} className="mr-1.5 inline align-[-1px]" />
+                              ) : (
+                                <IconoAgregar tamano={12} className="mr-1.5 inline align-[-1px]" />
+                              )}
+                              <span className="sr-only">
+                                {l.tipo === 'quitada' ? 'Se quitó: ' : 'Se agregó: '}
+                              </span>
                               {l.texto || ' '}
                             </span>
                           ))}
                         </pre>
                       </div>
                       {sinCambios > 0 && (
-                        <p className="mt-1.5 text-xs text-texto-tenue">
+                        <p className="mt-1.5 text-sm text-texto-tenue">
                           {sinCambios === 1
                             ? '1 línea sin cambios'
                             : `${sinCambios} líneas sin cambios`}

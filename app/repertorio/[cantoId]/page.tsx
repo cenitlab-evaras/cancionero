@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { obtenerSesion } from '@/lib/sesion'
 import { puede } from '@/lib/permisos'
-import { obtenerCanto, obtenerPreferencia, mostrarAcordesDelPerfil } from '@/lib/datos/repertorio'
+import { obtenerCanto, obtenerTransposicion, preferenciasDelPerfil } from '@/lib/datos/repertorio'
 import { historialDelCanto, hoyISO } from '@/lib/datos/historial'
 import { misSugerencias } from '@/lib/datos/sugerencias'
 import { contarVersiones } from '@/lib/datos/versiones'
@@ -14,6 +14,10 @@ import { buscarDigitacion } from '@/lib/motores/buscar-digitacion'
 import { DIGITACIONES } from '@/lib/motores/digitaciones'
 import { etiquetaEstado } from '@/lib/motores/estado-canto'
 import Cabecera from '@/app/componentes/cabecera'
+import PantallaEncendida from '@/app/componentes/pantalla-encendida'
+import TituloSeccion from '@/app/componentes/titulo-seccion'
+import { EnlaceIcono, clasesBotonIcono } from '@/app/componentes/boton-icono'
+import { IconoEditar, IconoVolver } from '@/app/componentes/iconos'
 import Cifrado from '@/app/componentes/cifrado'
 import CartaAcorde from '@/app/componentes/carta-acorde'
 import Controles from './controles'
@@ -53,11 +57,12 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
   const puedeVerVersiones = puede(sesion.sujeto, 'ver_versiones_canto')
   const coroId = sesion.coroActivo?.id ?? ''
 
-  const [canto, preferencia, mostrarAcordes, historial, mias, misas, versiones] = await Promise.all([
+  const [canto, transposicion, perfil, historial, mias, misas, versiones] = await Promise.all([
     obtenerCanto(cantoId),
-    obtenerPreferencia(cantoId),
-    // H11 · Es de la PERSONA, no del canto: por eso no lleva `cantoId`.
-    mostrarAcordesDelPerfil(),
+    obtenerTransposicion(cantoId),
+    // H11 y 2026-10-17 · Acordes sí/no y tamaño de letra son de la PERSONA, no
+    // del canto: por eso no llevan `cantoId`.
+    preferenciasDelPerfil(),
     // H13 · Cero tablas nuevas: esto lee las misas que armó H6.
     historialDelCanto(coroId, cantoId),
     puedeSugerir ? misSugerencias(coroId) : Promise.resolve([]),
@@ -78,13 +83,9 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
         <main className="mx-auto w-full max-w-2xl px-4 py-10">
           <h1 className="text-lg font-semibold text-peligro">No tienes acceso a este canto</h1>
           <p className="mt-2 max-w-prose text-sm text-texto-tenue">
-            Pertenece a un coro del que no eres parte, o ya no existe. No es una pantalla vacía: es
-            falta de acceso.
+            Pertenece a un coro del que no eres parte, o ya no existe.
           </p>
-          <Link
-            href="/repertorio"
-            className="mt-6 inline-block text-sm text-acento underline underline-offset-2"
-          >
+          <Link href="/repertorio" className={clasesBotonIcono('borde', 'mt-6 px-4')}>
             Volver al repertorio
           </Link>
         </main>
@@ -94,9 +95,10 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
 
   // El cifrado guardado no cambia nunca: la transposición se aplica ACÁ, al
   // leer, sobre los semitonos de la preferencia (PRD decisión 10).
-  const cifradoEnPantalla = transponer(canto.cifrado, preferencia.transposicion)
+  const { mostrarAcordes, tamanoLetra } = perfil
+  const cifradoEnPantalla = transponer(canto.cifrado, transposicion)
   const tonalidadActual = canto.tonalidadOriginal
-    ? transponerAcorde(canto.tonalidadOriginal, preferencia.transposicion)
+    ? transponerAcorde(canto.tonalidadOriginal, transposicion)
     : null
 
   // LOS DIAGRAMAS SE CALCULAN SOBRE EL CIFRADO YA TRANSPUESTO (PRD §9).
@@ -124,99 +126,71 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
       {/* El proveedor no emite DOM, así que <main> sigue siendo hijo flex
           directo del <body> y conserva su `flex-1`. */}
       <ProveedorDiagramas acordes={acordes}>
+      <PantallaEncendida />
       <main className="mx-auto w-full max-w-2xl flex-1 pb-8">
-        {/* La cabecera de lectura: 44 px con lo único que hace falta acá —
-            volver, saber qué canto es, y los dos controles que no son de tocar.
-            Va fija porque el ← tiene que estar a mano después de scrollear
-            media misa. */}
-        <div className="sticky top-0 z-(--z-cabecera) flex items-center gap-3 border-b border-borde bg-fondo/95 px-4 py-2 backdrop-blur">
-          <Link
-            href="/repertorio"
-            className="-ml-1 shrink-0 rounded px-1 text-sm text-texto-tenue transition-colors hover:text-texto"
-            aria-label="Volver al repertorio"
-          >
-            ←
-          </Link>
-          {canto.fuenteNumero && (
-            <span className="font-cifrado text-xs text-texto-tenue">{canto.fuenteNumero}</span>
-          )}
-          <h1 className="min-w-0 text-[1.375rem] leading-tight font-semibold text-balance">
+        {/* La cabecera de lectura: lo único que hace falta acá —volver, saber
+            qué canto es, y los dos controles que no son de tocar—, cada uno con
+            su objetivo de 44 px (antes el ← medía 23×20 y «Editar» 41×16). Va
+            fija porque volver tiene que estar a mano después de media misa. */}
+        <div className="sticky top-0 z-(--z-cabecera) flex items-center gap-1 border-b border-borde bg-fondo py-1 pr-2 pl-1">
+          <EnlaceIcono href="/repertorio" etiqueta="Volver al repertorio">
+            <IconoVolver />
+          </EnlaceIcono>
+          <h1 className="titulo-libro min-w-0 flex-1 text-[1.375rem] leading-tight">
+            {canto.fuenteNumero && (
+              <span className="numero-libro mr-2 font-normal text-texto-tenue">{canto.fuenteNumero}</span>
+            )}
             {canto.titulo}
           </h1>
-          {/* H11 · El interruptor de acordes, pegado al borde derecho. Va antes
-              que «Editar» porque lo usa todo el mundo y «Editar» solo el
-              director: el orden lo decide quién lo toca, no la jerarquía. */}
-          <span className="ml-auto flex shrink-0 items-baseline gap-2">
-            <SoloLetra mostrarAcordes={mostrarAcordes} />
-
-            {/* Corregir un acorde a oído es trabajo esperable (§17.1): el acceso
-                vive donde se descubre el error, no en un menú aparte. */}
-            {puede(sesion.sujeto, 'editar_canto') && (
-              <Link
-                href={`/repertorio/${canto.id}/editar`}
-                className="shrink-0 rounded px-1 text-xs text-texto-tenue transition-colors hover:text-texto"
-              >
-                Editar
-              </Link>
-            )}
-          </span>
+          {/* H11 · El interruptor de acordes va antes que «Editar» porque lo usa
+              todo el mundo y «Editar» solo el director: el orden lo decide quién
+              lo toca, no la jerarquía. */}
+          <SoloLetra mostrarAcordes={mostrarAcordes} />
+          {/* Corregir un acorde a oído es trabajo esperable (§17.1): el acceso
+              vive donde se descubre el error, no en un menú aparte. */}
+          {puede(sesion.sujeto, 'editar_canto') && (
+            <EnlaceIcono href={`/repertorio/${canto.id}/editar`} etiqueta="Editar el canto">
+              <IconoEditar />
+            </EnlaceIcono>
+          )}
         </div>
 
-        <p className="mt-2 flex flex-wrap items-center gap-x-1 gap-y-1.5 px-4 text-xs text-texto-tenue">
+        {/* Una línea, y solo con lo que se sabe: sin «Autor no declarado»
+            ocupando el mejor lugar de la pantalla. */}
+        <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 px-4 text-sm text-texto-tenue">
           {/* H10 · El miembro tiene que enterarse acá, no solo en el listado:
-              esta es la pantalla donde se para a tocar. Va primero, antes del
-              autor, porque cambia cómo se lee todo lo demás. */}
+              esta es la pantalla donde se para a tocar. */}
           {etiquetaEstado(canto.estado) && (
-            <span className="mr-1 rounded border border-borde-fuerte px-1 py-px text-[0.625rem] tracking-[0.08em] uppercase">
+            <span className="rounded border border-borde-fuerte px-1.5 text-xs font-bold text-texto">
               {etiquetaEstado(canto.estado)}
             </span>
           )}
-          <span>
-            {canto.autor ?? 'Autor no declarado en la fuente'}
-            {canto.momentos.length > 0 && <> · {canto.momentos.map((m) => m.nombre).join(', ')}</>}
-            {canto.tonalidadOriginal && <> · original en {canto.tonalidadOriginal}</>}
-          </span>
+          {[
+            canto.autor,
+            canto.momentos.map((m) => m.nombre).join(', ') || null,
+            canto.tonalidadOriginal ? `original en ${canto.tonalidadOriginal}` : null,
+          ]
+            .filter(Boolean)
+            .join(' · ')}
         </p>
 
-        {/* H13 · Lo que el director necesita saber ANTES de volver a meterlo:
-            cuánto hace que se cantó y cada cuánto vuelve. */}
-        <HistorialDelCanto historial={historial} anioActual={hoyISO().slice(0, 4)} />
-
-        {/* H17 · Proponerlo. Va acá y no en la barra inferior porque eso se
-            decide planificando, no mientras se canta. */}
-        {puedeSugerir && (
-          <div className="px-4">
-            <Sugerir
-              cantoId={canto.id}
-              momentos={canto.momentos}
-              misasProximas={misasProximas}
-              mias={mias}
-            />
-          </div>
-        )}
-
-        {/* A sangre: el fondo es el papel. */}
-        <div className="mt-6">
+        {/* A sangre: el fondo es el papel, sin marco. Pero con su margen: antes
+            iba pegado al borde mientras el título tenía 16 px, y los dos bordes
+            izquierdos no coincidían. */}
+        <div className="mt-5 px-4">
           <ZonaAcordes>
-            <Cifrado
-              cifrado={cifradoEnPantalla}
-              tamano={preferencia.tamanoLetra}
-              mostrarAcordes={mostrarAcordes}
-            />
+            <Cifrado cifrado={cifradoEnPantalla} tamano={tamanoLetra} mostrarAcordes={mostrarAcordes} />
           </ZonaAcordes>
         </div>
 
         {/* El aviso es solo para el canto que NO TIENE acordes. Con los acordes
-            apagados a propósito, decir "no tiene acordes" sería mentir: los
-            tiene, es quien lee el que pidió no verlos (H11). */}
+            apagados a propósito, decir "no tiene acordes" sería mentir (H11). */}
         {mostrarAcordes && acordes.length === 0 && (
-          // §14: no es un fallo del motor ni una pantalla vacía. Se dice el
-          // motivo y se sigue mostrando la letra.
-          <p className="mt-6 text-xs text-texto-tenue">Este canto no tiene acordes escritos.</p>
+          <p className="mt-6 px-4 text-sm text-texto-tenue">Este canto no tiene acordes escritos.</p>
         )}
 
         {canto.fuenteTitulo && (
-          <p className="mt-10 border-t border-borde pt-4 text-[0.6875rem] leading-relaxed text-texto-tenue">
+          <p className="mt-10 max-w-prose px-4 text-sm leading-relaxed text-texto-tenue">
             {canto.fuenteTitulo}
             {canto.fuenteNumero ? `, canto n.º ${canto.fuenteNumero}` : ''}
             {canto.fuentePagina ? `, pág. ${canto.fuentePagina}` : ''}.
@@ -232,22 +206,39 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
           </p>
         )}
 
-        {/* H19-A · El enlace SOLO aparece si hubo correcciones. Ofrecer un
-            historial vacío en la pantalla de lectura sería ruido en la única
-            superficie del producto donde cada píxel tiene que justificarse
-            (PRODUCT, principio 1). Y lo ve todo el coro, no solo el director:
-            el que toca es el que oye que el acorde cambió. */}
-        {versiones > 0 && (
-          <p className="mt-4 text-[0.6875rem] text-texto-tenue">
-            <Link
-              href={`/repertorio/${canto.id}/versiones`}
-              className="text-acento underline underline-offset-2"
-            >
-              {versiones === 1 ? 'Se corrigió 1 vez' : `Se corrigió ${versiones} veces`} · ver qué
-              cambió
-            </Link>
-          </p>
-        )}
+        {/* Lo que se decide planificando, DESPUÉS del canto y no antes
+            (rediseño 2026-10-17): el historial, proponerlo y sus correcciones.
+            Antes iba entre el título y el cifrado, y el primer acorde quedaba a
+            224 px. */}
+        <section aria-labelledby="sobre-el-canto" className="mt-8 border-t border-borde px-4 pt-6">
+          <TituloSeccion id="sobre-el-canto">Sobre este canto</TituloSeccion>
+          <div className="mt-3 flex flex-col gap-4">
+            {/* H13 · cuánto hace que se cantó y cada cuánto vuelve. */}
+            <HistorialDelCanto historial={historial} anioActual={hoyISO().slice(0, 4)} />
+
+            {/* H19-A · solo si hubo correcciones. Lo ve todo el coro: el que
+                toca es el que oye que el acorde cambió. */}
+            {versiones > 0 && (
+              <Link
+                href={`/repertorio/${canto.id}/versiones`}
+                className="tactil flex items-center text-sm text-texto-tenue underline underline-offset-2 hover:text-texto"
+              >
+                {versiones === 1 ? 'Se corrigió 1 vez' : `Se corrigió ${versiones} veces`}: ver qué
+                cambió
+              </Link>
+            )}
+
+            {/* H17 · Proponerlo para un momento o una misa. */}
+            {puedeSugerir && (
+              <Sugerir
+                cantoId={canto.id}
+                momentos={canto.momentos}
+                misasProximas={misasProximas}
+                mias={mias}
+              />
+            )}
+          </div>
+        </section>
       </main>
 
       {/* La pila inferior: la hoja de diagramas se apila ENCIMA de los
@@ -264,7 +255,7 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
                 <CorregirAcorde
                   cantoId={canto.id}
                   cifrado={cifradoEnPantalla}
-                  transposicion={preferencia.transposicion}
+                  transposicion={transposicion}
                 />
               ) : null
             }
@@ -281,8 +272,8 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
         <Controles
           cantoId={canto.id}
           coroId={sesion.coroActivo!.id}
-          transposicion={preferencia.transposicion}
-          tamanoLetra={preferencia.tamanoLetra}
+          transposicion={transposicion}
+          tamanoLetra={tamanoLetra}
           tonalidadActual={tonalidadActual}
           mostrarAcordes={mostrarAcordes}
         />

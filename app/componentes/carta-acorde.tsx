@@ -9,6 +9,9 @@ import DiagramaAcorde from './diagrama-acorde'
  *
  * `x32010` va escrito debajo a propósito: es la notación que un guitarrista lee
  * en voz alta, y sirve cuando el diagrama queda chico o la vista no acompaña.
+ * Por eso va en `text-sm` y no en los 10 px de antes: si es para cuando la vista
+ * no acompaña, tiene que poder leerse (rediseño 2026-10-17). En 84 px caben las
+ * seis cuerdas a 14 px de la monoespaciada.
  */
 export default function CartaAcorde({
   nombre,
@@ -28,15 +31,19 @@ export default function CartaAcorde({
       {digitacion ? (
         <>
           <DiagramaAcorde digitacion={digitacion} />
-          <span className="font-cifrado text-[0.625rem] leading-none text-texto-tenue">
+          <span className="font-cifrado text-sm leading-none text-texto-tenue">
             {digitacion.cuerdas}
           </span>
         </>
       ) : (
         // §14: el acorde sin digitación conocida dice su motivo y el resto de la
         // barra sigue andando. No es un error del motor: es un hueco declarado.
-        <span className="flex h-[88px] items-center px-1 text-center text-[0.625rem] leading-snug text-balance text-texto-tenue">
-          sin digitación para «{nombre}»
+        // El nombre ya está arriba de la carta, así que acá no se repite: a
+        // 14 px, «sin digitación para «F#m7b5»» no cabía en 84 px. El alto es
+        // el del dibujo más las cuerdas escritas (76 + 4 + 14), para que esta
+        // carta mida lo mismo que sus vecinas.
+        <span className="flex h-[94px] items-center px-1 text-center text-sm leading-snug text-balance text-texto-tenue">
+          Sin diagrama
         </span>
       )}
     </div>

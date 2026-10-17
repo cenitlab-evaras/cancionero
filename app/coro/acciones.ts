@@ -21,7 +21,7 @@ type Contexto = { ok: false; error: string } | { ok: true; coroId: string }
 
 async function exigir(capacidad: Capacidad, mensaje: string): Promise<Contexto> {
   const sesion = await obtenerSesion()
-  if (!sesion) return { ok: false, error: 'Sesión expirada. Volvé a entrar.' }
+  if (!sesion) return { ok: false, error: 'Tu sesión expiró. Vuelve a entrar.' }
   if (!puede(sesion.sujeto, capacidad)) return { ok: false, error: mensaje }
   if (!sesion.coroActivo) return { ok: false, error: 'No tienes un coro activo.' }
   return { ok: true, coroId: sesion.coroActivo.id }
@@ -134,7 +134,7 @@ export async function aprobarPerfil(raw: unknown): Promise<Resultado> {
   if (!datos.success) return { ok: false, error: 'Revisa los datos.' }
 
   const sesion = await obtenerSesion()
-  if (!sesion) return { ok: false, error: 'Sesión expirada. Volvé a entrar.' }
+  if (!sesion) return { ok: false, error: 'Tu sesión expiró. Vuelve a entrar.' }
   if (!puede(sesion.sujeto, 'aprobar_perfil')) {
     return { ok: false, error: 'Aprobar cuentas es trabajo de un administrador.' }
   }
@@ -168,7 +168,7 @@ export async function crearCoro(raw: unknown): Promise<Resultado> {
   }
 
   const sesion = await obtenerSesion()
-  if (!sesion) return { ok: false, error: 'Sesión expirada. Volvé a entrar.' }
+  if (!sesion) return { ok: false, error: 'Tu sesión expiró. Vuelve a entrar.' }
   if (!puede(sesion.sujeto, 'crear_coro')) {
     return { ok: false, error: 'Crear coros es trabajo de un administrador.' }
   }

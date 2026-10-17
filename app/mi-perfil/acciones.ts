@@ -47,7 +47,7 @@ export async function guardarMiFicha(raw: unknown): Promise<Resultado> {
   }
 
   const sesion = await obtenerSesion()
-  if (!sesion) return { ok: false, error: 'Sesión expirada. Volvé a entrar.' }
+  if (!sesion) return { ok: false, error: 'Tu sesión expiró. Vuelve a entrar.' }
   if (!sesion.coroActivo) return { ok: false, error: 'No tienes un coro activo.' }
   if (!puede(sesion.sujeto, 'editar_ficha_propia')) {
     return { ok: false, error: 'No tienes permiso para cargar tu perfil en este coro.' }

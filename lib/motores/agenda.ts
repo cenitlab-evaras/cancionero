@@ -46,3 +46,19 @@ export function agruparMisas<T extends ConFecha>(lista: T[], hoy: string): Agend
 
   return { proximas, pasadas, sinFecha }
 }
+
+/**
+ * La misa que muestra Inicio: la de HOY si hay, si no la más próxima.
+ *
+ * No reemplaza a `agruparMisas`: ahí la de hoy cuenta como ocurrida, porque es
+ * el criterio del historial y tiene que seguir siéndolo. Inicio contesta otra
+ * pregunta —«qué cantamos ahora»—, y el domingo a las 11:50 la respuesta es la
+ * misa de las 12, no la del domingo siguiente.
+ *
+ * Una lista sin fecha no es «la próxima misa»: es trabajo del director.
+ */
+export function misaDeInicio<T extends ConFecha>(lista: T[], hoy: string): T | null {
+  const deHoy = lista.find((c) => c.fecha === hoy)
+  if (deHoy) return deHoy
+  return agruparMisas(lista, hoy).proximas[0] ?? null
+}

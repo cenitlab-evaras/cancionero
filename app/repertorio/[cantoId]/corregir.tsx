@@ -10,6 +10,8 @@ import {
 import { renderizarCifrado } from '@/lib/motores/renderizar-cifrado'
 import { corregirAcorde } from './acciones'
 import { useDiagramas } from './diagramas'
+import { BotonIcono, clasesBotonIcono } from '@/app/componentes/boton-icono'
+import { IconoEditar, IconoSeguir, IconoVolver } from '@/app/componentes/iconos'
 
 /**
  * «Corregir este acorde» — H19-B, el gesto que decidió §18-15.
@@ -28,15 +30,24 @@ import { useDiagramas } from './diagramas'
  * Solo lo monta `page.tsx` cuando `puede(sujeto, 'editar_canto')`: el miembro
  * ve los diagramas y nada más. La action lo vuelve a comprobar, y la RLS
  * después de ella.
+ *
+ * Vive DENTRO de la lectura (rediseño 2026-10-17), así que acá no va el halo:
+ * lo único cálido en esa pantalla es el acorde, y el halo y el ámbar se
+ * distinguen solo por tono (1,1:1 de luminosidad). Todos los controles son
+ * `borde` de 44 px, el elegido se marca con borde marfil y superficie —igual
+ * que el auto scroll encendido en `controles.tsx`—, y los íconos son
+ * dibujados, no glifos ✎ ← →.
  */
 
 type Modo = 'cambiar' | 'agregar' | 'borrar'
 
-const BOTON =
-  'tactil flex items-center justify-center rounded-lg border border-borde-fuerte bg-superficie text-texto hover:bg-superficie-alta active:bg-borde disabled:opacity-40 disabled:hover:bg-superficie'
-
-/** Columnas de la vista previa: a 13 px caben en los 328 px útiles de un teléfono de 360. */
-const COLUMNAS_PREVIA = 36
+/**
+ * Columnas de la vista previa. A 14 px de JetBrains Mono (0,6 em → 8,4 px por
+ * columna), 34 columnas son 286 px: caben en los 304 px que quedan en un
+ * teléfono de 360 después de los márgenes de la hoja y de la caja. Con 36 a
+ * 13 px cabían, pero 13 px queda bajo el mínimo legible de la app.
+ */
+const COLUMNAS_PREVIA = 34
 
 export default function CorregirAcorde({
   cantoId,
@@ -121,12 +132,13 @@ function Panel({
 
   if (!abierto) {
     return (
-      <div className="border-t border-borde px-4 py-1">
+      <div className="border-t border-borde px-4 py-2">
         <button
+          type="button"
           onClick={() => setAbierto(true)}
-          className="tactil flex w-full items-center gap-2 text-left text-sm text-texto-tenue transition-colors hover:text-texto"
+          className={clasesBotonIcono('borde', 'w-full justify-start gap-2 px-3 text-sm')}
         >
-          <span aria-hidden>✎</span>
+          <IconoEditar tamano={18} className="text-texto-tenue" />
           Corregir este acorde
           <span className="font-cifrado font-semibold text-acorde">{ref.acorde}</span>
         </button>
@@ -153,12 +165,13 @@ function Panel({
       className="space-y-3 border-t border-borde px-4 pt-2 pb-3"
     >
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold">
+        <h2 className="font-semibold">
           Corregir <span className="font-cifrado text-acorde">{ref.acorde}</span>
         </h2>
         <button
+          type="button"
           onClick={() => setAbierto(false)}
-          className="tactil px-2 text-xs text-texto-tenue hover:text-texto"
+          className={clasesBotonIcono('plano', '-mr-2 px-3 text-sm')}
         >
           Cancelar
         </button>
@@ -174,10 +187,16 @@ function Panel({
         ).map(([m, etiqueta]) => (
           <button
             key={m}
+            type="button"
             role="radio"
             aria-checked={modo === m}
             onClick={() => cambiarModo(m)}
-            className={`${BOTON} px-1 text-xs ${modo === m ? '!border-acento !bg-superficie-alta' : ''}`}
+            className={clasesBotonIcono(
+              'borde',
+              `px-1 text-center text-sm leading-tight ${
+                modo === m ? '!border-texto !bg-superficie-alta font-semibold' : '!text-texto-tenue'
+              }`
+            )}
           >
             {etiqueta}
           </button>
@@ -196,25 +215,25 @@ function Panel({
               autoCorrect="off"
               spellCheck={false}
               maxLength={20}
-              className="tactil w-full rounded-lg border border-borde-fuerte bg-fondo px-3 font-cifrado text-base text-acorde placeholder:text-texto-tenue/60"
+              className="tactil w-full rounded-lg border border-borde-fuerte bg-fondo px-3 font-cifrado text-base text-acorde placeholder:text-texto-tenue"
             />
           </label>
-          <button
+          <BotonIcono
+            etiqueta="Una sílaba a la izquierda"
+            apariencia="borde"
             onClick={() => setPasos((p) => p - 1)}
             disabled={pasos <= -limites.izquierda}
-            aria-label="Una sílaba a la izquierda"
-            className={`${BOTON} w-11`}
           >
-            ←
-          </button>
-          <button
+            <IconoVolver />
+          </BotonIcono>
+          <BotonIcono
+            etiqueta="Una sílaba a la derecha"
+            apariencia="borde"
             onClick={() => setPasos((p) => p + 1)}
             disabled={pasos >= limites.derecha}
-            aria-label="Una sílaba a la derecha"
-            className={`${BOTON} w-11`}
           >
-            →
-          </button>
+            <IconoSeguir />
+          </BotonIcono>
         </div>
       )}
 
@@ -234,15 +253,18 @@ function Panel({
       </div>
 
       {(aviso || error) && (
-        <p role="status" className={`text-xs ${error ? 'text-peligro' : 'text-texto-tenue'}`}>
+        <p role="status" className={`text-sm ${error ? 'text-peligro' : 'text-texto-tenue'}`}>
           {error ?? aviso}
         </p>
       )}
 
+      {/* La acción principal del panel, pero sin halo: estamos en la lectura.
+          Pesa por el ancho y el peso de la letra, no por el color. */}
       <button
+        type="button"
         onClick={guardar}
         disabled={!resultado.ok || guardando}
-        className="tactil w-full rounded-lg bg-acento text-sm font-semibold text-white disabled:opacity-40"
+        className={clasesBotonIcono('borde', 'w-full font-semibold')}
       >
         {guardando ? 'Guardando…' : 'Guardar corrección'}
       </button>
@@ -271,10 +293,8 @@ function LineaPrevia({
   const { lineas } = renderizarCifrado(linea, { ancho: COLUMNAS_PREVIA })
   return (
     <div>
-      <span className="text-[0.625rem] tracking-[0.08em] text-texto-tenue uppercase">
-        {etiqueta}
-      </span>
-      <div className="font-cifrado text-[13px] leading-snug">
+      <span className="text-sm text-texto-tenue">{etiqueta}</span>
+      <div className="font-cifrado text-sm leading-snug">
         {lineas.map((l, i) => {
           let cursor = 0
           return (
@@ -287,9 +307,11 @@ function LineaPrevia({
                     <span key={a.indice}>
                       {relleno}
                       <span
+                        // Marfil y no halo: en la lectura el halo no aparece,
+                        // y al lado del ámbar del acorde se confundiría.
                         className={
                           a.indice === resaltado
-                            ? 'rounded-sm bg-acento/30 outline outline-1 outline-acento'
+                            ? 'rounded-sm bg-superficie-alta outline outline-1 outline-texto'
                             : ''
                         }
                       >

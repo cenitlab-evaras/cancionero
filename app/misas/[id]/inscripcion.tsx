@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { guardarMiInscripcion, retirarMiInscripcion } from '../acciones'
 import { INSTRUMENTOS, nombreInstrumento, type Aporte } from '@/lib/motores/inscripcion'
+import { clasesBotonIcono } from '@/app/componentes/boton-icono'
 
 /**
  * «Voy» — la declaración de una persona sobre una misa (H15).
@@ -56,21 +57,23 @@ export default function Inscripcion({
 
   return (
     <div className="mt-2">
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-sm text-texto-tenue">Voy ·</span>
+      {/* «Canto / Toco» medía 32 px y el elegido se marcaba con el halo. Ahora
+          son controles de 44 px y el elegido se marca con borde marfil, como
+          los interruptores del resto de la app: el halo queda para «Anotarme». */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm text-texto-tenue">Voy</span>
         {(['vocal', 'instrumental'] as const).map((a) => (
           <button
             key={a}
             type="button"
             onClick={() => setAporte(a)}
             aria-pressed={aporte === a}
-            className={`rounded-lg border px-3 py-1.5 text-sm transition-colors ${
-              aporte === a
-                ? 'border-acento bg-superficie-alta text-texto'
-                : 'border-borde text-texto-tenue hover:border-borde-fuerte'
-            }`}
+            className={clasesBotonIcono(
+              'borde',
+              `px-4 text-sm ${aporte === a ? '!border-texto !bg-superficie-alta font-semibold' : '!text-texto-tenue'}`
+            )}
           >
-            {a === 'vocal' ? 'Canto' : 'Toco'}
+            {a === 'vocal' ? 'A cantar' : 'A tocar'}
           </button>
         ))}
 
@@ -79,7 +82,7 @@ export default function Inscripcion({
             value={instrumento}
             onChange={(e) => setInstrumento(e.target.value)}
             aria-label="Qué instrumento vas a tocar"
-            className="tactil rounded-lg border border-borde-fuerte bg-superficie px-2 text-sm"
+            className="tactil rounded-lg border border-borde-fuerte bg-superficie px-3 text-sm"
           >
             {INSTRUMENTOS.map((i) => (
               <option key={i} value={i}>
@@ -90,7 +93,7 @@ export default function Inscripcion({
         )}
       </div>
 
-      <div className="mt-2.5 flex flex-wrap items-center gap-2">
+      <div className="mt-3 flex flex-wrap items-center gap-2">
         <button
           type="button"
           disabled={pendiente}
@@ -102,7 +105,7 @@ export default function Inscripcion({
               })
             )
           }
-          className="tactil rounded-lg bg-acento px-4 text-sm font-medium text-white disabled:opacity-40"
+          className={clasesBotonIcono('lleno', 'px-5 text-sm')}
         >
           {mia ? 'Cambiar' : 'Anotarme'}
         </button>
@@ -114,7 +117,7 @@ export default function Inscripcion({
             type="button"
             disabled={pendiente}
             onClick={() => correr(() => retirarMiInscripcion(misaId))}
-            className="tactil rounded-lg px-3 text-sm text-texto-tenue disabled:opacity-40"
+            className={clasesBotonIcono('plano', 'px-3 text-sm')}
           >
             No voy
           </button>

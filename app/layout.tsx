@@ -1,21 +1,32 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Atkinson_Hyperlegible_Next, JetBrains_Mono, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
 
 /**
- * Dos familias en ejes distintos —neo-grotesca y monoespaciada—, nunca dos sans
- * parecidas (DESIGN.md · Typography).
+ * Tres familias, cada una con un trabajo (DESIGN.md · Typography):
  *
- * Inter para la interfaz: neutra, legible en tamaños chicos, con números
- * tabulares para los contadores.
+ * Atkinson Hyperlegible Next para la interfaz. Se diseñó para personas con baja
+ * visión: distingue l / I / 1 y b / 6, que en una sans neutra se confunden. En
+ * el coro hay alguien que ve poco, y la regla es que la app entera le sirva,
+ * no solo la vista de lectura.
+ *
+ * Source Serif 4 para los títulos de canto y de misa: la letra del cancionero
+ * impreso y del misal. Con eje óptico, así que se ajusta sola al tamaño.
  *
  * JetBrains Mono para el cifrado: ancho de carácter estable en 0.6em, que es lo
- * que sostiene la alineación de los acordes sobre la letra, y altura de x
- * generosa para leerse de reojo mientras se toca.
+ * que sostiene la alineación de los acordes sobre la letra (`cifrado.tsx`
+ * calcula con ese ancho, así que no se cambia sin cambiar ese número).
  */
-const inter = Inter({
+const atkinson = Atkinson_Hyperlegible_Next({
   variable: "--fuente-interfaz",
   subsets: ["latin"],
+  display: "swap",
+});
+
+const sourceSerif = Source_Serif_4({
+  variable: "--fuente-titulo",
+  subsets: ["latin"],
+  axes: ["opsz"],
   display: "swap",
 });
 
@@ -32,8 +43,9 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   // El tema oscuro también en la barra del navegador: al tocar de pie, una
-  // franja blanca arriba es un foco de luz en la cara.
-  themeColor: "#0f0f0f",
+  // franja blanca arriba es un foco de luz en la cara. Es el --color-fondo
+  // (Nave); metadata no acepta variables CSS, por eso va repetido acá.
+  themeColor: "#15110d",
   colorScheme: "dark",
 };
 
@@ -45,7 +57,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${inter.variable} ${jetbrains.variable} h-full antialiased`}
+      className={`${atkinson.variable} ${sourceSerif.variable} ${jetbrains.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { ZONA_DEL_CORO, fechaEnZona } from './fecha'
+import { ZONA_DEL_CORO, cuantoFalta, fechaEnZona, fechaLarga } from './fecha'
 
 /**
  * Qué día es "hoy" para el coro — el pendiente que §17.1-octies dejó declarado
@@ -52,5 +52,37 @@ describe('fechaEnZona', () => {
     // Y se puede pedir otra, para no atar el motor a un solo coro.
     const instante = new Date('2026-09-03T02:00:00Z')
     expect(fechaEnZona(instante, 'UTC')).toBe('2026-09-03')
+  })
+})
+
+/**
+ * La fecha como se dice en el coro: «domingo 19 de octubre», no «2026-10-19».
+ * Y cuánto falta, en palabras, para Inicio.
+ */
+describe('fechaLarga', () => {
+  test('día de la semana, día y mes, sin año', () => {
+    expect(fechaLarga('2026-10-19')).toBe('lunes 19 de octubre')
+    expect(fechaLarga('2026-10-18')).toBe('domingo 18 de octubre')
+  })
+
+  test('no se corre de día por la zona del proceso (la fecha no tiene hora)', () => {
+    expect(fechaLarga('2026-01-01')).toBe('jueves 1 de enero')
+  })
+})
+
+describe('cuantoFalta', () => {
+  test('hoy, mañana y en N días', () => {
+    expect(cuantoFalta('2026-10-18', '2026-10-18')).toBe('Hoy')
+    expect(cuantoFalta('2026-10-19', '2026-10-18')).toBe('Mañana')
+    expect(cuantoFalta('2026-10-25', '2026-10-18')).toBe('En 7 días')
+  })
+
+  test('cruza meses y años sin contar mal', () => {
+    expect(cuantoFalta('2026-11-01', '2026-10-31')).toBe('Mañana')
+    expect(cuantoFalta('2027-01-02', '2026-12-31')).toBe('En 2 días')
+  })
+
+  test('lo que ya pasó no «falta»: devuelve null', () => {
+    expect(cuantoFalta('2026-10-11', '2026-10-18')).toBeNull()
   })
 })

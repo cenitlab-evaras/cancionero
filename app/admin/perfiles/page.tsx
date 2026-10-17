@@ -24,8 +24,10 @@ export default async function AdminPerfilesPage() {
     return (
       <>
         <Cabecera sesion={sesion} />
-        <main className="mx-auto w-full max-w-2xl px-4 py-10">
-          <h1 className="text-lg font-semibold text-peligro">Esta pantalla es de administración</h1>
+        <main className="mx-auto w-full max-w-2xl px-4 pt-6 pb-10">
+          <h1 className="titulo-libro text-[1.75rem] leading-tight text-peligro">
+            Esta pantalla es de administración
+          </h1>
           <p className="mt-2 max-w-prose text-sm text-texto-tenue">
             Aprobar cuentas y crear coros es trabajo de un administrador de la instalación.
           </p>
@@ -51,17 +53,9 @@ export default async function AdminPerfilesPage() {
     <>
       <Cabecera sesion={sesion} />
 
-      <main className="mx-auto w-full max-w-2xl flex-1 px-4 pb-10">
-        <div className="flex items-baseline gap-3 pt-4">
-          <Link
-            href="/repertorio"
-            className="-ml-1 shrink-0 rounded px-1 text-sm text-texto-tenue transition-colors hover:text-texto"
-            aria-label="Volver al repertorio"
-          >
-            ←
-          </Link>
-          <h1 className="min-w-0 text-[1.375rem] leading-tight font-semibold">Administración</h1>
-        </div>
+      {/* Destino de primer nivel (se llega desde «Más»): sin flecha de volver. */}
+      <main className="mx-auto w-full max-w-2xl flex-1 px-4 pt-6 pb-10">
+        <h1 className="titulo-libro text-[1.75rem] leading-tight">Administración</h1>
 
         <PanelAdmin perfiles={perfiles} coros={coros} yoId={sesion.usuarioId} />
       </main>
