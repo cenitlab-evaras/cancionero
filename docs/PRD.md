@@ -715,7 +715,7 @@ en §19; cuando lo tienen, la fila lo dice y nombra qué cambiaría. Mientras ta
 
 | **H19-B · Corregir el acorde en el lugar** ✅ **hecho** (2026-10-17) — cierra §18-15 y B8 B/C | Motores `silabas` y `corregir-acorde` con test, el ordinal de cada acorde en `renderizarCifrado`, la action `corregirAcorde` y el panel «Corregir este acorde» bajo la tira de diagramas. **Cero migraciones y cero cambios de RLS**: reusa `editar_canto` y `cantos_write`, y el rastro lo sigue dejando el trigger de H19-A | Con un canto transpuesto **+2**, el director toca un acorde y la hoja de diagramas —que se abre como siempre— suma «Corregir este acorde». Desde ahí lo **cambia** escribiéndolo como lo ve, lo **borra**, lo **mueve** de sílaba o **agrega** uno a su lado, viendo la línea **antes y después** antes de guardar; cada corrección deja **una sola** versión y se deshace con «Volver a esta versión»; si el canto cambió con el panel abierto, **no pisa** y lo dice; el miembro no ve el botón — **verificado en la app a 360 px** (`scrollWidth` = `clientWidth`) sobre un canto de prueba en el coro real, archivado al terminar: con +2, el `F#` del ordinal 5 se corrigió escribiendo `G#7` y **la base guardó `[F#7]`** —el historial mostró una línea, `[E]nueva` → `[F#7]nueva`—, los otros dos `F#` de la estrofa no se tocaron; el `B` de «pon» se movió a «dín,»; se borró un acorde; se agregó uno escribiendo **`LA`** —en latina, como escribe el coro— y quedó `A` sobre «da»; cinco correcciones dejaron **cinco** versiones y «Volver a esta versión» repuso lo borrado (6). Con **dos teléfonos** abiertos, el segundo guardó un borrado mientras el primero tenía preparada otra corrección: el primero recibió «El canto cambió mientras lo corregías» y la base no cambió. `npm run verificar:rls` sigue en **71/71** (`musico@` no escribe un cifrado: 0 filas). **Lo que no se vio en el navegador:** la vista de `musico@` sin el botón —el panel cuelga del mismo `puede(sujeto, 'editar_canto')` que el enlace «Editar» que H8 dejó verificado oculto— |
 
-| **H23 · Ensayar en la app** ⏳ (bloque §21, **corte mínimo**) | Tabla `partitura` y bucket `partituras` con RLS · motores `mezcla`, `tempo`, `seguimiento`, `cuerdaPorTesitura` con test · pestaña «Ensayar» con el reproductor de `escuchar.html` en la piel de la app · `importar:partitura` para la semilla | Ver §21.9: `musico@` ensaya *El Señor es mi fortaleza* en el teléfono con Tenor al frente, ♩ 56 y Piano; `ajeno@` no obtiene ni una pista |
+| **H23 · Ensayar en la app** 🟡 construido en local, 5 de 6 «listo cuando» verificados; falta el 4 (teléfonos reales) y aplicar en producción — ver «Cómo entró H23» (bloque §21, **corte mínimo**) | Tabla `partitura` y bucket `partituras` con RLS · motores `mezcla`, `tempo`, `seguimiento`, `cuerdaPorTesitura` con test · pestaña «Ensayar» con el reproductor de `escuchar.html` en la piel de la app · `importar:partitura` para la semilla | Ver §21.9: `musico@` ensaya *El Señor es mi fortaleza* en el teléfono con Tenor al frente, ♩ 56 y Piano; `ajeno@` no obtiene ni una pista |
 
 | **H24 · Exportar desde la app** ⏳ (bloque §21) | El conversor en Dokploy · tabla `trabajo` · bucket `exportaciones` · «Exportar» del director y `/exportaciones` | Ver §21.9: `director@` exporta un MP4 de Tenor ♩ 56 desde el teléfono en menos de 3 minutos, con el computador del dueño apagado |
 
@@ -744,6 +744,40 @@ entre sobre una base que la sostenga. Detalle visual en `docs/DESIGN.md`.
 | **Ejecución de la misa** | cabecera global con «Salir»; ignoraba «solo letra»; «Siguiente» al final del contenido | barra de lectura, respeta H11, «Siguiente: *nombre*» al alcance del pulgar |
 | **Color e identidad** | gris neutro + azul con texto blanco (3,7:1) | café-negro del logo, halo dorado con texto oscuro (10,1:1), ámbar solo para acordes |
 | **Tipografía** | Inter + JetBrains Mono, títulos en mayúsculas espaciadas | Atkinson Hyperlegible Next (baja visión) + Source Serif 4 en títulos + JetBrains Mono; sin mayúsculas espaciadas |
+
+### Cómo entró H23 (2026-10-17), y lo que falta para cerrarlo
+
+**Construido contra un Supabase LOCAL**, por decisión del dueño: `supabase start` en los puertos
+563xx (los 553xx los usa otro proyecto de la máquina) y `.env.development.local` con sus claves,
+que `next dev` prefiere sobre `.env.local` (producción). Los scripts se corren con
+`node --env-file=.env.development.local …`. Nada de H23 está en producción todavía.
+
+| Pieza | Dónde |
+| --- | --- |
+| Migración | `20261017010000_partitura.sql`: tabla `partitura` (clase B, borrador solo para el director, índice único `(canto_id, estado)`, la ruta de la fuente atada a su huella) y bucket privado `partituras` con dos políticas sobre `storage.objects` que pasan por funciones que validan la forma de la ruta antes de castear |
+| Motores | `cuerdas` (`cuerdaPorTesitura`), `mezcla` (`alFrente` lee `motores/casos/al-frente.json`, los casos de `motor/tests/test_logica.py`), `tempo`, `seguimiento` (los 5 casos de `partitura-vivo.test.js` + `notaEn`). 44 tests |
+| Permisos | `ensayar_canto` (todo el coro) y `ver_partitura_borrador`, `subir_partitura`, `publicar_partitura`, `exportar_audio`, `ver_trabajos` (director) |
+| Pantallas | pestaña «Cifrado · Ensayar» (solo con partitura publicada), `/repertorio/[cantoId]/ensayar` con el reproductor portado de `escuchar.html` (transporte abajo, al alcance del pulgar), y «Ensayar este canto» en la vista de ejecución de la misa |
+| Semilla | `npm run importar:partitura -- --canto <id> --carpeta ../pruebas/el-senor-es-mi-fortaleza [--aplicar]`: 35 pistas + fuente + partitura + manifiesto, 19,1 MB |
+| RLS | `verificar:rls` suma 11 casos (fila y Storage, incluida una URL firmada que deja de servir al vencer): **82/82** en local |
+
+**«Listo cuando», verificado en la app local:** 1 ✓ (`musico@` con tesitura tenor abre con Tenor al
+frente) · 2 ✓ (7 pistas juntas con deriva ≤ 9 ms; nota y sílaba pintadas; Ensayo 56 → tasa
+0,9032 con la afinación conservada; Piano sigue desde el mismo punto) · 3 ✓ (Estrofa 1 + 3 en 1
+sobre el coro en 0,45; «Mezcla» cambia solo esa cuerda) · 5 ✓ (`ajeno@` ve «no tienes acceso» y no
+firma ningún archivo; la URL firmada vence) · 6 ✓ (sin partitura no hay pestaña; 82/82).
+
+**Falta para cerrarlo:**
+- **«Listo cuando» 4**: Safari de iPhone y Chrome de Android, bloqueando y desbloqueando a mitad
+  del canto. Se probó en Chrome de escritorio. El reproductor ya pausa las siete si el sistema
+  pausa una y las realinea al volver a la pantalla, pero eso hay que verlo en un teléfono (§18-24).
+- **Producción**: aplicar `20261017000000` (tamaño de letra, pendiente desde el rediseño) y
+  `20261017010000`, comprobar que el Storage del VPS está activo, medir el disco (§18-14), crear el
+  canto con «Nuevo canto» y correr `importar:partitura --aplicar` contra producción.
+- La suite de Python del motor todavía no lee `casos/al-frente.json`: el motor vive fuera del
+  repo hasta H24, cuando entra con el conversor.
+- En esta máquina `next dev` no recargó en caliente una ruta nueva (`/ensayar` daba 404 hasta
+  reiniciar el servidor). Si una pantalla nueva no aparece, reiniciar antes de buscar el error.
 
 ### 17.1-quaterdecies Lo que quedó pendiente del rediseño (declarado, no recortado en silencio)
 
@@ -1249,10 +1283,10 @@ Otros pendientes de H6:
 | 19 | **La base puede migrar antes que la aplicación, y la pantalla mentía sobre eso** → **ocurrido y resuelto el 2026-09-03** | Al renombrar el rol global de `miembro` a `usuario`, la base quedó migrada y la app desplegada no. `sesion.ts` hizo lo correcto —un rol que no reconoce se trata como `externo`, cerrando hacia el NO— pero `/esperando-aprobacion` le dijo a un director **aprobado** que «todavía nadie habilitó tu cuenta». El sistema se comportó bien y la pantalla mintió, que es la peor combinación: mandó a la persona a pedir algo que ya tenía. Se agregó `porQueNoEntra()` —función pura con test— que distingue los tres motivos (sin aprobar · rol desconocido · sin coro) y la pantalla dice cuál es. **La regla que queda:** una pantalla no puede afirmar un estado que la base contradice; si el sistema cierra por un motivo, ese motivo se conserva hasta la pantalla en vez de deducirse del destino de la ruta. **Y para el próximo renombre de valores:** aceptar el viejo y el nuevo durante un despliegue y limpiar después, porque con `NEXT_PUBLIC_*` de por medio la app y la base nunca cambian en el mismo instante | decidido | nada, ya hecho |
 | 20 | **El conversor comparte el VPS con la app y con Supabase** (2026-10-17) | MuseScore y un Chromium sin ventana son lo más pesado que corre ahí. Un trabajo a la vez (ya es así en `motor/servidor.py`) y, si el VPS tiene menos de 4 GB, limitar la memoria del contenedor del conversor en Dokploy para que un video no tumbe la app. La memoria real de un trabajo se mide en H24 y se anota acá | el dueño (dato en §2.1) | H24 |
 | 21 | **El tiempo de un trabajo en el servidor no está medido** | En el computador del dueño un MP4 tarda ≈ 1 minuto. El *listo cuando* de H24 pide menos de 3 minutos en el VPS; si no se logra, se anota la cifra real y el dueño decide si la acepta. No se baja la calidad del video para cumplir | el dueño | H24 |
-| 22 | **«Mi voz» en pantalla choca con §19.4** | El reproductor dice «Mi voz» y el coro habla así, pero §19.4 dejó «voz» sin uso por la colisión tesitura/pista. **Recomendación: «Mi cuerda»** en pantalla y `cuerda` en el código. Es la palabra del coro para la sección (*«la cuerda de tenores»*) y no choca con nada | el dueño | H23 (solo el texto) |
-| 23 | **Tesituras sin cuerda propia** | H14 tiene seis tesituras y la partitura coral cuatro cuerdas. **Recomendación:** mezzosoprano → contralto, barítono → bajo; las otras cuatro, a la suya. Es solo con qué cuerda abre «Ensayar»: la persona la cambia con un toque | el dueño | H23 (el valor inicial) |
+| 22 | ✅ **Decidido por el dueño el 2026-10-17: «Mi cuerda».** **«Mi voz» en pantalla choca con §19.4** | El reproductor dice «Mi voz» y el coro habla así, pero §19.4 dejó «voz» sin uso por la colisión tesitura/pista. **Recomendación: «Mi cuerda»** en pantalla y `cuerda` en el código. Es la palabra del coro para la sección (*«la cuerda de tenores»*) y no choca con nada | el dueño | H23 (solo el texto) |
+| 23 | ✅ **Decidido por el dueño el 2026-10-17: la recomendación, tal cual** (`cuerdaPorTesitura`). **Tesituras sin cuerda propia** | H14 tiene seis tesituras y la partitura coral cuatro cuerdas. **Recomendación:** mezzosoprano → contralto, barítono → bajo; las otras cuatro, a la suya. Es solo con qué cuerda abre «Ensayar»: la persona la cambia con un toque | el dueño | H23 (el valor inicial) |
 | 24 | **Siete pistas sincronizadas en Safari de iPhone** | `escuchar.html` usa siete elementos de audio, conserva la afinación al cambiar el tempo y los resincroniza si se separan más de 60 ms. Safari exige que el audio arranque con un toque y puede suspenderlo al bloquear la pantalla. **Recomendación:** mantener el enfoque probado y medir en un iPhone real en H23 (*listo cuando* 4); pasar a Web Audio solo si la deriva supera 60 ms, sabiendo que ahí cambiar el tempo también cambia la afinación | quien construye | H23 |
-| 25 | **Derechos de las partituras y repo público** | Una partitura de Taizé tiene derechos, igual que los cancioneros (§18-1), y mandar el MP4 por WhatsApp es distribuirla. **Recomendación:** uso privado del coro, sin enlace público; el video lleva título y coro. Y como el repo es público, **ninguna partitura, pista ni exportación se versiona**: el script de semilla las lee desde fuera del repo, como los PDF | el dueño | H23 |
+| 25 | ✅ **Decidido por el dueño el 2026-10-17: uso privado, nada versionado.** **Derechos de las partituras y repo público** | Una partitura de Taizé tiene derechos, igual que los cancioneros (§18-1), y mandar el MP4 por WhatsApp es distribuirla. **Recomendación:** uso privado del coro, sin enlace público; el video lleva título y coro. Y como el repo es público, **ninguna partitura, pista ni exportación se versiona**: el script de semilla las lee desde fuera del repo, como los PDF | el dueño | H23 |
 | 26 | **La fuente que sube el director es la única copia** | La lección de §18-17: lo que no está en la semilla no existe. Las pistas se regeneran, pero la MusicXML o el PDF subido solo vive en Storage. **Recomendación:** respaldar el bucket `partituras` (solo los `fuente.*`) junto con la base, con el mismo procedimiento que se use para Postgres | el dueño | H25 |
 
 **Lo que se pierde con 18:** el aislamiento que daba el esquema dedicado. En `public` conviven las

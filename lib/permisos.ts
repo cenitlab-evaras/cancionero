@@ -71,6 +71,13 @@ export const CAPACIDADES = [
   'crear_coro',
   'aprobar_perfil',
   'editar_catalogo',
+  // §21.5 · el bloque de ensayo (H23–H26).
+  'ensayar_canto',
+  'ver_partitura_borrador',
+  'subir_partitura',
+  'publicar_partitura',
+  'exportar_audio',
+  'ver_trabajos',
 ] as const
 export type Capacidad = (typeof CAPACIDADES)[number]
 
@@ -122,6 +129,12 @@ const MATRIZ: Record<Rol, Record<Capacidad, Celda>> = {
     crear_coro: true,
     aprobar_perfil: true,
     editar_catalogo: true,
+    ensayar_canto: true,
+    ver_partitura_borrador: true,
+    subir_partitura: true,
+    publicar_partitura: true,
+    exportar_audio: true,
+    ver_trabajos: true,
   },
   usuario: {
     ver_coro: 'solo_vinculado',
@@ -166,6 +179,18 @@ const MATRIZ: Record<Rol, Record<Capacidad, Celda>> = {
     crear_coro: false,
     aprobar_perfil: false,
     editar_catalogo: false,
+    // §21.5 · Ensayar es de todo el coro: escuchar no cambia nada. Todo lo que
+    // produce archivos o decide qué se publica es del director. Exportar
+    // también, por decisión del dueño (2026-10-17): el director hace los
+    // archivos y los manda al grupo, y el conversor atiende uno a la vez.
+    // Escribir una pista o el estado de un trabajo no es una capacidad de
+    // nadie: lo hace el conversor con la clave de servicio (como H19-A).
+    ensayar_canto: 'solo_vinculado',
+    ver_partitura_borrador: 'solo_director',
+    subir_partitura: 'solo_director',
+    publicar_partitura: 'solo_director',
+    exportar_audio: 'solo_director',
+    ver_trabajos: 'solo_director',
   },
   externo: {
     ver_coro: false,
@@ -193,6 +218,12 @@ const MATRIZ: Record<Rol, Record<Capacidad, Celda>> = {
     crear_coro: false,
     aprobar_perfil: false,
     editar_catalogo: false,
+    ensayar_canto: false,
+    ver_partitura_borrador: false,
+    subir_partitura: false,
+    publicar_partitura: false,
+    exportar_audio: false,
+    ver_trabajos: false,
   },
 }
 

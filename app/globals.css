@@ -216,3 +216,23 @@ body:has(.barra-nav) {
     animation-iteration-count: 1 !important;
   }
 }
+
+/* -------------------------------------------------------------------------
+ * H23 · La partitura en papel (PRD §21.8). Notas negras sobre blanco, como las
+ * dibuja MuseScore: el papel es parte del dibujo, no de la piel de la app, por
+ * eso es el único blanco escrito a mano. En pantallas angostas la hoja no se
+ * encoge más: se desplaza hacia el lado siguiendo el cursor (escuchar.html).
+ * ------------------------------------------------------------------------- */
+.pagina-partitura {
+  background: #fff;
+  border-radius: 0.375rem;
+  margin-bottom: 0.5rem;
+  overflow-x: auto;
+  cursor: pointer;
+}
+.pagina-partitura svg {
+  display: block;
+  width: 100%;
+  min-width: 980px;
+  height: auto;
+}

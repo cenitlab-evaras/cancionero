@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { obtenerSesion } from '@/lib/sesion'
+import { puede } from '@/lib/permisos'
+import { partituraPublicada } from '@/lib/datos/partitura'
 import { obtenerMisa } from '@/lib/datos/misas'
 import { obtenerCanto, obtenerTransposicion, preferenciasDelPerfil } from '@/lib/datos/repertorio'
 import { recorrido } from '@/lib/motores/misa'
@@ -75,10 +77,12 @@ export default async function EjecucionPage({
   const fila = misa.cantos.find((c) => c.id === filaId)
   if (!fila) redirect(`/misas/${id}`)
 
-  const [canto, transposicion, perfil] = await Promise.all([
+  const [canto, transposicion, perfil, partitura] = await Promise.all([
     obtenerCanto(fila.cantoId),
     obtenerTransposicion(fila.cantoId),
     preferenciasDelPerfil(),
+    // H23 · el enlace «Ensayar» solo si el canto tiene partitura publicada.
+    puede(sesion.sujeto, 'ensayar_canto') ? partituraPublicada(fila.cantoId) : Promise.resolve(null),
   ])
   if (!canto) redirect(`/misas/${id}`)
 
@@ -129,6 +133,16 @@ export default async function EjecucionPage({
                   .filter(Boolean)
                   .join(' · ')}
               </p>
+            )}
+            {/* H23 · Para repasar la cuerda antes de la misa. Es un enlace y no
+                una pestaña: acá se toca, y la misa sigue siendo lo primero. */}
+            {partitura && (
+              <Link
+                href={`/repertorio/${canto.id}/ensayar`}
+                className="tactil mt-1 inline-flex items-center text-sm text-acento underline underline-offset-2"
+              >
+                Ensayar este canto
+              </Link>
             )}
           </div>
 

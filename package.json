@@ -17,7 +17,8 @@
     "db:borrar-semilla": "node --env-file=.env.local supabase/seed/borrar.ts",
     "verificar:rls": "node --env-file=.env.local supabase/seed/verificar-rls.ts",
     "importar:cancionero": "node --env-file=.env.local supabase/importar/cancionero.ts",
-    "importar:archivo": "node --env-file=.env.local supabase/importar/desde-archivo.ts"
+    "importar:archivo": "node --env-file=.env.local supabase/importar/desde-archivo.ts",
+    "importar:partitura": "node --env-file=.env.local supabase/importar/partitura.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",

@@ -1156,6 +1156,100 @@ async function main() {
     }
   }
 
+  // --- Acto 16: H23 · la partitura y su bucket ---------------------------------
+  //
+  // Dos capas de RLS que tienen que decir lo mismo: la fila (`partitura`) y los
+  // archivos (`storage.objects`, con la huella en la ruta). El caso se arma acá
+  // mismo —un borrador con una fuente de mentira— y se limpia al final con la
+  // clave de servicio: no depende de que la semilla del ensayo esté subida.
+  {
+    const SECRETA = process.env.SUPABASE_SECRET_KEY
+    const { data: coroDir } = await director.from('coro_acceso').select('coro_id').limit(1).single()
+    const coroId = coroDir!.coro_id as string
+    // Un canto del coro que todavía no tenga partitura publicada.
+    const { data: conPartitura } = await director.from('partitura').select('canto_id')
+    const ocupados = new Set((conPartitura ?? []).map((p) => p.canto_id))
+    const { data: candidatos } = await director.from('cantos').select('id').eq('coro_id', coroId)
+    const cantoId = (candidatos ?? []).map((c) => c.id).find((id) => !ocupados.has(id))!
+    const huella = 'a'.repeat(64)
+    const base = `${coroId}/${cantoId}/${huella}`
+    const bucket = (c: typeof director) => c.storage.from('partituras')
+
+    // Escribir la fila: el director sí, el miembro no.
+    const { error: errMusico } = await musico.from('partitura').insert({
+      canto_id: cantoId,
+      coro_id: coroId,
+      origen: 'musicxml',
+      huella,
+      ruta_fuente: `${base}/fuente.musicxml`,
+    })
+    comprobar('musico@ no puede subir una partitura (insert rechazado)', !!errMusico, errMusico?.message ?? 'se insertó')
+
+    const { data: borrador, error: errDirector } = await director
+      .from('partitura')
+      .insert({ canto_id: cantoId, coro_id: coroId, origen: 'musicxml', huella, ruta_fuente: `${base}/fuente.musicxml` })
+      .select('id')
+      .single()
+    comprobar('director@ puede subir una partitura en borrador', !!borrador, errDirector?.message ?? '1 fila')
+
+    // Subir archivos: el director solo la FUENTE; las pistas son del conversor.
+    const { error: errFuente } = await bucket(director).upload(`${base}/fuente.musicxml`, '<score-partwise/>', {
+      contentType: 'application/xml',
+      upsert: true,
+    })
+    comprobar('director@ puede subir la fuente al bucket', !errFuente, errFuente?.message ?? 'subida')
+    const { error: errPistaDir } = await bucket(director).upload(`${base}/pistas/voces/tenor.mp3`, 'x', {
+      contentType: 'audio/mpeg',
+    })
+    comprobar('ni el director sube una pista (eso es del conversor)', !!errPistaDir, errPistaDir?.message ?? 'se subió')
+    const { error: errPistaMus } = await bucket(musico).upload(`${base}/fuente.musicxml`, 'x', { upsert: true })
+    comprobar('musico@ no puede subir nada al bucket', !!errPistaMus, errPistaMus?.message ?? 'se subió')
+
+    // Leer el borrador: solo el director.
+    const { data: verMusico } = await musico.from('partitura').select('id').eq('canto_id', cantoId)
+    const { data: verDirector } = await director.from('partitura').select('id').eq('canto_id', cantoId)
+    comprobar(
+      'el borrador lo ve el director y no el miembro',
+      (verDirector?.length ?? 0) === 1 && (verMusico?.length ?? 0) === 0,
+      `director ${verDirector?.length ?? 0} · musico ${verMusico?.length ?? 0}`
+    )
+    const firmaBorrador = await bucket(musico).createSignedUrl(`${base}/fuente.musicxml`, 60)
+    comprobar('musico@ no puede firmar un archivo de un borrador', !!firmaBorrador.error, firmaBorrador.error?.message ?? 'firmó')
+
+    // Publicada: la ve todo el coro, y nadie de fuera.
+    await director
+      .from('partitura')
+      .update({ estado: 'publicada', publicada_at: new Date().toISOString() })
+      .eq('id', borrador?.id ?? '')
+    const firmaMusico = await bucket(musico).createSignedUrl(`${base}/fuente.musicxml`, 60)
+    comprobar('publicada, musico@ firma y baja el archivo', !!firmaMusico.data?.signedUrl, firmaMusico.error?.message ?? 'firmada')
+    const firmaAjeno = await bucket(ajeno).createSignedUrl(`${base}/fuente.musicxml`, 60)
+    const { data: filaAjeno } = await ajeno.from('partitura').select('id').eq('canto_id', cantoId)
+    comprobar(
+      'ajeno@ no ve la fila ni puede firmar sus archivos',
+      !!firmaAjeno.error && (filaAjeno?.length ?? 0) === 0,
+      `${filaAjeno?.length ?? 0} filas · ${firmaAjeno.error?.message ?? 'firmó'}`
+    )
+    const { data: rutaRara } = await bucket(musico).createSignedUrl('no-es-un-uuid/x/y/z.mp3', 60)
+    comprobar('una ruta mal formada no rompe la política: solo dice que no', !rutaRara?.signedUrl, 'sin firma')
+
+    // La URL firmada vence: copiada a otra sesión deja de servir (H23-5, con 1 s en vez de 1 h).
+    const corta = await bucket(musico).createSignedUrl(`${base}/fuente.musicxml`, 1)
+    const antes = corta.data ? (await fetch(corta.data.signedUrl)).status : 0
+    await new Promise((r) => setTimeout(r, 2500))
+    const despues = corta.data ? (await fetch(corta.data.signedUrl)).status : 0
+    comprobar('una URL firmada sirve mientras vale y después no', antes === 200 && despues >= 400, `${antes} → ${despues}`)
+
+    // Se deja como estaba: la fila y el archivo, con la clave de servicio.
+    if (SECRETA) {
+      const servicio = createClient(URL, SECRETA, { auth: { autoRefreshToken: false, persistSession: false } })
+      await servicio.storage.from('partituras').remove([`${base}/fuente.musicxml`, `${base}/pistas/voces/tenor.mp3`])
+      await servicio.from('partitura').delete().eq('canto_id', cantoId).eq('huella', huella)
+    } else {
+      console.log('  (sin SUPABASE_SECRET_KEY: el caso de prueba de la partitura quedó en la base)')
+    }
+  }
+
   const fallidos = resultados.filter((r) => !r.ok)
   console.log(`\n${resultados.length - fallidos.length}/${resultados.length} comprobaciones en verde`)
   if (fallidos.length > 0) process.exit(1)

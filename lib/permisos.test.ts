@@ -200,3 +200,30 @@ describe('porQueNoEntra', () => {
     )
   })
 })
+
+describe('ensayo — §21.5 (H23)', () => {
+  const ajeno: Sujeto = { rol: 'externo', aprobado: true, rolLocal: null }
+
+  test('ensayar lo puede todo el coro, y nadie de fuera', () => {
+    expect(puede(miembro, 'ensayar_canto')).toBe(true)
+    expect(puede(director, 'ensayar_canto')).toBe(true)
+    expect(puede(admin, 'ensayar_canto')).toBe(true)
+    expect(puede(sinVinculo, 'ensayar_canto')).toBe(false)
+    expect(puede(ajeno, 'ensayar_canto')).toBe(false)
+  })
+
+  test('el borrador, subir, publicar, exportar y ver los trabajos son del director', () => {
+    for (const c of [
+      'ver_partitura_borrador',
+      'subir_partitura',
+      'publicar_partitura',
+      'exportar_audio',
+      'ver_trabajos',
+    ] as const) {
+      expect(puede(miembro, c)).toBe(false)
+      expect(puede(director, c)).toBe(true)
+      expect(puede(admin, c)).toBe(true)
+      expect(puede(ajeno, c)).toBe(false)
+    }
+  })
+})

@@ -7,6 +7,7 @@ import { historialDelCanto, hoyISO } from '@/lib/datos/historial'
 import { misSugerencias } from '@/lib/datos/sugerencias'
 import { contarVersiones } from '@/lib/datos/versiones'
 import { misasDelCoro } from '@/lib/datos/misas'
+import { partituraPublicada } from '@/lib/datos/partitura'
 import { agruparMisas } from '@/lib/motores/agenda'
 import { transponer, transponerAcorde } from '@/lib/motores/transponer'
 import { acordesDeCanto } from '@/lib/motores/acordes-de-canto'
@@ -25,6 +26,7 @@ import SoloLetra from './solo-letra'
 import HistorialDelCanto from './historial-canto'
 import Sugerir from './sugerir'
 import CorregirAcorde from './corregir'
+import PestanasCanto from './pestanas'
 import {
   CascaronCarta,
   HojaDiagramas,
@@ -57,7 +59,7 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
   const puedeVerVersiones = puede(sesion.sujeto, 'ver_versiones_canto')
   const coroId = sesion.coroActivo?.id ?? ''
 
-  const [canto, transposicion, perfil, historial, mias, misas, versiones] = await Promise.all([
+  const [canto, transposicion, perfil, historial, mias, misas, versiones, partitura] = await Promise.all([
     obtenerCanto(cantoId),
     obtenerTransposicion(cantoId),
     // H11 y 2026-10-17 · Acordes sí/no y tamaño de letra son de la PERSONA, no
@@ -69,6 +71,8 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
     puedeSugerir ? misasDelCoro(coroId) : Promise.resolve([]),
     // H19-A · cuántas veces se corrigió el cifrado. Se calcula al leer.
     puedeVerVersiones ? contarVersiones(cantoId) : Promise.resolve(0),
+    // H23 · la pestaña «Ensayar» existe solo si hay partitura que ver.
+    puede(sesion.sujeto, 'ensayar_canto') ? partituraPublicada(cantoId) : Promise.resolve(null),
   ])
 
   // Proponer para una misa que ya pasó no tiene sentido; la lista sin fecha sí,
@@ -173,6 +177,8 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
             .filter(Boolean)
             .join(' · ')}
         </p>
+
+        {partitura && <PestanasCanto cantoId={canto.id} activa="cifrado" />}
 
         {/* A sangre: el fondo es el papel, sin marco. Pero con su margen: antes
             iba pegado al borde mientras el título tenía 16 px, y los dos bordes

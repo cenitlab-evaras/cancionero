@@ -199,3 +199,23 @@ export const IconoAcordes = (p: Props) => (
     <circle cx="16.5" cy="15" r="2.5" />
   </Trazo>
 )
+
+/** H23 · Repetir: en Taizé el coro repite mientras el solista canta. */
+export const IconoRepetir = (p: Props) => (
+  <Trazo {...p}>
+    <path d="M17 3l3 3-3 3" />
+    <path d="M4 11V9a3 3 0 0 1 3-3h13" />
+    <path d="M7 21l-3-3 3-3" />
+    <path d="M20 13v2a3 3 0 0 1-3 3H4" />
+  </Trazo>
+)
+
+/** H23 · Mezcla: tres perillas, una por línea. */
+export const IconoMezcla = (p: Props) => (
+  <Trazo {...p}>
+    <path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1" />
+    <circle cx="15" cy="6" r="2" />
+    <circle cx="9" cy="12" r="2" />
+    <circle cx="17" cy="18" r="2" />
+  </Trazo>
+)

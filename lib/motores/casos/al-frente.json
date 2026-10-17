@@ -1,0 +1,25 @@
+{
+  "fuente": "Los casos de `destacadas` en motor/tests/test_logica.py (14-10-2026), sin cambiar un número. El reproductor (lib/motores/mezcla.ts) y el video exportado (motor/logica.py) tienen que estar de acuerdo en quién va al frente: si discrepan, el video pinta un pentagrama distinto del que sonaba. La suite de Python pasa a leer este archivo cuando el motor entre al repo con el conversor (H24).",
+  "casos": [
+    {
+      "nombre": "mi cuerda al frente destaca solo esa cuerda",
+      "volumenes": { "soprano": 0.22, "contralto": 0.22, "tenor": 1, "bajo": 0.22, "solista-1": 0, "solista-2": 0, "solista-3": 0 },
+      "alFrente": ["tenor"]
+    },
+    {
+      "nombre": "el coro parejo destaca las cuatro",
+      "volumenes": { "soprano": 1, "contralto": 1, "tenor": 1, "bajo": 1, "solista-1": 0, "solista-2": 0, "solista-3": 0 },
+      "alFrente": ["soprano", "contralto", "tenor", "bajo"]
+    },
+    {
+      "nombre": "una estrofa destaca al solista sobre el coro de fondo",
+      "volumenes": { "soprano": 0.45, "contralto": 0.45, "tenor": 0.45, "bajo": 0.45, "solista-1": 0, "solista-2": 1, "solista-3": 0 },
+      "alFrente": ["solista-2"]
+    },
+    {
+      "nombre": "sin cuerdas que suenen no destaca ninguna",
+      "volumenes": { "soprano": 0, "contralto": 0, "tenor": 0, "bajo": 0, "solista-1": 0, "solista-2": 0, "solista-3": 0 },
+      "alFrente": []
+    }
+  ]
+}
