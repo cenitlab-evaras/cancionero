@@ -11,6 +11,12 @@
 
 export type AcordePosicionado = {
   acorde: string
+  /**
+   * H19-B · Ordinal del acorde en el canto entero (0, 1, 2…). Es lo que
+   * identifica AL acorde que se tocó entre veinte `[G]` iguales: no cambia al
+   * transponer ni con el ancho, y coincide con `ubicarAcordes`.
+   */
+  indice: number
   /** Columna en el texto de la letra: el dato real del cifrado. */
   columna: number
   /**
@@ -41,7 +47,22 @@ const COMENTARIO = /^\{\s*(comment|c|ci|comment_italic)\s*:\s*(.*?)\s*\}\s*$/i
 /** Un acorde entre corchetes: `[C]`, `[F#m]`, `[A9/C#]`, `[Bm/A]`. */
 const ACORDE = /\[([^\]\n]+)\]/g
 
-function separarAcordes(linea: string): { texto: string; acordes: AcordePosicionado[] } {
+/**
+ * H19-B · ¿Esta línea cruda pinta acordes? Las metaetiquetas no se pintan y un
+ * `{comment:}` se pinta como texto: sus corchetes no son acordes tocables.
+ *
+ * Exportada para que `ubicarAcordes` cuente con LA MISMA regla: si contaran
+ * distinto, el ordinal se desalinea y se corrige un acorde que no se tocó.
+ */
+export function lineaPintaAcordes(cruda: string): boolean {
+  const t = cruda.trim()
+  return !METAETIQUETAS.test(t) && !COMENTARIO.test(t)
+}
+
+function separarAcordes(
+  linea: string,
+  primerIndice: number
+): { texto: string; acordes: AcordePosicionado[] } {
   const acordes: AcordePosicionado[] = []
   let texto = ''
   let ultimoCorte = 0
@@ -50,7 +71,12 @@ function separarAcordes(linea: string): { texto: string; acordes: AcordePosicion
   let m: RegExpExecArray | null
   while ((m = ACORDE.exec(linea)) !== null) {
     texto += linea.slice(ultimoCorte, m.index)
-    acordes.push({ acorde: m[1], columna: texto.length, columnaPintada: texto.length })
+    acordes.push({
+      acorde: m[1],
+      indice: primerIndice + acordes.length,
+      columna: texto.length,
+      columnaPintada: texto.length,
+    })
     ultimoCorte = m.index + m[0].length
   }
   texto += linea.slice(ultimoCorte)
@@ -101,6 +127,7 @@ function partirAlAncho(linea: LineaCifrado, ancho: number): LineaCifrado[] {
       .filter((a) => a.columna >= corte.desde && (a.columna < corte.hasta || esUltimo))
       .map((a) => ({
         acorde: a.acorde,
+        indice: a.indice,
         columna: Math.max(0, a.columna - corte.desde),
         columnaPintada: Math.max(0, a.columna - corte.desde),
       }))
@@ -138,6 +165,9 @@ export function renderizarCifrado(
   const mostrarAcordes = opciones.mostrarAcordes ?? true
 
   const lineas: LineaCifrado[] = []
+  // H19-B · El ordinal se cuenta sobre TODOS los acordes, también los que no se
+  // muestran en modo solo letra, para que siga valiendo lo mismo en los dos.
+  let siguienteIndice = 0
 
   for (const cruda of cifrado.split('\n')) {
     if (METAETIQUETAS.test(cruda.trim())) continue
@@ -153,7 +183,8 @@ export function renderizarCifrado(
       continue
     }
 
-    const { texto, acordes } = separarAcordes(cruda)
+    const { texto, acordes } = separarAcordes(cruda, siguienteIndice)
+    siguienteIndice += acordes.length
 
     // Una línea de solo acordes —la intro `[G][D]`, el puente— sin acordes no
     // dice nada. Se omite entera en vez de dejar un renglón vacío que abriría

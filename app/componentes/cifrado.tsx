@@ -95,7 +95,12 @@ export default function Cifrado({
                   return (
                     <span key={j}>
                       {relleno}
-                      <button type="button" data-acorde={a.acorde} className="acorde-tocable">
+                      <button
+                        type="button"
+                        data-acorde={a.acorde}
+                        data-indice={a.indice}
+                        className="acorde-tocable"
+                      >
                         {a.acorde}
                       </button>
                     </span>

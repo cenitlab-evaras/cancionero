@@ -399,6 +399,8 @@ puede probar.
 | `misa` *(agregado en H6)* | los cantos ya asignados + el momento del nuevo · o la lista + el canto actual | dónde se inserta · la renumeración · el recorrido | Agregar un canto de **Entrada** a una misa que ya tiene Ofertorio y Santo lo pone **primero**, no al final; con el mismo momento va después de los que ya están. `reordenar` renumera desde 0 sin huecos ni repetidos (el índice único de la migración no admite empates). `recorrido` usa el **orden guardado**, no el del array: en el primero no hay anterior, en el último no hay siguiente, y un canto ajeno a la misa no inventa vecinos | `motores/misa.ts` · `.test.ts` |
 | `autoscroll` *(agregado en H4)* | resto acumulado + píxeles por segundo + milisegundos del cuadro | píxeles a desplazar y el nuevo resto | A 10 px/s, dos cuadros de 50 ms avanzan 0 y luego 1 px: la fracción se acumula, no se pierde (sin esto el scroll va a tirones). 60 cuadros a 24 px/s suman exactamente 24 px. Un cuadro de 30 s se topa para que volver a la pestaña no dispare la página | `motores/autoscroll.ts` · `.test.ts` |
 | `permisos` | rol global + rol local + capacidad | booleano | Un `miembro` no puede `editar_canto` en ningún caso. Un `director` puede `editar_canto` **solo** con vínculo al coro; sin vínculo, `false`. Un `admin` puede todo salvo `ver_preferencia_ajena`, que es `false` para los tres roles | `permisos.ts` · `permisos.test.ts` |
+| `silabear` / `iniciosDeSilaba` *(agregado en H19-B)* | una palabra · una línea de letra | sus sílabas · la columna donde empieza cada una | `canción` → `can·ción` y `salvación` → `sal·va·ción`; **los diptongos no se parten y los hiatos sí** (`Dios` es una, `Ma·rí·a` son tres); `ch`, `ll`, `rr` son una consonante; las sílabas juntas vuelven a dar la palabra; la puntuación no es parada | `motores/silabas.ts` · `.test.ts` |
+| `corregirAcorde` *(agregado en H19-B)* | cifrado + corrección (cambiar · borrar · agregar, con `pasos` de sílaba) | el cifrado nuevo, el ordinal donde quedó y la línea antes/después | El acorde se identifica por **ordinal**, y el ordinal es **el mismo que pinta `renderizarCifrado` con cualquier ancho** y no cambia al transponer; corregir el cuarto `[E]` no toca los otros; **el resto del cifrado queda idéntico byte por byte**; mover no sale de la línea; en una línea de solo acordes no hay sílabas a las que moverse | `motores/corregir-acorde.ts` · `.test.ts` |
 | `coincideBusqueda` *(agregado al construir H1)* | canto (título + autor) + término | booleano | `"jardin"` encuentra *Abre tu jardín* pese al acento; `"MARÍA"` encuentra por autor ignorando mayúsculas y acento; `"nino"` **no** encuentra *Niño* —la ñ no es una n acentuada—; un término vacío coincide con todo y no filtra nada | `motores/busqueda.ts` · `.test.ts` |
 
 **Composición que hay que respetar:** los diagramas de H5 se calculan sobre el cifrado **ya
@@ -684,10 +686,52 @@ en §19; cuando lo tienen, la fila lo dice y nombra qué cambiaría. Mientras ta
 
 | **H19-A · Versionado del cifrado** ✅ **hecho** (2026-09-04) — cierra §18-13 | Tabla `canto_version` escrita por un **trigger**, no por la aplicación, y **sin ninguna política de escritura**: nadie puede fabricar ni borrar historial. Motor `version-cifrado` con test (diff por subsecuencia común y resumen del cambio), el historial en la vista del canto y «Volver a esta versión» para el director | El director corrige un acorde y el cambio queda registrado con **quién, cuándo y qué cambió** —las líneas que cambiaron, y si se tocó la letra o solo los acordes—, no dos bloques de texto para comparar a ojo en un teléfono; puede **volver a una versión anterior**, y volver **no borra nada**: la que estaba se guarda a su vez; un canto que nunca se editó **lo dice así**; **el miembro ve el historial** pero no puede restaurar; y **ni el director ni el admin pueden escribir en `canto_version`** — **verificado en la app a 360 px** (`scrollWidth` 360 = `clientWidth` 360): `musico@` abrió *Abre tu jardín* y vio «Se corrigió 2 veces · ver qué cambió», con **«Acordes corregidos · Director · hace 1 semana · es lo que se canta hoy»** y **«Cambió la letra · Sin identificar · hace 3 semanas»** —el caso del importador sin sesión, dicho y no inventado—, y **ningún botón de restaurar**; al desplegar, el diff mostró la única línea que cambió (`[B]vida` → `[B7]vida`) y «16 líneas sin cambios». `director@` sí vio «Volver a esta versión»: al usarlo el cifrado volvió, el enlace pasó a **«Se corrigió 3 veces»** —la vuelta atrás quedó registrada, no borró nada— y al volver a ir hacia adelante quedó en 4, con los cuatro diffs en la dirección correcta. Un canto nunca editado **no muestra el enlace** y por URL dice «Este canto no se editó nunca»; `ajeno@` por URL recibe «Ese canto no está acá». `npm run verificar:rls` da **71/71**, con las cuatro que dan sentido al hito: **ni el director puede fabricar, borrar ni reescribir una versión**, y editar el cifrado deja **una sola** fila con el texto anterior y su autor, mientras que guardar sin tocar el cifrado no deja ninguna |
 
-**Los dieciocho hitos están hechos y verificados corriendo la app.** H9 salió de §18-7, que lo dejaba
+| **H19-B · Corregir el acorde en el lugar** ✅ **hecho** (2026-10-17) — cierra §18-15 y B8 B/C | Motores `silabas` y `corregir-acorde` con test, el ordinal de cada acorde en `renderizarCifrado`, la action `corregirAcorde` y el panel «Corregir este acorde» bajo la tira de diagramas. **Cero migraciones y cero cambios de RLS**: reusa `editar_canto` y `cantos_write`, y el rastro lo sigue dejando el trigger de H19-A | Con un canto transpuesto **+2**, el director toca un acorde y la hoja de diagramas —que se abre como siempre— suma «Corregir este acorde». Desde ahí lo **cambia** escribiéndolo como lo ve, lo **borra**, lo **mueve** de sílaba o **agrega** uno a su lado, viendo la línea **antes y después** antes de guardar; cada corrección deja **una sola** versión y se deshace con «Volver a esta versión»; si el canto cambió con el panel abierto, **no pisa** y lo dice; el miembro no ve el botón — **verificado en la app a 360 px** (`scrollWidth` = `clientWidth`) sobre un canto de prueba en el coro real, archivado al terminar: con +2, el `F#` del ordinal 5 se corrigió escribiendo `G#7` y **la base guardó `[F#7]`** —el historial mostró una línea, `[E]nueva` → `[F#7]nueva`—, los otros dos `F#` de la estrofa no se tocaron; el `B` de «pon» se movió a «dín,»; se borró un acorde; se agregó uno escribiendo **`LA`** —en latina, como escribe el coro— y quedó `A` sobre «da»; cinco correcciones dejaron **cinco** versiones y «Volver a esta versión» repuso lo borrado (6). Con **dos teléfonos** abiertos, el segundo guardó un borrado mientras el primero tenía preparada otra corrección: el primero recibió «El canto cambió mientras lo corregías» y la base no cambió. `npm run verificar:rls` sigue en **71/71** (`musico@` no escribe un cifrado: 0 filas). **Lo que no se vio en el navegador:** la vista de `musico@` sin el botón —el panel cuelga del mismo `puede(sujeto, 'editar_canto')` que el enlace «Editar» que H8 dejó verificado oculto— |
+
+**Los diecinueve hitos están hechos y verificados corriendo la app.** H9 salió de §18-7, que lo dejaba
 condicionado a "si estorba"; H10, H11, H13, H14 y H15 salen del backlog de §19; H16 salió de §16,
 donde el parser de dos columnas estaba anotado como *«un hito propio»*. H12 se descartó — y su
 medición envejeció, ver B8.
+
+### Cómo entró H19-B, y las tres decisiones que pedía
+
+**El gesto (§18-15), decidido por el dueño el 2026-10-17: desde la hoja de diagramas.** Tocar un
+acorde sigue haciendo exactamente lo de H5. Si quien mira puede editar, la hoja suma una fila
+—«Corregir este acorde»— para **esa aparición**. Se descartaron el modo explícito (hay que
+acordarse de salir) y la pulsación larga (no se descubre, y en iOS pelea con la selección de
+texto). Lo que cuesta: un toque más. Lo que gana: el miembro no ve **ningún** cambio.
+
+**Quién: solo el director**, decidido el mismo día. PRODUCT.md pide *«que la corrección que hace un
+miembro le llegue a los demás»*, y con el versionado ya sería posible sin perder nada — pero abrir
+`cantos_write` al miembro es tocar §8 de una forma que §19.5 no contempla (no es una fila suya). Se
+deja dicho en §17.1-terdecies.
+
+**El acorde se identifica por su ordinal.** Un canto tiene veinte `[G]`; «corregir el G» no
+significa nada. El ordinal no cambia al transponer —transponer reemplaza nombres, no agrega ni quita
+corchetes— ni con el ancho, y `ubicarAcordes` cuenta con la misma regla que `renderizarCifrado`
+(`lineaPintaAcordes`, exportada para que no haya dos copias). Su test compara los dos con cuatro
+anchos distintos: si se desalinean, se corrige un acorde que nadie tocó.
+
+**El panel prepara y se guarda una vez.** Si cada flecha guardara, correr un acorde tres sílabas
+dejaría tres versiones. La vista previa sale del mismo motor que la action, sobre el cifrado ya
+transpuesto, así que lo que se ve es lo que se guarda.
+
+**Un hueco que apareció verificando, no escribiendo.** La primera versión de la action comprobaba
+solo que el acorde tocado siguiera llamándose igual. Al preparar la prueba de dos teléfonos quedó a
+la vista el caso que eso deja pasar: si alguien borra un acorde más arriba, el ordinal apunta al
+siguiente, y si ese se llama igual la corrección cae donde nadie tocó. Ahora el cliente manda **el
+cifrado que veía** y la action lo compara con la base transpuesta igual; y el `update` lleva el
+`updated_at` leído, para la carrera entre la lectura y la escritura.
+
+### 17.1-terdecies Lo que quedó pendiente de H19-B (declarado, no recortado en silencio)
+
+| Del backlog | Cómo quedó | Por qué / cuándo se revisa |
+| --- | --- | --- |
+| **El miembro no corrige** | Solo el director, como en H8 | Decisión del dueño. Abrirlo es una política nueva sobre `cantos` que solo deje cambiar `cifrado`, y una fila nueva en §8.2 |
+| **Agregar en una línea sin acordes** | No se puede desde el panel: «agregar» nace al lado de un acorde existente | Pediría que cada sílaba de la letra fuera tocable. Para eso está «Editar» |
+| **Colapsar repetidos de una vez (B8-A)** | Sigue sin entrar; ahora cada repetido se borra en dos toques | Los 94 repetidos de §19-B8 se pueden limpiar a mano sin abrir el editor |
+| **El silabeo es por reglas, no por diccionario** | Una palabra rara puede partirse distinto | El costo es tocar la flecha una vez más; no justifica un diccionario |
+| **No hay «deshacer» inmediato en el panel** | Se deshace con «Volver a esta versión» | Es el mismo mecanismo, ya verificado; uno propio duplicaría la red |
 
 ### Cómo entró H19-A, y por qué se partió en dos
 
@@ -1116,7 +1160,7 @@ Otros pendientes de H6:
 | 12 | **El ranking y la recomendación le dan consejos opuestos al director** | El historial dice *"hace ocho meses que no cantan este"*; el ranking dice *"la gente quiere este"* — y la gente quiere siempre los mismos. Uno empuja a rotar, el otro a repetir. No es un defecto: es una decisión de qué se muestra primero al armar la misa → **RESUELTO el 2026-09-03 al construir H18: manda ROTAR.** Al armar, los cantos se ordenan por hace cuánto no se cantan; las sugerencias siguen en su propio bloque, arriba, sin mezclarse en un puntaje | decidido | nada |
 | 13 | ~~**No hay versionado del cifrado**~~ → **RESUELTO el 2026-09-04 con H19-A** | Se construyó antes que la corrección en el lugar y por separado, que es lo que este riesgo pedía. El rastro lo escribe un trigger de la base —no la aplicación, que se puede saltar— y **nadie tiene permiso de escritura sobre la tabla, tampoco el director**. Volver atrás no destruye: deja su propia versión. Con esto **B8 B/C deja de estar bloqueado**; lo que queda por decidir es §18-15, el gesto | decidido | ya no bloquea §19-B8 |
 | 14 | **Audio: peso, cuota y el navegador del teléfono** | El repertorio entero en texto pesa menos que un solo canto grabado a cuatro voces: hay que declarar cuota y qué pasa al llenarse. Y grabar desde el navegador móvil tiene a **Safari en iPhone como punto frágil** —soporte y formatos que no coinciden con Android—. Se declara ahora para que no se descubra construyendo. → **CERRADO el 2026-09-03: el dueño descartó B6 y B7.** El riesgo desaparece porque desaparece lo que lo causaba; queda escrito por si algún día vuelve | decidido | nada |
-| 15 | **Pulsar un acorde ya hace algo** | H5 dejó verificado que pulsar un acorde abre la barra de diagramas centrada en él. Editar en el lugar necesita **otro gesto** —modo de edición explícito, pulsación larga, u otra cosa—, no puede colgar del mismo | el dueño | §19-B8 |
+| 15 | ~~**Pulsar un acorde ya hace algo**~~ → **CERRADO el 2026-10-17 con H19-B** | H5 dejó verificado que pulsar un acorde abre la barra de diagramas centrada en él. **El dueño eligió no inventar otro gesto:** la corrección vive en esa misma hoja, como una fila «Corregir este acorde» que solo ve quien puede editar | decidido | ya no bloquea §19-B8 |
 | 16 | **Claves de API de terceros** (§19-B11) | §16 dice "ni clave en el ejemplo de entorno", pero esa frase era **sobre IA**. YouTube y Spotify piden clave y no son un modelo. Hay que decidir explícitamente si el veto las alcanza o si era específico de la integración de modelos. → **CERRADO el 2026-09-03: el dueño descartó B11**, así que la pregunta deja de tener consecuencia. Si algún día entra otra integración externa, se vuelve a abrir | decidido | nada |
 
 | 17 | **La base local era compartida con otro producto, y se perdió entera** → **resuelto el 2026-08-07** | `supabase/config.toml` decía `project_id = "app"`, el nombre de la carpeta. **PulsoCenit tenía exactamente el mismo**, así que la CLI levantaba **los mismos contenedores**: un `db reset` de ese producto borró el esquema `cantoral` completo —repertorio, usuarios y preferencias— sin tocar una línea de este repo. Se separó: `project_id = "cantoral"` y puertos propios (API 55321, base 55322, Studio 55323). **Lo que salvó el dato fue la semilla**, no un backup: los 12 cantos del cancionero volvieron con `npm run db:seed`. El único que no venía de ahí —*Escojo la vida*, cargado por una persona del coro— se reconstruyó desde los snapshots de la verificación de H10 y **ahora está sembrado** | decidido | nada, ya hecho |
@@ -1186,7 +1230,7 @@ decisiones escritas. Eso, por sí solo, es una señal de prioridad — ver §18-
 | **B5** | Ficha del miembro: edad, sexo, tesitura, disponibilidad | §7, **§8** | bajo |
 | **B6** | Subir audio para que el coro aprenda las voces | **infraestructura nueva** | ⊘ **descartada** (2026-09-03) |
 | **B7** | Cada uno graba su voz y el director las escucha juntas | depende de B6 | ⊘ **descartada** (2026-09-03) |
-| **B8** | *«Editar las notas y borrar acordes repetidos, o editar en el mismo lugar»* | ⚠️ **A: reabierto** (94 repetidos en 44 de 90 cantos, 2,7 %) · **B y C: desbloqueados el 2026-09-04**, al construir H19-A. Falta el gesto (§18-15) |
+| **B8** | *«Editar las notas y borrar acordes repetidos, o editar en el mismo lugar»* | ⚠️ **A: reabierto** (94 repetidos en 44 de 90 cantos, 2,7 %) · ✅ **B y C: hechos el 2026-10-17 con H19-B** —y además mover de sílaba y agregar— |
 | **B9** | Ranking de sugerencias por momento | tabla nueva, **§8** | ✅ **construida** → H17 |
 | **B10** | Estado del canto: en ensayo / listo | **una columna** | ✅ **construida** → H10 |
 | **B11** | Buscar versiones en YouTube o Spotify | API externa | ⊘ **descartada** (2026-09-03) |
@@ -1469,7 +1513,7 @@ construido y verificado.
 | ~~**H17**~~ ✅ | Sugerencias y ranking | B9 | **Hecho el 2026-09-03** (ver §17). Reusó la política de H15 tal cual; lo que costó fue el `misa_id` nullable — dos índices parciales, porque dos NULL no son iguales |
 | ~~**H18**~~ ✅ | Recomendación al armar | B1-C | **Hecho el 2026-09-03** (ver §17). Cero tablas nuevas, como decía B1. Lo que costó fue la decisión de §18-12, no el código |
 | ~~**H19-A**~~ ✅ | Versionado del cifrado | B8, §18-13 | **Hecho el 2026-09-04** (ver §17). Se partió H19 en dos: el versionado vale solo —el director gana volver atrás sobre el H8 que ya existe—, mientras que corregir en el lugar no vale nada sin él |
-| **H19-B** | Corregir el acorde en el lugar | B8 B/C | **Ya no está bloqueado**: §18-13 se cerró. Lo que falta decidir es §18-15 — pulsar un acorde ya abre los diagramas de H5, así que editar necesita **otro gesto** |
+| ~~**H19-B**~~ ✅ | Corregir el acorde en el lugar | B8 B/C | **Hecho el 2026-10-17** (ver §17). El gesto de §18-15 resultó no ser un gesto: la corrección vive en la hoja de diagramas que ya abría el toque |
 | ~~**H20**~~ ⊘ | Enlaces a versiones (YouTube / Spotify) | B11 | **Descartado por el dueño el 2026-09-03.** Pasa a §16 |
 | ~~**H21**~~ ⊘ | Audio propio de referencia | B6 | **Descartado por el dueño el 2026-09-03.** Pasa a §16 |
 | ~~**H22**~~ ⊘ | Grabar encima de lo grabado | B7 | **Descartado por el dueño el 2026-09-03.** Pasa a §16 |
@@ -1589,7 +1633,7 @@ No son pedidos: son el catálogo del antecedente, y §16 ya decidió cuáles no 
 | **B5** Ficha del miembro | ✅ **H14**, sin el sexo y con carga propia |
 | **B6** Audio de las voces | ⏳ Pendiente. Cantoral no guarda un solo binario |
 | **B7** Grabar encima | ⏳ Pendiente, depende de B6 |
-| **B8** Corregir acordes en el lugar | ⚠️ **A reabierto** con medición nueva; **B y C** bloqueados sin versionado (§18-13) |
+| **B8** Corregir acordes en el lugar | ⚠️ **A reabierto** con medición nueva; ✅ **B y C** hechos en H19-B, sobre el versionado de H19-A |
 | **B9** Ranking de sugerencias | ⏳ Pendiente (**H17**). Reusa la política que abrió H15 |
 | **B10** Estado del canto | ✅ **H10** |
 | **B11** YouTube / Spotify | ⏳ Pendiente (**H20**). §18-16 pide decidir antes lo de las claves de API |

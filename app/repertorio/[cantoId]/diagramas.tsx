@@ -28,7 +28,13 @@ import {
 type Estado = {
   acordes: string[]
   foco: number | null
-  abrirEn: (nombre: string) => void
+  /**
+   * H19-B · El ORDINAL del acorde que se tocó en el cifrado —cuál de los veinte
+   * `[G]`—, no su lugar en la tira. Solo existe si la hoja se abrió tocando el
+   * texto: es lo que «Corregir este acorde» corrige.
+   */
+  tocado: number | null
+  abrirEn: (nombre: string, indice?: number) => void
   cerrar: () => void
 }
 
@@ -42,28 +48,36 @@ export function ProveedorDiagramas({
   children: ReactNode
 }) {
   const [foco, setFoco] = useState<number | null>(null)
+  const [tocado, setTocado] = useState<number | null>(null)
 
   const abrirEn = useCallback(
-    (nombre: string) => {
+    (nombre: string, indice?: number) => {
       const i = acordes.indexOf(nombre)
       if (i < 0) return
       // Volver a tocar el mismo acorde cierra: el gesto que abre es el que cierra.
-      setFoco((actual) => (actual === i ? null : i))
+      // «El mismo» es la misma aparición: tocar otro `[G]` mueve la corrección
+      // a ese, sin cerrar la hoja.
+      const cierra = foco === i && (indice === undefined || indice === tocado)
+      setFoco(cierra ? null : i)
+      setTocado(cierra ? null : (indice ?? null))
     },
-    [acordes]
+    [acordes, foco, tocado]
   )
 
-  const cerrar = useCallback(() => setFoco(null), [])
+  const cerrar = useCallback(() => {
+    setFoco(null)
+    setTocado(null)
+  }, [])
 
   const valor = useMemo(
-    () => ({ acordes, foco, abrirEn, cerrar }),
-    [acordes, foco, abrirEn, cerrar]
+    () => ({ acordes, foco, tocado, abrirEn, cerrar }),
+    [acordes, foco, tocado, abrirEn, cerrar]
   )
 
   return <ContextoDiagramas.Provider value={valor}>{children}</ContextoDiagramas.Provider>
 }
 
-function useDiagramas() {
+export function useDiagramas() {
   const ctx = useContext(ContextoDiagramas)
   if (!ctx) throw new Error('Falta <ProveedorDiagramas> más arriba en el árbol.')
   return ctx
@@ -84,7 +98,9 @@ export function ZonaAcordes({ children }: { children: ReactNode }) {
     <div
       onClick={(e) => {
         const boton = (e.target as HTMLElement).closest<HTMLElement>('[data-acorde]')
-        if (boton?.dataset.acorde) abrirEn(boton.dataset.acorde)
+        if (!boton?.dataset.acorde) return
+        const indice = Number(boton.dataset.indice)
+        abrirEn(boton.dataset.acorde, Number.isInteger(indice) ? indice : undefined)
       }}
     >
       {children}
@@ -100,7 +116,14 @@ export function ZonaAcordes({ children }: { children: ReactNode }) {
  * un modal a pantalla completa porque el cifrado no se puede tapar: es lo único
  * que no se interrumpe mientras se toca.
  */
-export function HojaDiagramas({ children }: { children: ReactNode }) {
+export function HojaDiagramas({
+  children,
+  pie,
+}: {
+  children: ReactNode
+  /** H19-B · Lo que va bajo la tira: «Corregir este acorde», si se puede. */
+  pie?: ReactNode
+}) {
   const { foco, cerrar } = useDiagramas()
   const tira = useRef<HTMLDivElement>(null)
   const abierta = foco !== null
@@ -158,6 +181,8 @@ export function HojaDiagramas({ children }: { children: ReactNode }) {
           <div ref={tira} className="flex gap-2 overflow-x-auto px-4 pb-3">
             {children}
           </div>
+
+          {pie}
         </div>
       </div>
     </div>

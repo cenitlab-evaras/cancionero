@@ -20,6 +20,7 @@ import Controles from './controles'
 import SoloLetra from './solo-letra'
 import HistorialDelCanto from './historial-canto'
 import Sugerir from './sugerir'
+import CorregirAcorde from './corregir'
 import {
   CascaronCarta,
   HojaDiagramas,
@@ -254,7 +255,20 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
           hoja abierta. El `sticky` vive acá, no dentro de <Controles>. */}
       <div className="relative sticky bottom-0 z-(--z-barra)">
         {acordes.length > 0 && (
-          <HojaDiagramas>
+          <HojaDiagramas
+            pie={
+              // H19-B · Solo para quien puede editar el canto: el miembro sigue
+              // viendo los diagramas y nada más. La action y la RLS lo vuelven
+              // a decidir; esto solo evita ofrecer lo que se va a rechazar.
+              puede(sesion.sujeto, 'editar_canto') ? (
+                <CorregirAcorde
+                  cantoId={canto.id}
+                  cifrado={cifradoEnPantalla}
+                  transposicion={preferencia.transposicion}
+                />
+              ) : null
+            }
+          >
             {diagramas.map((d, i) => (
               <CascaronCarta key={i} indice={i}>
                 {/* El SVG se dibuja en el SERVIDOR y baja pintado. */}
