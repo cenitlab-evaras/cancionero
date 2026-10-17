@@ -1,6 +1,15 @@
 import { describe, expect, test } from 'vitest'
 import casos from './casos/al-frente.json'
-import { FONDO, FONDO_ESTROFAS, alFrente, mezclaDe, volumenesQueSuenan, type Pista } from './mezcla'
+import {
+  FONDO,
+  FONDO_ESTROFAS,
+  alFrente,
+  alternarCuerda,
+  cuerdasAlFrente,
+  mezclaDe,
+  volumenesQueSuenan,
+  type Pista,
+} from './mezcla'
 
 /**
  * La mezcla del reproductor (PRD §21.6).
@@ -22,7 +31,7 @@ describe('alFrente — los mismos casos que el motor de exportación', () => {
 
 describe('mezclaDe', () => {
   test('Mi cuerda: Tenor → tenor 1, el resto del coro de fondo y los solistas callados', () => {
-    const m = mezclaDe({ tipo: 'frente', cuerda: 'tenor' }, CUERDAS)
+    const m = mezclaDe({ tipo: 'frente', cuerdas: ['tenor'] }, CUERDAS)
     expect(m).toEqual({
       soprano: FONDO,
       contralto: FONDO,
@@ -67,13 +76,66 @@ describe('mezclaDe', () => {
   })
 
   test('solo se mezclan las cuerdas que la partitura tiene', () => {
-    const m = mezclaDe({ tipo: 'frente', cuerda: 'bajo' }, ['soprano', 'bajo'])
+    const m = mezclaDe({ tipo: 'frente', cuerdas: ['bajo'] }, ['soprano', 'bajo'])
     expect(m).toEqual({ soprano: FONDO, bajo: 1 })
   })
 
   test('una cuerda que la partitura no tiene no se inventa: queda el coro', () => {
-    const m = mezclaDe({ tipo: 'frente', cuerda: 'tenor' }, ['soprano', 'bajo'])
+    const m = mezclaDe({ tipo: 'frente', cuerdas: ['tenor'] }, ['soprano', 'bajo'])
     expect(m).toEqual({ soprano: 1, bajo: 1 })
+  })
+})
+
+describe('«Mi cuerda» con varias marcadas (pedido del dueño, 2026-10-17)', () => {
+  // «Aquí debo poder escoger uno, dos y los que marque.»
+  const SEIS = ['soprano', 'contralto-1', 'contralto-2', 'tenor-1', 'tenor-2', 'bajo']
+
+  test('dos cuerdas marcadas van las dos al frente y el resto del coro de fondo', () => {
+    const m = mezclaDe({ tipo: 'frente', cuerdas: ['contralto-1', 'tenor-1'] }, SEIS)
+    expect(m).toEqual({
+      soprano: FONDO,
+      'contralto-1': 1,
+      'contralto-2': FONDO,
+      'tenor-1': 1,
+      'tenor-2': FONDO,
+      bajo: FONDO,
+    })
+    expect(alFrente(m)).toEqual(['contralto-1', 'tenor-1'])
+  })
+
+  test('sin ninguna marcada vuelve el coro completo', () => {
+    expect(mezclaDe({ tipo: 'frente', cuerdas: [] }, SEIS)).toEqual(mezclaDe({ tipo: 'coro' }, SEIS))
+  })
+
+  test('las que la partitura no tiene se ignoran; si no queda ninguna, el coro', () => {
+    expect(mezclaDe({ tipo: 'frente', cuerdas: ['tenor', 'bajo'] }, SEIS)).toEqual(
+      mezclaDe({ tipo: 'frente', cuerdas: ['bajo'] }, SEIS)
+    )
+    expect(mezclaDe({ tipo: 'frente', cuerdas: ['tenor'] }, SEIS)).toEqual(mezclaDe({ tipo: 'coro' }, SEIS))
+  })
+
+  test('alternarCuerda marca y desmarca una sin tocar las otras', () => {
+    expect(alternarCuerda(['tenor-1'], 'bajo')).toEqual(['tenor-1', 'bajo'])
+    expect(alternarCuerda(['tenor-1', 'bajo'], 'tenor-1')).toEqual(['bajo'])
+  })
+})
+
+describe('cuerdasAlFrente — lo que se pinta con volúmenes a mano (2026-10-17)', () => {
+  test('con «Mi cuerda», van al frente las marcadas que suenan, aunque se les baje el volumen', () => {
+    const mezcla = { soprano: 0.22, 'tenor-1': 0.6, bajo: 1 }
+    expect(cuerdasAlFrente({ tipo: 'frente', cuerdas: ['tenor-1', 'bajo'] }, mezcla)).toEqual(['tenor-1', 'bajo'])
+  })
+
+  test('una marcada que se bajó a 0 no se pinta', () => {
+    expect(cuerdasAlFrente({ tipo: 'frente', cuerdas: ['tenor-1', 'bajo'] }, { 'tenor-1': 0, bajo: 1 })).toEqual([
+      'bajo',
+    ])
+  })
+
+  test('sin «Mi cuerda» (coro, estrofas o mezcla a mano) manda el volumen más alto', () => {
+    const mezcla = { soprano: 1, tenor: 1, 'solista-1': 0 }
+    expect(cuerdasAlFrente({ tipo: 'coro' }, mezcla)).toEqual(alFrente(mezcla))
+    expect(cuerdasAlFrente(null, mezcla)).toEqual(alFrente(mezcla))
   })
 })
 

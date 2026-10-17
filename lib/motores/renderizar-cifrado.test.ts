@@ -200,3 +200,28 @@ describe('modo solo letra (H11)', () => {
     expect(sin.totalAcordes).toBe(0)
   })
 })
+
+describe('acordes después de la última sílaba (2026-10-17, «Cantaré por siempre»)', () => {
+  // La hoja de acordes pone «Csus4 C F» más allá de donde termina la letra. Sin
+  // esto, el último acorde se dibujaba fuera de la pantalla de 360 px.
+  test('los acordes que no caben en el ancho bajan a una línea solo de acordes', () => {
+    const { lineas } = renderizarCifrado('abcdefgh[C][F]', { ancho: 9 })
+    expect(lineas.map((l) => ({ texto: l.texto, acordes: l.acordes.map((a) => [a.acorde, a.columnaPintada]) }))).toEqual([
+      { texto: 'abcdefgh', acordes: [['C', 8]] },
+      { texto: '', acordes: [['F', 0]] },
+    ])
+  })
+
+  test('ningún acorde se dibuja más allá del ancho', () => {
+    const { lineas } = renderizarCifrado('y celebraré tu abrazo creador,[Csus4][C][F]', { ancho: 34 })
+    for (const l of lineas) {
+      for (const a of l.acordes) expect(a.columnaPintada + a.acorde.length).toBeLessThanOrEqual(34)
+    }
+    expect(lineas.flatMap((l) => l.acordes.map((a) => a.acorde))).toEqual(['Csus4', 'C', 'F'])
+  })
+
+  test('una línea que ya cabía no cambia', () => {
+    const { lineas } = renderizarCifrado('[G]Abre tu jardín', { ancho: 34 })
+    expect(lineas).toHaveLength(1)
+  })
+})

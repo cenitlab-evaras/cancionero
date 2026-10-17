@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { cuerdaPorTesitura, esCuerda, nombreDeCuerda, ordenarCuerdas } from './cuerdas'
+import { cuerdaPorTesitura, esCuerda, esDelCoro, nombreDeCuerda, ordenarCuerdas } from './cuerdas'
 
 /**
  * Las cuerdas de una partitura (PRD §21.2) y con cuál abre «Ensayar» (§21.6).
@@ -56,5 +56,28 @@ describe('ordenarCuerdas', () => {
       'solista-2',
       'solista-10',
     ])
+  })
+})
+
+describe('cuerdas divididas — «Cantaré por siempre» (2026-10-17)', () => {
+  // Seis pentagramas: Soprano, Contralto 1 y 2, Tenor 1 y 2, Bajo.
+  const SEIS = ['soprano', 'contralto-1', 'contralto-2', 'tenor-1', 'tenor-2', 'bajo']
+
+  test('una cuerda del coro puede venir dividida en 1 y 2', () => {
+    expect(esCuerda('contralto-1')).toBe(true)
+    expect(esCuerda('tenor-2')).toBe(true)
+    expect(esCuerda('tenor-3')).toBe(false)
+    expect(esDelCoro('contralto-2')).toBe(true)
+    expect(nombreDeCuerda('tenor-1')).toBe('Tenor 1')
+  })
+
+  test('se ordenan de agudo a grave, cada división tras la anterior', () => {
+    expect(ordenarCuerdas(['bajo', 'tenor-2', 'soprano', 'contralto-2', 'tenor-1', 'contralto-1'])).toEqual(SEIS)
+  })
+
+  test('la tesitura abre con la primera división de su cuerda', () => {
+    expect(cuerdaPorTesitura('tenor', SEIS)).toBe('tenor-1')
+    expect(cuerdaPorTesitura('mezzosoprano', SEIS)).toBe('contralto-1')
+    expect(cuerdaPorTesitura('baritono', SEIS)).toBe('bajo')
   })
 })

@@ -149,6 +149,39 @@ function partirAlAncho(linea: LineaCifrado, ancho: number): LineaCifrado[] {
 }
 
 /**
+ * Los acordes que se dibujarían más allá del ancho bajan a una línea propia,
+ * solo de acordes, en el mismo orden (2026-10-17).
+ *
+ * `partirAlAncho` corta por el largo de la LETRA. Pero una hoja de acordes puede
+ * poner acordes después de la última sílaba («creador,[Csus4][C][F]» en
+ * *Cantaré por siempre*): la letra cabía y los acordes se salían de la pantalla.
+ * Bajan con su ordinal intacto, así que tocarlos y corregirlos (H19-B) sigue
+ * apuntando al mismo `[F]` del cifrado.
+ */
+function bajarAcordesQueNoCaben(linea: LineaCifrado, ancho: number): LineaCifrado[] {
+  const caben = linea.acordes.filter((a) => a.columnaPintada + a.acorde.length <= ancho)
+  const bajan = linea.acordes.filter((a) => a.columnaPintada + a.acorde.length > ancho)
+  if (bajan.length === 0) return [linea]
+  // Un acorde más largo que el ancho entero no cabe en ninguna parte: se queda,
+  // para no bajarlo para siempre.
+  if (caben.length === 0 && linea.texto === '') return [linea]
+
+  let libreDesde = 0
+  const enFila = bajan.map((a) => {
+    const columna = libreDesde
+    libreDesde = columna + a.acorde.length + 1
+    return { ...a, columna, columnaPintada: columna }
+  })
+  return [
+    { ...linea, acordes: caben },
+    ...bajarAcordesQueNoCaben(
+      { texto: '', acordes: enFila, esSeparador: false, esComentario: linea.esComentario },
+      ancho
+    ),
+  ]
+}
+
+/**
  * @param opciones.mostrarAcordes  H11 · en `false` devuelve la letra sola.
  *
  * Los acordes se omiten ACÁ y no con CSS a propósito: escondidos con una clase
@@ -201,7 +234,8 @@ export function renderizarCifrado(
     }
 
     if (opciones.ancho && opciones.ancho > 0 && !linea.esSeparador) {
-      lineas.push(...partirAlAncho(linea, opciones.ancho))
+      const ancho = opciones.ancho
+      lineas.push(...partirAlAncho(linea, ancho).flatMap((t) => bajarAcordesQueNoCaben(t, ancho)))
     } else {
       lineas.push(linea)
     }

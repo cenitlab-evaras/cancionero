@@ -722,6 +722,8 @@ en §19; cuando lo tienen, la fila lo dice y nombra qué cambiaría. Mientras ta
 | **H25 · Subir la partitura** ⏳ (bloque §21) | Subir MusicXML, trabajo `generar`, `validarPartitura`, `proponerCuerdas`, borrador y publicar | Ver §21.9: un segundo canto se escucha en borrador y se publica; la misma partitura da la misma sincronía que el computador del dueño |
 
 | **H26 · Leer desde el PDF** ⏳ (bloque §21) | Audiveris en el conversor, trabajo `leer_pdf`, «Bajar para corregir» | Ver §21.9: la foto de *El Señor es mi fortaleza* da un borrador con el mismo número de avisos que `audiveris-crudo.mxl`, y la corregida suena igual que H23 |
+| **H27 · El tono de cada canto en la misa** 🟡 construido en local, sus 5 «listo cuando» verificados con sesiones reales; falta tocar los botones en un teléfono y aplicarlo en producción (pedido del dueño el 2026-10-17) | Columna `misa_cantos.transposicion` (nula = sin fijar) · motor `tonoEnLaMisa` con test · el director lo elige en «Armar la misa» y en la vista de la misa · la misa lo muestra a todo el coro | Ver «H27» abajo: `director@` fija *Abre tu jardín* en F y `musico@` lo ve en F en la misa aunque tenga otro tono guardado; fuera de la misa sigue el suyo; `musico@` no puede cambiarlo |
+| **H28 · Ensayar en cualquier tono** ⏳ diseño, esperando aprobación (pedido del dueño el 2026-10-17) | La partitura se dibuja en el teléfono desde el MusicXML (Verovio) y el sonido se genera en el teléfono (smplr): al cambiar el tono cambian las notas y el audio. Las pistas MP3 dejan de hacer falta | Ver «H28» abajo |
 
 **Los diecinueve hitos están hechos y verificados corriendo la app. H23–H26 están abiertos desde el 2026-10-17** (bloque §21; los números H20–H22 quedaron quemados en §19.3 y no se reusan). H9 salió de §18-7, que lo dejaba
 condicionado a "si estorba"; H10, H11, H13, H14 y H15 salen del backlog de §19; H16 salió de §16,
@@ -744,6 +746,82 @@ entre sobre una base que la sostenga. Detalle visual en `docs/DESIGN.md`.
 | **Ejecución de la misa** | cabecera global con «Salir»; ignoraba «solo letra»; «Siguiente» al final del contenido | barra de lectura, respeta H11, «Siguiente: *nombre*» al alcance del pulgar |
 | **Color e identidad** | gris neutro + azul con texto blanco (3,7:1) | café-negro del logo, halo dorado con texto oscuro (10,1:1), ámbar solo para acordes |
 | **Tipografía** | Inter + JetBrains Mono, títulos en mayúsculas espaciadas | Atkinson Hyperlegible Next (baja visión) + Source Serif 4 en títulos + JetBrains Mono; sin mayúsculas espaciadas |
+
+### H28 · Ensayar en cualquier tono (diseño, 2026-10-17)
+
+**El pedido:** *«quiero que cuando cambiemos el tono también cambien las notas»*. El dueño eligió
+**hacerlo todo en el teléfono** sabiendo lo que cuesta: las voces suenan más sintéticas que las de
+MuseScore y se rehace buena parte del reproductor.
+
+**Qué cambia de H23.** H23 trae del bucket 35 pistas MP3 y una partitura ya dibujada, todo en un solo
+tono. H28 trae solo la **fuente** (`fuente.musicxml`, que ya se sube en H23) y el teléfono hace el
+resto:
+
+| Pieza | H23 | H28 |
+| --- | --- | --- |
+| La partitura | SVG de MuseScore, fijo, con 980 px de ancho mínimo y desplazamiento lateral | **Verovio** (WebAssembly) la dibuja al ancho de la pantalla, transpuesta |
+| El sonido | 7 `<audio>` sincronizados | **smplr**: cada nota se programa en la Web Audio API con el instrumento del sonido elegido (Choir Aahs, piano, órgano, guitarra nylon, flauta) |
+| El tempo | `playbackRate` con afinación conservada | se programan las notas a otro tempo: sin deformar el sonido |
+| La sincronía | `partitura.json` precalculado | la entrega Verovio (tiempo de cada nota) |
+| Peso por canto en el servidor | ≈ 18–84 MB | **≈ 100 KB** (la fuente) |
+
+**Decisiones (mías; las corrige el dueño):**
+- **El tono de Ensayar** es el mismo que el del cifrado: el personal fuera de la misa, y el de la
+  misa si se abre desde una misa con tono fijado (H27). Ensayar suma los mismos − / + de la lectura.
+- **Los motores** se quedan donde están: `mezcla`, `tempo` (ahora una escala de tiempos, no una
+  tasa de reproducción), `seguimiento` y `cuerdas`. Nuevo: `programar` (de las notas de cada cuerda,
+  un tempo y un tono, la lista de lo que suena y cuándo), con test.
+- **Las muestras** de los instrumentos se piden al CDN público de smplr (gleitz). Es una
+  dependencia externa nueva: si falla, Ensayar dice que no pudo cargar el sonido. Copiarlas al
+  propio servidor queda para cuando se mida cuánto pesan (§18-14).
+- **Las pistas MP3 de H23** dejan de usarse y no se generan más; las ya subidas se pueden borrar.
+  La exportación a MP3/MP4 para WhatsApp (H24) sigue siendo del servidor, con MuseScore.
+
+**Listo cuando:**
+1. En *Cantaré por siempre*, «+2» lleva la partitura de Fa a Sol: la armadura y cada nota se
+   redibujan, y el audio suena dos semitonos más arriba, sincronizado con lo que se pinta.
+2. Desde una misa con el canto fijado en otro tono (H27), Ensayar abre en ese tono.
+3. A 360 px la partitura cabe sin desplazamiento lateral.
+4. Mi cuerda, estrofas, mezcla, tempo y los cinco sonidos se comportan como en H23.
+5. *El Señor es mi fortaleza* también funciona, sin volver a generar nada.
+6. En un teléfono real: Safari de iPhone y Chrome de Android (sigue pendiente desde H23-4).
+
+### H27 · El tono de cada canto en la misa (pedido el 2026-10-17)
+
+**El pedido, en palabras del dueño:** *«hay veces que el cantante canta en distintos tonos, así que
+en la misa hay que escoger, en cada canción, cuál tono va a cantar»*.
+
+Hasta acá el tono era solo **de la persona** (H3, `preferencias_lectura`): cada uno transponía para
+sí. Eso sirve para ensayar, pero en la misa el tono lo decide quien canta, y tiene que ser **el
+mismo para todos los que tocan**. Por eso el tono de la misa es un dato de la **fila de la misa**
+(`misa_cantos`), no de la persona ni del canto: el mismo canto puede ir en E un domingo y en F el
+siguiente.
+
+**Decisiones (tomadas al construir; el dueño pidió no preguntar):**
+- Lo elige **el director** (`asignar_cantos_misa`), en «Armar la misa» y también en la vista de
+  ejecución, por si se decide en el ensayo previo. El resto del coro lo ve y no lo cambia.
+- Se guarda en **semitonos respecto del cifrado**, no como nombre de tonalidad: funciona también en
+  un canto sin tonalidad original declarada, y el nombre se calcula al leer (§8, cero derivados).
+- **Nulo = sin fijar**: la misa se ve como hasta hoy, con el tono personal de cada uno. Fijado, el
+  tono de la misa **gana** sobre el personal dentro de la misa. Fuera de la misa no cambia nada.
+- La partitura de ensayo (H23) no se transpone (§21.10): el tono de la misa es del cifrado.
+
+**Listo cuando:**
+1. `director@`, en «Armar la misa», fija *Abre tu jardín* (original E) en **F**; al abrir ese canto
+   desde la misa, `musico@` ve el cifrado en F aunque tenga guardado otro tono personal para él.
+2. La lista de la misa y el Inicio muestran **F** al lado del canto.
+3. Un canto de la misa sin tono fijado se ve con el tono personal, como antes de H27.
+4. `musico@` no ve cómo cambiarlo, la action lo rechaza con mensaje, y un `update` directo suyo
+   afecta 0 filas (`verificar:rls`).
+5. Fuera de la misa, *Abre tu jardín* sigue abriendo con el tono personal de `musico@`.
+
+**Verificado el 2026-10-17 en local** con un script que entra como `musico@` y `director@` y pide
+las páginas al servidor (sin usar el navegador del dueño). En la base local no hay misas futuras,
+así que se usó *Himno Misión País* (D) en «Ejemplo · Ensayo sin fecha»: con el tono personal de
+`musico@` en +3 se ve en F (3); el director lo fija en +1 y `musico@` lo ve en D#, sin botones
+(1, 4); la lista de la misa dice D# (2); fuera de la misa sigue en F (5). `verificar:rls` 85/85.
+**No se ejercitó** el toque en los botones (la action `cambiarTono`: se escribió con la misma
+regla que las otras del armador) ni la fila del Inicio, que solo aparece con una misa próxima.
 
 ### Cómo entró H23 (2026-10-17), y lo que falta para cerrarlo
 
@@ -778,6 +856,51 @@ firma ningún archivo; la URL firmada vence) · 6 ✓ (sin partitura no hay pest
   repo hasta H24, cuando entra con el conversor.
 - En esta máquina `next dev` no recargó en caliente una ruta nueva (`/ensayar` daba 404 hasta
   reiniciar el servidor). Si una pantalla nueva no aparece, reiniciar antes de buscar el error.
+
+### Segundo canto con partitura: *Cantaré por siempre* (2026-10-17, en local)
+
+El dueño dejó en `../docs/Cantare por siempre/` la partitura coral en PDF (Finale, 6 páginas), la hoja
+de acordes y cuatro pistas de ensayo de 100 Voces Chile. Eligió **generar desde la partitura**
+(el camino de H26), no usar las pistas grabadas. Se hizo a mano con las herramientas locales, en
+`../pruebas/cantare-por-siempre/` (fuera del repo, §18-25), y dejó cuatro cambios en la app:
+
+- **Cuerdas divididas** (`cuerdas.ts`, con test): `contralto-1`, `tenor-2`… Este canto tiene seis
+  pentagramas (S, C1, C2, T1, T2, B). La tesitura abre con la primera división de su cuerda.
+- **Partituras de varios sistemas**: el reproductor tomaba el pentagrama *i* de la página como la
+  cuerda *i*, y la sincronía alargaba la última nota de cada sistema. *El Señor es mi fortaleza*
+  cabía en un sistema y lo escondía. Ahora es *i* módulo las cuerdas, en los dos lados.
+- **Acordes después de la última sílaba** (`renderizar-cifrado.ts`, con test): bajan a una línea
+  propia en vez de salirse de la pantalla.
+- `importar:partitura` acepta partes divididas y sistemas completos.
+
+**Cómo se hizo:** Audiveris leyó los 66 compases; `scripts/preparar.py` pone nombres, voces, el
+tempo (♩ 100) y la modulación a Sol del compás 42 (Audiveris no pudo leer ese cambio de armadura);
+`corregir.py` arregla los 15 compases cuya duración no cuadraba; `letra.py` corrige 166 sílabas mal
+leídas; `generar.py` produce con MuseScore 30 pistas (6 cuerdas × 5 sonidos) y la sincronía. El
+cifrado entró con `pdf-a-cantoral` (118 acordes, latina → americana), «En ensayo» y en Entrada
+(deducido). **Es un borrador leído por máquina:** los ritmos cuadran compás por compás, pero las
+alturas no se revisaron nota por nota. Se escucha, y lo que suene mal se corrige en MuseScore.
+**Pesa 84 MB** (2:41, seis cuerdas): §18-14 estimaba 18 MB por canto. Con esto, 100 cantos así son
+unos 8 GB: hay que medir el disco del VPS antes de llevar partituras a producción.
+
+### El rol y la búsqueda en la cabecera (2026-10-17, pedido del dueño)
+
+*«Debe ir una barra de buscar y tu grado arriba, para saber con qué tipo de credenciales estás.»*
+Salió de quedar como `ajeno@` sin darse cuenta: una pantalla sin partituras parecía una falla y era
+la RLS haciendo su trabajo.
+
+- La cabecera de gestión muestra a la derecha el rol **en el coro activo** (`nombreDelRol`, con
+  test): Director, Miembro, Administrador, Externo, Sin coro o Sin aprobar. Lleva a «Más», donde
+  está el correo y «Salir».
+- Debajo, fuera de la parte fija, «Buscar un canto» (`buscador-global.tsx`): **los cantos van
+  apareciendo mientras se escribe** (pedido del dueño), hasta 8, primero los que empiezan con lo
+  escrito; tocar uno entra al canto, y Enter lleva a `/repertorio?q=`. Una respuesta vieja que llega
+  tarde se descarta. El repertorio no la repite: tiene su buscador fijo, que también filtra al
+  escribir.
+- La búsqueda (`coincideBusqueda`, con test) encuentra también por el **número del cancionero**,
+  exacto: «34» trae *El Alfarero* y no el 134.
+- El repertorio marca **«Partitura»** en los cantos que se pueden ensayar (H23): antes «Ensayar»
+  solo se descubría entrando canto por canto.
 
 ### 17.1-quaterdecies Lo que quedó pendiente del rediseño (declarado, no recortado en silencio)
 

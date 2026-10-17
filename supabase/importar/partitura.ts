@@ -63,6 +63,9 @@ function cuerdaDeParte(nombre: string): string | null {
     bass: 'bajo',
   }
   if (directas[n]) return directas[n]
+  // Dividida: «Contralto 1», «Tenor 2» (Cantaré por siempre tiene seis pentagramas).
+  const dividida = /^(soprano|contralto|alto|tenor|bajo|bass)\s+([12])$/.exec(n)
+  if (dividida) return `${directas[dividida[1]]}-${dividida[2]}`
   const solista = /^solista\s+([1-9]\d*)$/.exec(n)
   return solista ? `solista-${solista[1]}` : null
 }
@@ -105,9 +108,11 @@ async function main() {
   // partitura-datos.js es `window.PARTITURA = {...};`: se queda con el objeto.
   const js = readFileSync(rutaDatos, 'utf8')
   const sincronia = JSON.parse(js.slice(js.indexOf('{'), js.lastIndexOf('}') + 1))
-  const pentagramasEnDatos = new Set<number>(sincronia.elementos.map((e: { s: number }) => e.s))
-  if (Math.max(...pentagramasEnDatos) >= pentagramas.length) {
-    throw new Error('La sincronía nombra más pentagramas que partes tiene la partitura.')
+  // La sincronía cuenta los pentagramas dentro de cada página; con varios sistemas
+  // por página van más allá de las partes, pero siempre de a sistemas completos.
+  const masAlto = Math.max(...sincronia.elementos.map((e: { s: number }) => e.s))
+  if ((masAlto + 1) % pentagramas.length !== 0 && masAlto >= pentagramas.length) {
+    throw new Error('La sincronía no calza con las partes de la partitura (¿un sistema sin todos sus pentagramas?).')
   }
 
   const pistas: { sonido: string; cuerda: string; ruta: string }[] = []

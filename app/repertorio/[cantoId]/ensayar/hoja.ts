@@ -191,6 +191,27 @@ export function seguirConLaVista(pg: Pagina, x: number, suave: boolean) {
   }
 }
 
+/**
+ * Con la música andando, el sistema que suena tiene que verse: si la franja
+ * del cursor quedó tapada por la cabecera de arriba o por la barra de abajo
+ * (`arriba` y `abajo`, en px de la ventana), la página baja (o sube) hasta
+ * dejarla a la vista; si es más alta que lo visible, con su borde de arriba
+ * junto a la cabecera. Devuelve si movió la página. Antes solo se movía al cambiar de PÁGINA,
+ * y con dos sistemas por página la música seguía fuera de la pantalla.
+ */
+export function mantenerALaVista(marca: SVGRectElement, arriba: number, abajo: number, suave: boolean): boolean {
+  const r = marca.getBoundingClientRect()
+  const visible = abajo - arriba
+  const cabe = r.height <= visible
+  // Si cabe, basta con que se vea entero; si no cabe (seis voces en un
+  // teléfono), basta con que su borde de arriba esté cerca de la cabecera.
+  const bien = cabe ? r.top >= arriba && r.bottom <= abajo : Math.abs(r.top - arriba) < visible * 0.15
+  if (bien) return false
+  const margen = cabe ? Math.min(visible * 0.2, visible - r.height) : 0
+  window.scrollBy({ top: r.top - arriba - margen, behavior: suave ? 'smooth' : 'auto' })
+  return true
+}
+
 /** El momento de la partitura bajo un toque, en ms, o null si no cae en ninguno. */
 export function momentoBajoElToque(
   pg: Pagina,

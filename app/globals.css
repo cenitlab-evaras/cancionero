@@ -233,6 +233,13 @@ body:has(.barra-nav) {
 .pagina-partitura svg {
   display: block;
   width: 100%;
-  min-width: 980px;
   height: auto;
+}
+/* Solo en el teléfono la hoja no se encoge más que esto (las notas se leerían
+   chicas) y se corre de lado siguiendo el cursor. En una pantalla ancha cabe
+   entera: con el mínimo fijo se descuadraba hacia el lado sin necesidad. */
+@media (max-width: 700px) {
+  .pagina-partitura svg {
+    min-width: 980px;
+  }
 }

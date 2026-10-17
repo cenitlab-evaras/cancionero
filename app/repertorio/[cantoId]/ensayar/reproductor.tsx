@@ -3,7 +3,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { MaterialDeEnsayo, Sonido } from '@/lib/datos/partitura'
 import { esDelCoro, esEstrofa, nombreDeCuerda, type Cuerda } from '@/lib/motores/cuerdas'
-import { alFrente, mezclaDe, volumenesQueSuenan, type Eleccion, type Mezcla, type Pista } from '@/lib/motores/mezcla'
+import {
+  alternarCuerda,
+  cuerdasAlFrente,
+  mezclaDe,
+  volumenesQueSuenan,
+  type Eleccion,
+  type Mezcla,
+  type Pista,
+} from '@/lib/motores/mezcla'
 import { notaEn } from '@/lib/motores/seguimiento'
 import { TASA_MAX, TASA_MIN, bpmDeTasa, tasaDeTempo, temposDe } from '@/lib/motores/tempo'
 import { BotonIcono, clasesBotonIcono } from '@/app/componentes/boton-icono'
@@ -14,6 +22,7 @@ import {
   pintarElemento,
   prepararHoja,
   seguirConLaVista,
+  mantenerALaVista,
   type DatosPartitura,
   type Elemento,
   type Pagina,
@@ -38,6 +47,9 @@ const SONIDOS: Record<Sonido, string> = {
   guitarra: 'Guitarra',
   flauta: 'Flauta',
 }
+
+/** La cabecera fija de la página (volver y el título), en px. */
+const ALTO_CABECERA = 56
 
 /** El margen de deriva entre pistas antes de corregirla (§18-24). */
 const DERIVA_S = 0.06
@@ -69,18 +81,46 @@ export default function Reproductor({
   const estrofas = cuerdas.filter(esEstrofa)
 
   // --- La mezcla ------------------------------------------------------------
-  const inicial: Eleccion = cuerdaInicial ? { tipo: 'frente', cuerda: cuerdaInicial } : { tipo: 'coro' }
+  const inicial: Eleccion = cuerdaInicial ? { tipo: 'frente', cuerdas: [cuerdaInicial] } : { tipo: 'coro' }
   // `null` = la mezcla se tocó a mano en el panel y ya no es ningún botón.
   const [eleccion, setEleccion] = useState<Eleccion | null>(inicial)
   const [pistas, setPistas] = useState<Record<Cuerda, Pista>>(() => pistasDe(mezclaDe(inicial, cuerdas)))
   const efectivos = useMemo(() => volumenesQueSuenan(pistas), [pistas])
-  const frente = useMemo(() => alFrente(efectivos), [efectivos])
+  const frente = useMemo(() => cuerdasAlFrente(eleccion, efectivos), [eleccion, efectivos])
 
   function elegir(e: Eleccion) {
     const normal: Eleccion = e.tipo === 'estrofas' && e.estrofas.length === 0 ? { tipo: 'coro' } : e
     setEleccion(normal)
     setPistas(pistasDe(mezclaDe(normal, cuerdas)))
   }
+  /**
+   * «Mi cuerda»: se marcan una, dos o las que se quiera (pedido del dueño,
+   * 2026-10-17). Al marcar o desmarcar, los volúmenes que ya se ajustaron con
+   * los controles de abajo se conservan: tocar otra cuerda no deshace la mezcla.
+   * Sin ninguna marcada vuelve el coro completo.
+   */
+  const marcadas = eleccion?.tipo === 'frente' ? eleccion.cuerdas : []
+  function alternarMiCuerda(c: Cuerda) {
+    const nuevas = alternarCuerda(marcadas, c)
+    if (nuevas.length === 0) return elegir({ tipo: 'coro' })
+    const nueva: Eleccion = { tipo: 'frente', cuerdas: nuevas }
+    const veniaDeMiCuerda = eleccion?.tipo === 'frente'
+    setEleccion(nueva)
+    setPistas((antes) => {
+      const base = pistasDe(mezclaDe(nueva, cuerdas))
+      for (const x of delCoro) {
+        const seguiaIgual = marcadas.includes(x) === nuevas.includes(x)
+        if (veniaDeMiCuerda && seguiaIgual && antes[x]) base[x] = { ...base[x], volumen: antes[x].volumen }
+      }
+      return base
+    })
+  }
+  /** El volumen de una cuerda desde su control, sin dejar de ser «Mi cuerda». */
+  function volumenDe(c: Cuerda, volumen: number) {
+    setPistas((p) => ({ ...p, [c]: { ...p[c], volumen, silenciada: false } }))
+  }
+  const fondo = delCoro.filter((c) => !marcadas.includes(c))
+
   const prendidas = eleccion?.tipo === 'estrofas' ? eleccion.estrofas : []
   function alternarEstrofa(c: Cuerda) {
     elegir({
@@ -96,6 +136,8 @@ export default function Reproductor({
   // --- El audio -------------------------------------------------------------
   const audios = useRef<Record<Cuerda, HTMLAudioElement>>({})
   const seccionHoja = useRef<HTMLElement>(null)
+  // La barra de abajo: contiene el panel «Mezcla» y marca dónde termina lo visible.
+  const barraAbajo = useRef<HTMLDivElement>(null)
   const reloj = () => audios.current[pentagramas[0]]
   const todos = () => Object.values(audios.current)
   const [sonido, setSonido] = useState<Sonido>(material.sonidos[0])
@@ -285,7 +327,7 @@ export default function Reproductor({
   useEffect(() => {
     let cuadro = 0
     let cursorActual = -1
-    let paginaActual = 0
+    let ultimoMovimiento = 0
     const inicios: { t0: number }[] = []
     const dibujar = () => {
       cuadro = requestAnimationFrame(dibujar)
@@ -300,25 +342,45 @@ export default function Reproductor({
       const empezado = t > 0 || !r.paused
       const { efectivos, frente } = vivo.current
 
+      // Los pentagramas se cuentan de arriba abajo DENTRO de cada página, y
+      // una página puede tener varios sistemas: el pentagrama i es la cuerda
+      // i módulo las cuerdas, porque cada sistema las repite todas (MuseScore
+      // no esconde pentagramas vacíos con el estilo por defecto). Con un solo
+      // sistema, como «El Señor es mi fortaleza», el módulo no cambia nada.
+      const cuerdaDe = (s: number) => pentagramas[s % pentagramas.length]
+
       // Velos: la cuerda que no suena se apaga entera.
       for (const pg of h.paginas) {
         pg.velos.forEach((v, s) => {
-          const ver = (efectivos[pentagramas[s]] ?? 0) > 0 ? 'none' : ''
+          const ver = (efectivos[cuerdaDe(s)] ?? 0) > 0 ? 'none' : ''
           if (v.style.display !== ver) v.style.display = ver
         })
       }
       // Se pinta solo lo que va al frente (§21.6, `alFrente`).
       for (const e of h.elementos) {
-        pintarElemento(e, empezado && frente.includes(pentagramas[e.s]) && t >= e.t0 && t < e.t1)
+        pintarElemento(e, empezado && frente.includes(cuerdaDe(e.s)) && t >= e.t0 && t < e.t1)
       }
       const i = empezado ? notaEn(t, inicios) ?? -1 : -1
       if (i !== cursorActual) {
         const c = i >= 0 ? h.datos.cursor[i] : null
         moverMarca(h.paginas, c)
+        // Sin nada sonando (antes de empezar, o de vuelta al inicio), cada hoja
+        // vuelve a su comienzo: si no, quedaba corrida de lado donde la dejó el
+        // cursor y se comía la clave y el primer compás.
+        if (!c) for (const pg of h.paginas) if (pg.div.scrollLeft) pg.div.scrollTo({ left: 0 })
         if (c) {
-          if (c.p !== paginaActual && !r.paused) h.paginas[c.p].div.scrollIntoView({ block: 'start' })
+          // Con la música andando, el sistema que suena se mantiene a la vista.
+          // Se revisa en cada nota, no solo al cambiar de sistema (al empezar,
+          // el primero puede estar abajo), pero sin mover la página de nuevo
+          // mientras termina el desplazamiento anterior.
+          if (!r.paused && performance.now() - ultimoMovimiento > 700) {
+            const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches
+            const abajo = barraAbajo.current?.getBoundingClientRect().top ?? innerHeight
+            if (mantenerALaVista(h.paginas[c.p].marca, ALTO_CABECERA, abajo, !quieto)) {
+              ultimoMovimiento = performance.now()
+            }
+          }
           seguirConLaVista(h.paginas[c.p], c.x, !r.paused)
-          paginaActual = c.p
         }
         cursorActual = i
       }
@@ -329,6 +391,23 @@ export default function Reproductor({
 
   // --- Pantalla ---------------------------------------------------------------
   const [mezclaAbierta, setMezclaAbierta] = useState(false)
+
+  // El panel «Mezcla» flota sobre la partitura: se cierra al tocar fuera de la
+  // barra de abajo (que lo contiene, con su botón) o con Esc, como en
+  // `escuchar.html`. Sin esto quedaba abierto tapando la partitura.
+  useEffect(() => {
+    if (!mezclaAbierta) return
+    const fuera = (e: PointerEvent) => {
+      if (!barraAbajo.current?.contains(e.target as Node)) setMezclaAbierta(false)
+    }
+    const tecla = (e: KeyboardEvent) => e.key === 'Escape' && setMezclaAbierta(false)
+    document.addEventListener('pointerdown', fuera)
+    document.addEventListener('keydown', tecla)
+    return () => {
+      document.removeEventListener('pointerdown', fuera)
+      document.removeEventListener('keydown', tecla)
+    }
+  }, [mezclaAbierta])
   const tempos = temposDe(tempo)
   const porcentaje = Math.round(tasa * 100)
 
@@ -341,9 +420,9 @@ export default function Reproductor({
             <button
               key={c}
               type="button"
-              aria-pressed={eleccion?.tipo === 'frente' && eleccion.cuerda === c}
-              onClick={() => elegir({ tipo: 'frente', cuerda: c })}
-              className={chip(eleccion?.tipo === 'frente' && eleccion.cuerda === c)}
+              aria-pressed={marcadas.includes(c)}
+              onClick={() => alternarMiCuerda(c)}
+              className={chip(marcadas.includes(c))}
             >
               {nombreDeCuerda(c)}
             </button>
@@ -357,6 +436,28 @@ export default function Reproductor({
             Coro
           </button>
         </Grupo>
+
+        {/* El volumen de cada cuerda marcada, ahí mismo, y el del resto del coro. */}
+        {marcadas.length > 0 && (
+          <div className="-mt-2 flex flex-col gap-1">
+            {marcadas.map((c) => (
+              <Volumen
+                key={c}
+                nombre={nombreDeCuerda(c)}
+                valor={pistas[c]?.volumen ?? 1}
+                cambiar={(v) => volumenDe(c, v)}
+              />
+            ))}
+            {fondo.length > 0 && (
+              <Volumen
+                nombre="El resto del coro"
+                tenue
+                valor={pistas[fondo[0]]?.volumen ?? 0}
+                cambiar={(v) => fondo.forEach((c) => volumenDe(c, v))}
+              />
+            )}
+          </div>
+        )}
 
         {estrofas.length > 0 && (
           // Se combinan entre sí, sobre el coro de fondo; sin ninguna vuelve el coro.
@@ -435,7 +536,10 @@ export default function Reproductor({
       </section>
 
       {/* La barra de abajo, al alcance del pulgar, como en la lectura. */}
-      <div className="sticky bottom-0 z-(--z-barra) border-t border-borde bg-fondo pb-[env(safe-area-inset-bottom)]">
+      <div
+        ref={barraAbajo}
+        className="sticky bottom-0 z-(--z-barra) border-t border-borde bg-fondo pb-[env(safe-area-inset-bottom)]"
+      >
         {mezclaAbierta && (
           <div id="panel-mezcla" className="max-h-[50vh] overflow-y-auto border-b border-borde bg-superficie px-4 py-3">
             <p className="text-sm text-texto-tenue">
@@ -540,6 +644,36 @@ function llevarALaVista(s: HTMLElement | null) {
     const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches
     s.scrollIntoView({ behavior: quieto ? 'auto' : 'smooth', block: 'start' })
   }
+}
+
+function Volumen({
+  nombre,
+  valor,
+  cambiar,
+  tenue = false,
+}: {
+  nombre: string
+  valor: number
+  cambiar: (v: number) => void
+  tenue?: boolean
+}) {
+  return (
+    <label className="flex items-center gap-3 text-sm">
+      <span className={`w-32 shrink-0 truncate ${tenue ? 'text-texto-tenue' : 'font-semibold text-texto'}`}>
+        {nombre}
+      </span>
+      <input
+        type="range"
+        min={0}
+        max={100}
+        value={Math.round(valor * 100)}
+        aria-label={`Volumen: ${nombre}`}
+        onChange={(e) => cambiar(Number(e.target.value) / 100)}
+        className="tactil min-w-0 flex-1 accent-[var(--color-acento)]"
+      />
+      <span className="w-9 shrink-0 text-right text-texto-tenue tabular-nums">{Math.round(valor * 100)}</span>
+    </label>
+  )
 }
 
 function Grupo({
