@@ -14,6 +14,8 @@ import { cuantoFalta, fechaLarga } from '@/lib/motores/fecha'
 import { quienFalta, sePuedeInscribir } from '@/lib/motores/inscripcion'
 import { rankear } from '@/lib/motores/sugerencia'
 import { paraRepasar, pendientesDelDirector, siguientesMisas } from '@/lib/motores/inicio'
+import { avanceDeLaMisa, vocesQueVan, type VocesQueVan } from '@/lib/motores/tablero'
+import { CUERDAS_DEL_CORO, nombreDeCuerda } from '@/lib/motores/cuerdas'
 import Cabecera from '@/app/componentes/cabecera'
 import TituloSeccion from '@/app/componentes/titulo-seccion'
 import Anotados from '@/app/componentes/anotados'
@@ -24,15 +26,18 @@ import Inscripcion from '@/app/misas/[id]/inscripcion'
 export const metadata = { title: 'Inicio · Cantoral' }
 
 /**
- * Inicio (rediseño 2026-10-17; tablero desde la noche del mismo día, el dueño:
- * «tiene que ser un dashboard», y después «hazlo»).
+ * Inicio como tablero (el dueño, 2026-10-17: «no parece dashboard»; eligió la
+ * opción B de las maquetas, «¿qué tan lista está la misa?»).
  *
- * Contesta lo que cada uno necesita el domingo en la mañana, en este orden:
- *   1. Qué se canta y cómo entrar (la próxima misa, con «Empezar la misa»).
- *   2. Si voy: el mismo control de un toque de la misa, acá, sin entrar.
- *   3. Qué repasar: los cantos de esa misa que tienen partitura.
- *   4. Solo el director: lo que le falta resolver (`pendientesDelDirector`).
- *   5. Lo que viene después, y lo que se está ensayando.
+ * Dos vistas de la misma misa:
+ *   · El DIRECTOR ve si la misa está lista: un anillo de avance
+ *     (`avanceDeLaMisa`), las voces que van por cuerda (`vocesQueVan`, con las
+ *     fichas que solo él lee) y las cuatro cosas que faltan para cerrarla,
+ *     cada una con su número y llevando a donde se resuelve.
+ *   · El MIEMBRO ve qué se canta y con quién: cuántos van a cantar, sus
+ *     círculos, y los cantos elegidos.
+ * Los dos dicen ahí mismo si van. Debajo, en chico: qué repasar, qué se está
+ * ensayando, las misas que vienen y, para el director, lo demás pendiente.
  *
  * La raíz sigue repartiendo con `rutaInicial()` (PRD §8.3): quien no puede ver
  * un repertorio no ve Inicio, va adonde le corresponde.
@@ -102,78 +107,162 @@ export default async function Inicio() {
     .flatMap((g) => g.cantos)
     .filter((c) => c.estado === 'en_ensayo' && !vistos.has(c.id) && vistos.add(c.id))
 
+  // El tablero del director. Lo que ya cuenta el anillo no se repite abajo.
+  const sinResponder = quienFalta(fichas, inscritos, fichas).length
+  const tocan = inscritos.filter((i) => i.aporte === 'instrumental').length
+  const avance = misa
+    ? avanceDeLaMisa({ cantos: misa.cantos, tocan, coro: fichas.length, sinResponder })
+    : null
+  const voces = vocesQueVan(inscritos, fichas)
+  const EN_EL_TABLERO = new Set(['sin-cantos', 'sin-musicos', 'faltan'])
+  const otrosPendientes = pendientes.filter((p) => !EN_EL_TABLERO.has(p.clave))
+
+  // La vista del miembro: quiénes van a CANTAR.
+  const cantan = new Set(inscritos.filter((i) => i.aporte === 'vocal').map((i) => i.perfilId))
+  const quienesCantan = resumen ? resumen.quienes.filter((q) => cantan.has(q.perfilId)) : []
+
+  const esDirector = puedeEditarMisa
+  const empezar =
+    misa && misa.cantos.length > 0 ? (
+      <Link href={`/misas/${misa.id}/${misa.cantos[0].id}`} className={clasesBotonIcono('lleno', 'px-5 text-base')}>
+        <IconoReproducir tamano={16} />
+        Empezar la misa
+      </Link>
+    ) : null
+
   return (
     <>
       <Cabecera sesion={sesion} />
 
       <main className="mx-auto w-full max-w-2xl px-4 pt-5 pb-10">
         {misa && resumen?.fecha ? (
-          <section aria-labelledby="proxima-misa" className="halo -mx-4 px-4 pt-6 pb-7">
-            <p className="text-sm font-bold text-acento">
-              {cuantoFalta(resumen.fecha, hoy)}
-              <span className="font-normal text-texto-tenue"> · {fechaLarga(resumen.fecha)}</span>
-            </p>
-            <h1 id="proxima-misa" className="titulo-libro mt-1 text-[2rem] leading-[1.1]">
-              {misa.nombre}
-            </h1>
-
-            {misa.cantos.length > 0 ? (
-              <ol className="mt-5 space-y-2">
-                {misa.cantos.map((c) => (
-                  <li key={c.id} className="flex items-baseline gap-3">
-                    <span className="w-24 shrink-0 text-sm text-texto-tenue">{c.momentoNombre}</span>
-                    {/* Sin el tono (el dueño, 2026-10-17: «aquí no se necesita»):
-                        se ve dentro de la misa y en «Armar la misa». */}
-                    <span className="min-w-0 flex-1 truncate">{c.titulo}</span>
-                  </li>
-                ))}
-              </ol>
-            ) : (
-              <p className="mt-4 max-w-prose text-texto-tenue">
-                Todavía no tiene cantos asignados.
-              </p>
-            )}
-
-            <div className="mt-6 flex flex-wrap items-center gap-2">
-              {misa.cantos.length > 0 ? (
-                <Link
-                  href={`/misas/${misa.id}/${misa.cantos[0].id}`}
-                  className={clasesBotonIcono('lleno', 'px-5 text-base')}
-                >
-                  <IconoReproducir tamano={16} />
-                  Empezar la misa
-                </Link>
-              ) : (
-                puedeEditarMisa && (
-                  <Link href={`/misas/${misa.id}/editar`} className={clasesBotonIcono('lleno', 'px-5 text-base')}>
-                    Armar esta misa
-                  </Link>
-                )
-              )}
-              <Link href={`/misas/${misa.id}`} className={clasesBotonIcono('borde', 'px-4 text-base')}>
-                Ver la misa
-              </Link>
-            </div>
-
-            {/* «¿Vas?» acá mismo: decirlo era entrar a la misa y bajar hasta
-                «Quién va». Es el mismo control, con la misma acción, que
-                revalida el Inicio. */}
-            {(puedeAnotarse || resumen.quienes.length > 0) && (
-              <div className="mt-7 border-t border-borde pt-5">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-[0.9375rem] font-bold">
-                    {puedeAnotarse ? (miInscripcion ? 'Vas a esta misa' : '¿Vas a esta misa?') : 'Quién va'}
+          <>
+            <section aria-labelledby="proxima-misa" className="halo -mx-4 px-4 pt-6 pb-6">
+              <div className="flex items-center gap-4">
+                {esDirector && avance && <Anillo porcentaje={avance.porcentaje} />}
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-acento">
+                    {cuantoFalta(resumen.fecha, hoy)}
+                    <span className="font-normal text-texto-tenue"> · {fechaLarga(resumen.fecha)}</span>
                   </p>
-                  <span className="flex items-center gap-2 text-sm text-texto-tenue">
-                    {resumen.anotados > 0 &&
-                      (resumen.anotados === 1 ? 'Va 1' : `Van ${resumen.anotados}`)}
-                    <Anotados quienes={resumen.quienes} />
-                  </span>
+                  <h1 id="proxima-misa" className="titulo-libro mt-1 text-[1.75rem] leading-[1.1]">
+                    {misa.nombre}
+                  </h1>
+                  {esDirector && avance && (
+                    <p className="mt-1 text-sm text-texto-tenue">
+                      {avance.porcentaje === 100 ? 'Lista' : `Lista en un ${avance.porcentaje} %`}
+                    </p>
+                  )}
                 </div>
-                {puedeAnotarse && <Inscripcion misaId={misa.id} mia={miInscripcion} editable />}
               </div>
+
+              {esDirector && (
+                <div className="mt-5 flex flex-wrap items-center gap-2">
+                  {empezar ?? (
+                    <Link href={`/misas/${misa.id}/editar`} className={clasesBotonIcono('lleno', 'px-5 text-base')}>
+                      Armar esta misa
+                    </Link>
+                  )}
+                  <Link href={`/misas/${misa.id}`} className={clasesBotonIcono('borde', 'px-4 text-base')}>
+                    Ver la misa
+                  </Link>
+                </div>
+              )}
+
+              {/* «¿Vas?» acá mismo: el mismo control de un toque de la misa. */}
+              {puedeAnotarse && (
+                <div className="mt-6 border-t border-borde pt-4">
+                  <p className="text-[0.9375rem] font-bold">{miInscripcion ? 'Vas a esta misa' : '¿Vas a esta misa?'}</p>
+                  <Inscripcion misaId={misa.id} mia={miInscripcion} editable />
+                </div>
+              )}
+            </section>
+
+            {esDirector && avance ? (
+              <>
+                {/* Las voces por cuerda: «mañana hay un solo bajo», de un vistazo. */}
+                <section aria-labelledby="voces" className="mt-6">
+                  <TituloSeccion id="voces" detalle={fichas.length > 0 ? `${voces.total} de ${fichas.length}` : undefined}>
+                    Voces que van
+                  </TituloSeccion>
+                  <BarraDeVoces voces={voces} />
+                </section>
+
+                <section aria-labelledby="para-que-quede-lista" className="mt-6">
+                  <TituloSeccion id="para-que-quede-lista">Para que quede lista</TituloSeccion>
+                  <ul className="mt-1 divide-y divide-borde">
+                    <FilaDeAvance
+                      href={`/misas/${misa.id}/editar`}
+                      bien={avance.cantos > 0}
+                      numero={String(avance.cantos)}
+                      texto={avance.cantos === 1 ? 'canto elegido' : 'cantos elegidos'}
+                    />
+                    <FilaDeAvance
+                      href={`/misas/${misa.id}/editar`}
+                      bien={avance.cantos > 0 && avance.conTono === avance.cantos}
+                      numero={`${avance.conTono}/${avance.cantos}`}
+                      texto="tonos fijados"
+                    />
+                    <FilaDeAvance
+                      href={`/misas/${misa.id}`}
+                      bien={avance.tocan > 0}
+                      numero={String(avance.tocan)}
+                      texto={avance.tocan === 0 ? 'nadie se anotó a tocar' : avance.tocan === 1 ? 'va a tocar' : 'van a tocar'}
+                    />
+                    <FilaDeAvance
+                      href={`/misas/${misa.id}`}
+                      bien={avance.sinResponder === 0}
+                      numero={String(avance.sinResponder)}
+                      texto={avance.sinResponder === 1 ? 'no ha dicho si va' : 'no han dicho si van'}
+                    />
+                  </ul>
+                </section>
+              </>
+            ) : (
+              <>
+                <section aria-labelledby="van-a-cantar" className="mt-6">
+                  <TituloSeccion id="van-a-cantar">Van a cantar</TituloSeccion>
+                  <div className="mt-2 flex items-center gap-4">
+                    <span className="titulo-libro text-[2.25rem] leading-none">{quienesCantan.length}</span>
+                    <Anotados quienes={quienesCantan} />
+                  </div>
+                </section>
+
+                <section aria-labelledby="cantos-elegidos" className="mt-6">
+                  <TituloSeccion id="cantos-elegidos" detalle={misa.cantos.length > 0 ? String(misa.cantos.length) : undefined}>
+                    Cantos elegidos
+                  </TituloSeccion>
+                  {misa.cantos.length > 0 ? (
+                    <>
+                      <ol className="mt-1 divide-y divide-borde">
+                        {misa.cantos.slice(0, CANTOS_A_LA_VISTA).map((c) => (
+                          <li key={c.id} className="flex items-baseline gap-3 py-2">
+                            <span className="w-24 shrink-0 text-sm text-texto-tenue">{c.momentoNombre}</span>
+                            {/* Sin el tono (el dueño, 2026-10-17: «aquí no se necesita»). */}
+                            <span className="min-w-0 flex-1 truncate">{c.titulo}</span>
+                          </li>
+                        ))}
+                      </ol>
+                      {misa.cantos.length > CANTOS_A_LA_VISTA && (
+                        <Link href={`/misas/${misa.id}`} className="tactil inline-flex items-center text-sm text-texto-tenue underline underline-offset-2">
+                          y {misa.cantos.length - CANTOS_A_LA_VISTA} más · ver la misa
+                        </Link>
+                      )}
+                    </>
+                  ) : (
+                    <p className="mt-2 text-texto-tenue">Todavía no tiene cantos asignados.</p>
+                  )}
+                  {/* Para el miembro, después de ver qué se canta (lo aprobado). */}
+                  <div className="mt-4 flex flex-wrap items-center gap-2">
+                    {empezar}
+                    <Link href={`/misas/${misa.id}`} className={clasesBotonIcono('borde', 'px-4 text-base')}>
+                      Ver la misa
+                    </Link>
+                  </div>
+                </section>
+              </>
             )}
-          </section>
+          </>
         ) : (
           <section aria-labelledby="sin-misa" className="pt-4 pb-6">
             <h1 id="sin-misa" className="titulo-libro text-[1.75rem] leading-tight">
@@ -197,115 +286,159 @@ export default async function Inicio() {
           </section>
         )}
 
-        {/* Lo del director va arriba de lo que se repasa: si la misa no tiene
-            cantos o no hay quién toque, eso se arregla antes del domingo. */}
-        {pendientes.length > 0 && (
-          <section aria-labelledby="por-resolver" className="mt-8">
-            <TituloSeccion id="por-resolver" detalle={String(pendientes.length)}>
-              Por resolver
-            </TituloSeccion>
-            <ul className="mt-1 divide-y divide-borde">
-              {pendientes.map((p) => (
-                <li key={p.clave}>
-                  <Fila href={p.href} texto={p.texto} detalle={p.detalle} marcada />
-                </li>
+        {/* Debajo del tablero, en chico (el dueño, 2026-10-17). */}
+        <div className="mt-10 grid gap-x-8 gap-y-6 border-t border-borde pt-6 sm:grid-cols-2">
+          {otrosPendientes.length > 0 && (
+            <Chico titulo="También pendiente">
+              {otrosPendientes.map((p) => (
+                <FilaChica key={p.clave} href={p.href} texto={p.texto} detalle={p.detalle} />
               ))}
-            </ul>
-          </section>
-        )}
-
-        {misa && repasar.length > 0 && (
-          <section aria-labelledby="para-repasar" className="mt-8">
-            <TituloSeccion id="para-repasar" detalle="con partitura y audio">
-              Para repasar antes de la misa
-            </TituloSeccion>
-            <ul className="mt-1 divide-y divide-borde">
+            </Chico>
+          )}
+          {misa && repasar.length > 0 && (
+            <Chico titulo="Para repasar">
               {repasar.map((c) => (
-                <li key={c.id}>
-                  <Fila
-                    href={`/repertorio/${c.cantoId}/ensayar?misa=${misa.id}&fila=${c.id}`}
-                    texto={c.titulo}
-                    detalle={c.momentoNombre}
-                  />
-                </li>
+                <FilaChica
+                  key={c.id}
+                  href={`/repertorio/${c.cantoId}/ensayar?misa=${misa.id}&fila=${c.id}`}
+                  texto={c.titulo}
+                  detalle={c.momentoNombre}
+                />
               ))}
-            </ul>
-          </section>
-        )}
-
-        {despues.length > 0 && (
-          <section aria-labelledby="despues" className="mt-8">
-            <TituloSeccion id="despues">Después</TituloSeccion>
-            <ul className="mt-1 divide-y divide-borde">
-              {despues.map((m) => (
-                <li key={m.id}>
-                  <Link
-                    href={`/misas/${m.id}`}
-                    className="tactil -mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-superficie"
-                  >
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate">{m.nombre}</span>
-                      <span className="block text-sm text-texto-tenue">
-                        {m.fecha ? fechaLarga(m.fecha) : 'Sin fecha'} ·{' '}
-                        {m.cantidadCantos === 0
-                          ? 'sin cantos'
-                          : m.cantidadCantos === 1
-                            ? '1 canto'
-                            : `${m.cantidadCantos} cantos`}
-                      </span>
-                    </span>
-                    <Anotados quienes={m.quienes} />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-
-        {enEnsayo.length > 0 && (
-          <section aria-labelledby="en-ensayo" className="mt-8">
-            <TituloSeccion id="en-ensayo">Se está ensayando</TituloSeccion>
-            <ul className="mt-1 divide-y divide-borde">
+            </Chico>
+          )}
+          {enEnsayo.length > 0 && (
+            <Chico titulo="Se está ensayando">
               {enEnsayo.map((c) => (
-                <li key={c.id}>
-                  <Fila href={`/repertorio/${c.id}`} texto={c.titulo} />
-                </li>
+                <FilaChica key={c.id} href={`/repertorio/${c.id}`} texto={c.titulo} />
               ))}
-            </ul>
-          </section>
-        )}
+            </Chico>
+          )}
+          {despues.length > 0 && (
+            <Chico titulo="Después">
+              {despues.map((m) => (
+                <FilaChica
+                  key={m.id}
+                  href={`/misas/${m.id}`}
+                  texto={m.nombre}
+                  detalle={`${m.fecha ? fechaLarga(m.fecha) : 'Sin fecha'} · ${
+                    m.cantidadCantos === 0 ? 'sin cantos' : m.cantidadCantos === 1 ? '1 canto' : `${m.cantidadCantos} cantos`
+                  }`}
+                />
+              ))}
+            </Chico>
+          )}
+        </div>
       </main>
     </>
   )
 }
 
-/**
- * Una fila del tablero: lleva a donde se resuelve. `marcada` le pone el punto
- * del halo a lo que el director tiene pendiente, para que no se lea como una
- * lista más.
- */
-function Fila({
-  href,
-  texto,
-  detalle,
-  marcada = false,
-}: {
-  href: string
-  texto: string
-  detalle?: string
-  marcada?: boolean
-}) {
+const CANTOS_A_LA_VISTA = 5
+
+/** El avance de la misa en un anillo: el número adentro, el halo alrededor. */
+function Anillo({ porcentaje }: { porcentaje: number }) {
+  const radio = 32
+  const vuelta = 2 * Math.PI * radio
   return (
-    <Link
-      href={href}
-      className="tactil -mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-superficie"
-    >
-      {marcada && <span aria-hidden className="size-2 shrink-0 rounded-full bg-acento" />}
-      <span className="min-w-0 flex-1">
-        <span className="block truncate">{texto}</span>
-        {detalle && <span className="block truncate text-sm text-texto-tenue">{detalle}</span>}
-      </span>
-      <IconoSeguir tamano={18} className="shrink-0 text-texto-tenue" />
-    </Link>
+    <div className="relative size-[76px] shrink-0" role="img" aria-label={`Misa lista en un ${porcentaje} %`}>
+      <svg viewBox="0 0 76 76" className="size-full -rotate-90" aria-hidden>
+        <circle cx="38" cy="38" r={radio} fill="none" stroke="var(--color-borde)" strokeWidth="7" />
+        <circle
+          cx="38"
+          cy="38"
+          r={radio}
+          fill="none"
+          stroke="var(--color-acento)"
+          strokeWidth="7"
+          strokeLinecap="round"
+          strokeDasharray={`${(vuelta * porcentaje) / 100} ${vuelta}`}
+        />
+      </svg>
+      <span className="titulo-libro absolute inset-0 flex items-center justify-center text-lg">{porcentaje}%</span>
+    </div>
+  )
+}
+
+const COLOR_CUERDA: Record<(typeof CUERDAS_DEL_CORO)[number], string> = {
+  soprano: 'var(--color-soprano)',
+  contralto: 'var(--color-contralto)',
+  tenor: 'var(--color-tenor)',
+  bajo: 'var(--color-bajo)',
+}
+
+/**
+ * Las voces que van, una barra con el color de cada cuerda (los de Ensayar) y
+ * su leyenda con números: el color solo no alcanza. «Sin cuerda» es quien no
+ * cargó su tesitura, en neutro.
+ */
+function BarraDeVoces({ voces }: { voces: VocesQueVan }) {
+  if (voces.total === 0) return <p className="mt-2 text-sm text-texto-tenue">Todavía nadie se anotó a cantar.</p>
+  const tramos = [
+    ...CUERDAS_DEL_CORO.map((c) => ({ clave: c, nombre: nombreDeCuerda(c), n: voces[c], color: COLOR_CUERDA[c] })),
+    { clave: 'sin', nombre: 'Sin cuerda', n: voces.sinCuerda, color: 'var(--color-borde-fuerte)' },
+  ].filter((t) => t.n > 0)
+  return (
+    <>
+      <div className="mt-2 flex h-3 overflow-hidden rounded-full bg-superficie-alta" aria-hidden>
+        {tramos.map((t) => (
+          <span key={t.clave} style={{ width: `${(100 * t.n) / voces.total}%`, background: t.color }} />
+        ))}
+      </div>
+      <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-texto-tenue">
+        {tramos.map((t) => (
+          <li key={t.clave} className="flex items-center gap-1.5">
+            <span aria-hidden className="size-2.5 rounded-full" style={{ background: t.color }} />
+            {t.nombre} <span className="font-bold text-texto">{t.n}</span>
+          </li>
+        ))}
+      </ul>
+    </>
+  )
+}
+
+/** Una de las cuatro cosas que faltan para cerrar la misa: verde si está, rojo si falta. */
+function FilaDeAvance({ href, bien, numero, texto }: { href: string; bien: boolean; numero: string; texto: string }) {
+  return (
+    <li>
+      <Link
+        href={href}
+        className="tactil -mx-2 flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-superficie"
+      >
+        <span
+          className={`min-w-11 rounded-full px-2 py-0.5 text-center text-sm font-bold tabular-nums ${
+            bien ? 'bg-exito/15 text-exito' : 'bg-peligro/15 text-peligro'
+          }`}
+        >
+          {bien ? (numero === '0' ? '✓' : `✓ ${numero}`) : numero}
+        </span>
+        <span className="min-w-0 flex-1 truncate">{texto}</span>
+        <IconoSeguir tamano={18} className="shrink-0 text-texto-tenue" />
+      </Link>
+    </li>
+  )
+}
+
+/** Una sección de abajo del tablero: título chico y filas chicas. */
+function Chico({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+  return (
+    <section>
+      <h2 className="text-xs font-bold tracking-wide text-texto-tenue uppercase">{titulo}</h2>
+      <ul className="mt-1">{children}</ul>
+    </section>
+  )
+}
+
+function FilaChica({ href, texto, detalle }: { href: string; texto: string; detalle?: string }) {
+  return (
+    <li>
+      <Link
+        href={href}
+        className="-mx-1.5 flex min-h-9 items-baseline gap-2 rounded px-1.5 py-1 text-sm transition-colors hover:bg-superficie"
+      >
+        <span className="min-w-0 truncate">{texto}</span>
+        {detalle && <span className="min-w-0 shrink truncate text-xs text-texto-tenue">{detalle}</span>}
+      </Link>
+    </li>
   )
 }
