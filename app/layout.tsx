@@ -41,6 +41,9 @@ const jetbrains = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Cantoral",
   description: "El repertorio de tu coro, en tu teléfono.",
+  // Agregada a la pantalla de inicio del iPhone, se abre como app (sin la
+  // barra de Safari) y con este nombre bajo el ícono (`apple-icon.png`).
+  appleWebApp: { capable: true, title: "Cantoral" },
 };
 
 /** El tema elegido con el sol y la luna (2026-10-17); sin elegir, el oscuro. */
