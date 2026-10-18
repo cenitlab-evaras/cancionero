@@ -93,7 +93,9 @@ export default function Reproductor({
   tonalidadCifrado: string | null
   /**
    * H28 · El tono en semitonos sobre el cifrado: el personal, o el que fijó el
-   * director para la misa (H27). Fijado no se cambia desde acá.
+   * director para la misa (H27). Fijado, se puede correr igual para ensayar
+   * (el dueño, 2026-10-17: «no me deja cambiar»), pero no se guarda: el tono
+   * de la misa lo cambia el director desde la misa.
    */
   tono: { semitonos: number; fijado: boolean }
 }) {
@@ -331,7 +333,6 @@ export default function Reproductor({
   }, [efectivos, tasa, semitonos, aplicar])
 
   function cambiarTono(nuevo: number) {
-    if (tono.fijado) return
     const t = normalizarSemitonos(nuevo)
     setTransposicion(t)
     setEstadoHoja('cargando')
@@ -344,7 +345,9 @@ export default function Reproductor({
     })
     void conectarTono(n)
     // El mismo tono que el cifrado: es una sola preferencia por canto (H3).
-    if (coroId) {
+    // Con el tono de la misa, lo que se corre es solo para este ensayo: si se
+    // guardara, cambiaría el tono personal de la ficha sin que nadie lo pidiera.
+    if (coroId && !tono.fijado) {
       void guardarTransposicion({ cantoId, coroId, transposicion: t }).then(
         (r) => !r.ok && setAviso(r.error)
       )
@@ -748,7 +751,9 @@ export default function Reproductor({
                 titulo="Tono"
                 detalle={
                   tono.fijado
-                    ? 'el de la misa'
+                    ? transposicion === tono.semitonos
+                      ? 'el de la misa'
+                      : 'solo para este ensayo'
                     : transposicion === 0
                       ? 'el original'
                       : `${signo} semitono${Math.abs(transposicion) === 1 ? '' : 's'}`
@@ -757,7 +762,6 @@ export default function Reproductor({
                 <BotonIcono
                   etiqueta="Bajar un semitono"
                   apariencia="borde"
-                  disabled={tono.fijado}
                   onClick={() => cambiarTono(transposicion - 1)}
                 >
                   <span aria-hidden className="text-lg leading-none">−</span>
@@ -768,16 +772,21 @@ export default function Reproductor({
                 <BotonIcono
                   etiqueta="Subir un semitono"
                   apariencia="borde"
-                  disabled={tono.fijado}
                   onClick={() => cambiarTono(transposicion + 1)}
                 >
                   <span aria-hidden className="text-lg leading-none">+</span>
                 </BotonIcono>
-                {!tono.fijado && transposicion !== 0 && (
-                  <button type="button" onClick={() => cambiarTono(0)} className={chip(false)}>
-                    Volver al original
-                  </button>
-                )}
+                {tono.fijado
+                  ? transposicion !== tono.semitonos && (
+                      <button type="button" onClick={() => cambiarTono(tono.semitonos)} className={chip(false)}>
+                        Volver al de la misa
+                      </button>
+                    )
+                  : transposicion !== 0 && (
+                      <button type="button" onClick={() => cambiarTono(0)} className={chip(false)}>
+                        Volver al original
+                      </button>
+                    )}
               </Grupo>
               <Grupo titulo="Tempo" detalle={`♩ ${bpm} · ${porcentaje} %`}>
                 {tempos.map((t) => (

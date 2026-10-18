@@ -71,16 +71,19 @@ export default function DarTono({ tonalidad, etiqueta }: { tonalidad: string; et
     reloj.current = setTimeout(() => setSonando(false), (NOTA + PAUSA + ACORDE) * 1000)
   }
 
+  // Solo el ícono (el dueño, 2026-10-17: «el puro icono»), al lado de la
+  // tonalidad. El objetivo sigue siendo de 44 px; el margen negativo evita que
+  // agrande el renglón de texto donde vive.
   return (
     <button
       type="button"
       onClick={tocar}
       aria-label={`Dar el tono: ${etiqueta}`}
-      className={clasesBotonIcono('borde', 'gap-1.5 px-3 text-sm')}
+      title={`Dar el tono: ${etiqueta}`}
+      aria-pressed={sonando}
+      className={clasesBotonIcono(sonando ? 'activo' : 'plano', '-my-3')}
     >
       <IconoDiapason tamano={18} />
-      <span>{sonando ? 'Sonando…' : 'Dar el tono'}</span>
-      <span className="font-cifrado font-bold">{etiqueta}</span>
     </button>
   )
 }

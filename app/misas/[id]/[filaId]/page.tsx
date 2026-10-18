@@ -20,7 +20,7 @@ import CartaAcorde from '@/app/componentes/carta-acorde'
 import PantallaEncendida from '@/app/componentes/pantalla-encendida'
 import { EnlaceIcono, clasesBotonIcono } from '@/app/componentes/boton-icono'
 import ConmutadorTema from '@/app/componentes/conmutador-tema'
-import { IconoSeguir, IconoVolver } from '@/app/componentes/iconos'
+import { IconoListo, IconoSeguir, IconoVolver } from '@/app/componentes/iconos'
 import Controles from '@/app/repertorio/[cantoId]/controles'
 import {
   CascaronCarta,
@@ -129,9 +129,32 @@ export default async function EjecucionPage({
               <IconoVolver />
             </EnlaceIcono>
             <span className="min-w-0 flex-1 truncate text-sm text-texto-tenue">{misa.nombre}</span>
-            <span className="shrink-0 text-sm font-bold">
+            {/* Pasar de canto SIN volver al listado: es el hito entero (H6). Va
+                acá arriba y en chico (el dueño, 2026-10-17: abajo era una barra
+                que no tenía por qué estar ni ser tan grande). El título del que
+                sigue va en el nombre accesible. */}
+            {paso.anterior ? (
+              <EnlaceIcono href={`/misas/${misa.id}/${paso.anterior}`} etiqueta="Canto anterior">
+                <IconoVolver tamano={18} />
+              </EnlaceIcono>
+            ) : (
+              <span className={clasesBotonIcono('plano', 'opacity-30')} aria-hidden>
+                <IconoVolver tamano={18} />
+              </span>
+            )}
+            <span className="shrink-0 text-sm font-bold tabular-nums">
               {paso.posicion} <span className="font-normal text-texto-tenue">de {paso.total}</span>
             </span>
+            {siguiente ? (
+              <EnlaceIcono href={`/misas/${misa.id}/${siguiente.id}`} etiqueta={`Siguiente: ${siguiente.titulo}`}>
+                <IconoSeguir tamano={18} />
+              </EnlaceIcono>
+            ) : (
+              // Fin de la misa: no se esconde, se dice que se terminó.
+              <EnlaceIcono href={`/misas/${misa.id}`} etiqueta="Terminar la misa">
+                <IconoListo tamano={18} />
+              </EnlaceIcono>
+            )}
             <ConmutadorTema className="-mr-2" />
           </div>
 
@@ -140,11 +163,14 @@ export default async function EjecucionPage({
             <h1 className="titulo-libro mt-0.5 text-[1.5rem] leading-tight">
               {canto.titulo}
             </h1>
-            {(canto.autor || canto.tonalidadOriginal) && (
-              <p className="mt-1 text-sm text-texto-tenue">
+            {(canto.autor || canto.tonalidadOriginal || (herramientas.darTono && tonoParaDar)) && (
+              <p className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-texto-tenue">
                 {[canto.autor, canto.tonalidadOriginal ? `original en ${nombrar(canto.tonalidadOriginal)}` : null]
                   .filter(Boolean)
                   .join(' · ')}
+                {herramientas.darTono && tonoParaDar && (
+                  <DarTono tonalidad={tonoParaDar} etiqueta={nombrar(tonoParaDar)} />
+                )}
               </p>
             )}
             {/* H23 · Para repasar la cuerda antes de la misa. Es un enlace y no
@@ -158,12 +184,6 @@ export default async function EjecucionPage({
               </Link>
             )}
           </div>
-
-          {herramientas.darTono && tonoParaDar && (
-            <div className="mt-3 px-4">
-              <DarTono tonalidad={tonoParaDar} etiqueta={nombrar(tonoParaDar)} />
-            </div>
-          )}
 
           <div className="mt-5 px-4">
             <ZonaAcordes>
@@ -192,48 +212,6 @@ export default async function EjecucionPage({
             </HojaDiagramas>
           )}
 
-          {/* Pasar de canto SIN volver al listado: es el hito entero (H6). */}
-          <nav
-            aria-label="Cantos de la misa"
-            className="border-t border-borde bg-fondo"
-          >
-            <div className="mx-auto flex w-full max-w-2xl items-center gap-2 px-3 pt-2">
-              {paso.anterior ? (
-                <EnlaceIcono
-                  href={`/misas/${misa.id}/${paso.anterior}`}
-                  etiqueta="Canto anterior"
-                  apariencia="borde"
-                >
-                  <IconoVolver />
-                </EnlaceIcono>
-              ) : (
-                <span className={clasesBotonIcono('borde', 'opacity-40')} aria-hidden>
-                  <IconoVolver />
-                </span>
-              )}
-
-              {siguiente ? (
-                <Link
-                  href={`/misas/${misa.id}/${siguiente.id}`}
-                  className={clasesBotonIcono('borde', 'min-w-0 flex-1 justify-between px-3')}
-                >
-                  <span className="min-w-0 truncate text-left">
-                    <span className="text-texto-tenue">Siguiente: </span>
-                    <span className="font-bold">{siguiente.titulo}</span>
-                  </span>
-                  <IconoSeguir className="shrink-0" />
-                </Link>
-              ) : (
-                // Fin de la misa. No se esconde el botón: se dice que se terminó.
-                <Link
-                  href={`/misas/${misa.id}`}
-                  className={clasesBotonIcono('borde', 'min-w-0 flex-1 px-3 font-bold')}
-                >
-                  Terminar la misa
-                </Link>
-              )}
-            </div>
-          </nav>
 
           <Controles
             cantoId={canto.id}

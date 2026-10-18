@@ -185,13 +185,10 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
           ]
             .filter(Boolean)
             .join(' · ')}
-        </p>
-
-        {herramientas.darTono && tonoParaDar && (
-          <div className="mt-3 px-4">
+          {herramientas.darTono && tonoParaDar && (
             <DarTono tonalidad={tonoParaDar} etiqueta={nombrar(tonoParaDar)} />
-          </div>
-        )}
+          )}
+        </p>
 
         {partitura && <PestanasCanto cantoId={canto.id} activa="cifrado" />}
 
