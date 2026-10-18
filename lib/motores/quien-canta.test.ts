@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { cuerdasQueCantan, estrofasDe, marcarEstrofa, nombreDeQuienCanta } from './quien-canta'
+import { cuerdasQueCantan, estrofasDe, marcarEstrofa, nombreDeQuienCanta, atenuarParaMiCuerda, huellaDeEstrofa } from './quien-canta'
 
 /**
  * Quién canta cada estrofa (pedido del dueño, 2026-10-17). Se guarda en el
@@ -68,4 +68,41 @@ describe('cuerdasQueCantan — para «Resaltar mi cuerda»', () => {
 test('nombreDeQuienCanta', () => {
   expect(nombreDeQuienCanta('mujeres')).toBe('Mujeres')
   expect(nombreDeQuienCanta('contralto')).toBe('Contraltos')
+})
+
+describe('atenuarParaMiCuerda — «Resaltar lo que canta mi cuerda»', () => {
+  test('se atenúa lo que no le toca a mi cuerda', () => {
+    expect(atenuarParaMiCuerda('hombres', 'soprano')).toBe(true)
+    expect(atenuarParaMiCuerda('tenor', 'bajo')).toBe(true)
+    expect(atenuarParaMiCuerda('solista', 'contralto')).toBe(true)
+  })
+
+  test('lo que canto yo, o todos, queda entero', () => {
+    expect(atenuarParaMiCuerda('mujeres', 'contralto')).toBe(false)
+    expect(atenuarParaMiCuerda('todos', 'bajo')).toBe(false)
+    expect(atenuarParaMiCuerda('tenor', 'tenor')).toBe(false)
+  })
+
+  test('sin marca, o sin cuerda en el perfil, no se atenúa nada', () => {
+    expect(atenuarParaMiCuerda(null, 'soprano')).toBe(false)
+    expect(atenuarParaMiCuerda('hombres', null)).toBe(false)
+  })
+})
+
+describe('huellaDeEstrofa — que el director marque la estrofa que está viendo', () => {
+  const cifrado = '{x_canta: mujeres}\n[G]Abre tu [D]jardín\n[C]flor\n\n[Em]Señor, [C]ten piedad'
+
+  test('es la letra de su primera línea, sin acordes ni la marca', () => {
+    expect(huellaDeEstrofa(cifrado, 0)).toBe('Abre tu jardín')
+    expect(huellaDeEstrofa(cifrado, 1)).toBe('Señor, ten piedad')
+  })
+
+  test('no cambia al transponer: la letra es la misma en cualquier tono', () => {
+    const transpuesto = cifrado.replace('[G]', '[A]').replace('[Em]', '[F#m]')
+    expect(huellaDeEstrofa(transpuesto, 1)).toBe(huellaDeEstrofa(cifrado, 1))
+  })
+
+  test('una estrofa que no existe no tiene huella', () => {
+    expect(huellaDeEstrofa(cifrado, 5)).toBeNull()
+  })
 })

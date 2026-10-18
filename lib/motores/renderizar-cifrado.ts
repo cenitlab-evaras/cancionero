@@ -24,6 +24,12 @@ export type AcordePosicionado = {
    * salvo que el anterior sea tan largo que invada este lugar.
    */
   columnaPintada: number
+  /**
+   * Con la herramienta «Acordes en Do-Re-Mi», `acorde` es el nombre en latina
+   * (lo que se ve y lo que mide el anti-solape) y acá queda el americano, que
+   * es el que buscan los diagramas. Sin la herramienta, no existe.
+   */
+  americano?: string
 }
 
 export type LineaCifrado = {
@@ -52,6 +58,7 @@ const METAETIQUETAS = /^\{\s*(title|t|subtitle|st|artist|composer|key|tempo|time
 const COMENTARIO = /^\{\s*(comment|c|ci|comment_italic)\s*:\s*(.*?)\s*\}\s*$/i
 
 import { MARCA as MARCA_QUIEN_CANTA, estrofasDe, type QuienCanta } from './quien-canta'
+import { americanaALatina } from './notacion-latina'
 
 /** Un acorde entre corchetes: `[C]`, `[F#m]`, `[A9/C#]`, `[Bm/A]`. */
 const ACORDE = /\[([^\]\n]+)\]/g
@@ -70,7 +77,8 @@ export function lineaPintaAcordes(cruda: string): boolean {
 
 function separarAcordes(
   linea: string,
-  primerIndice: number
+  primerIndice: number,
+  latina = false
 ): { texto: string; acordes: AcordePosicionado[] } {
   const acordes: AcordePosicionado[] = []
   let texto = ''
@@ -81,10 +89,11 @@ function separarAcordes(
   while ((m = ACORDE.exec(linea)) !== null) {
     texto += linea.slice(ultimoCorte, m.index)
     acordes.push({
-      acorde: m[1],
+      acorde: latina ? americanaALatina(m[1]) : m[1],
       indice: primerIndice + acordes.length,
       columna: texto.length,
       columnaPintada: texto.length,
+      ...(latina ? { americano: m[1] } : {}),
     })
     ultimoCorte = m.index + m[0].length
   }
@@ -135,8 +144,7 @@ function partirAlAncho(linea: LineaCifrado, ancho: number): LineaCifrado[] {
     const acordes = linea.acordes
       .filter((a) => a.columna >= corte.desde && (a.columna < corte.hasta || esUltimo))
       .map((a) => ({
-        acorde: a.acorde,
-        indice: a.indice,
+        ...a,
         columna: Math.max(0, a.columna - corte.desde),
         columnaPintada: Math.max(0, a.columna - corte.desde),
       }))
@@ -193,6 +201,7 @@ function bajarAcordesQueNoCaben(linea: LineaCifrado, ancho: number): LineaCifrad
 
 /**
  * @param opciones.mostrarAcordes  H11 · en `false` devuelve la letra sola.
+ * @param opciones.latina  Herramienta «Acordes en Do-Re-Mi»: los nombres en latina.
  *
  * Los acordes se omiten ACÁ y no con CSS a propósito: escondidos con una clase
  * seguirían en el HTML, y quien lee con lector de pantalla —el mismo piso de
@@ -201,7 +210,7 @@ function bajarAcordesQueNoCaben(linea: LineaCifrado, ancho: number): LineaCifrad
  */
 export function renderizarCifrado(
   cifrado: string,
-  opciones: { ancho?: number; mostrarAcordes?: boolean } = {}
+  opciones: { ancho?: number; mostrarAcordes?: boolean; latina?: boolean } = {}
 ): CifradoRenderizado {
   if (cifrado.trim() === '') return { lineas: [], totalAcordes: 0, quienCanta: [] }
 
@@ -234,7 +243,7 @@ export function renderizarCifrado(
       continue
     }
 
-    const { texto, acordes } = separarAcordes(cruda, siguienteIndice)
+    const { texto, acordes } = separarAcordes(cruda, siguienteIndice, opciones.latina)
     siguienteIndice += acordes.length
 
     // Una línea de solo acordes —la intro `[G][D]`, el puente— sin acordes no

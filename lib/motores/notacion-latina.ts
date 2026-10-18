@@ -50,6 +50,27 @@ export function latinaAAmericana(acorde: string): string {
 }
 
 /**
+ * Americana → latina, solo para MOSTRAR (herramienta «Acordes en Do-Re-Mi»,
+ * 2026-10-17). La base sigue guardando americano (decisión 3): esto se aplica
+ * al pintar, para quien prendió la herramienta, y nada más.
+ *
+ * Lo que no empieza con una nota americana (`N.C.`, `x2`) pasa intacto.
+ */
+const A_LATINA: Record<string, string> = {
+  C: 'Do', D: 'Re', E: 'Mi', F: 'Fa', G: 'Sol', A: 'La', B: 'Si',
+}
+
+export function americanaALatina(acorde: string): string {
+  return acorde
+    .split('/')
+    .map((parte) => {
+      const m = /^([A-G])(.*)$/.exec(parte)
+      return m ? A_LATINA[m[1]] + m[2] : parte
+    })
+    .join('/')
+}
+
+/**
  * ¿Este texto está escrito en notación latina?
  *
  * Se usa para ofrecer la conversión sin imponerla. El riesgo es confundir la

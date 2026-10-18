@@ -257,3 +257,11 @@ export const IconoAgarrar = (p: Props) => (
     <path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01" strokeWidth={2.75} />
   </Trazo>
 )
+
+/** Un diapasón: «Dar el tono» (herramienta, 2026-10-17). */
+export const IconoDiapason = (p: Props) => (
+  <Trazo {...p}>
+    <path d="M8.5 3v7a3.5 3.5 0 0 0 7 0V3" />
+    <path d="M12 13.5V21" />
+  </Trazo>
+)

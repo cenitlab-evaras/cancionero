@@ -243,3 +243,23 @@ describe('quién canta cada estrofa (2026-10-17)', () => {
     expect(deTexto('Tercera')).toBe(2)
   })
 })
+
+describe('acordes en Do-Re-Mi (herramienta, 2026-10-17)', () => {
+  test('se muestra en latina y se conserva el americano para los diagramas', () => {
+    const { lineas } = renderizarCifrado('[Am]Hola [G]mundo', { latina: true })
+    expect(lineas[0].acordes.map((a) => a.acorde)).toEqual(['Lam', 'Sol'])
+    expect(lineas[0].acordes.map((a) => a.americano)).toEqual(['Am', 'G'])
+  })
+
+  test('el anti-solape se mide con el nombre que se ve, que es más largo', () => {
+    const { lineas } = renderizarCifrado('[C]a[G]b', { latina: true })
+    // «Do» ocupa 0–1 y el aire la 2: «Sol» va en la 3, no en la 1.
+    expect(lineas[0].acordes.map((a) => a.columnaPintada)).toEqual([0, 3])
+  })
+
+  test('sin la opción, nada cambia', () => {
+    const { lineas } = renderizarCifrado('[Am]Hola')
+    expect(lineas[0].acordes[0]).not.toHaveProperty('americano')
+    expect(lineas[0].acordes[0].acorde).toBe('Am')
+  })
+})

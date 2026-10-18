@@ -8,6 +8,7 @@ import { puede } from '@/lib/permisos'
 import { normalizarSemitonos, transponer, transponerAcorde } from '@/lib/motores/transponer'
 import { aplicarCorreccion, normalizarAcorde } from '@/lib/motores/corregir-acorde'
 import { esTamanoValido } from '@/lib/motores/tamano-letra'
+import { QUIENES, huellaDeEstrofa, marcarEstrofa } from '@/lib/motores/quien-canta'
 
 /**
  * Guarda la transposición del usuario para un canto (H3).
@@ -258,4 +259,63 @@ export async function corregirAcorde(raw: unknown): Promise<ResultadoCorreccionA
   revalidatePath(`/repertorio/${cantoId}`)
   revalidatePath(`/repertorio/${cantoId}/versiones`)
   return { ok: true, indice: r.indice }
+}
+
+/**
+ * El director marca quién canta una estrofa (herramienta «Quién canta cada
+ * estrofa», 2026-10-17). La marca vive DENTRO del cifrado (`{x_canta: …}`,
+ * ver `quien-canta.ts`), así que es el mismo `update` de `cantos.cifrado` que
+ * una corrección de acorde: misma capacidad, misma RLS, y el trigger de H19-A
+ * deja la versión en el historial.
+ *
+ * La pantalla manda la letra de la primera línea de la estrofa (`huella`): si
+ * en la base esa estrofa ya no empieza así, alguien editó el canto entretanto.
+ */
+const EntradaMarca = z.object({
+  cantoId: z.string().uuid(),
+  estrofa: z.number().int().min(0).max(500),
+  huella: z.string().max(500),
+  canta: z.enum(QUIENES).nullable(),
+})
+
+export async function marcarQuienCanta(raw: unknown): Promise<ResultadoPreferencia> {
+  const entrada = EntradaMarca.safeParse(raw)
+  if (!entrada.success) return { ok: false, error: 'Esa marca no se entiende.' }
+  const { cantoId, estrofa, huella, canta } = entrada.data
+
+  const sesion = await obtenerSesion()
+  if (!sesion) return { ok: false, error: 'Sesión expirada. Vuelve a entrar.' }
+  if (!sesion.coroActivo) return { ok: false, error: 'No perteneces a ningún coro.' }
+  if (!puede(sesion.sujeto, 'editar_canto')) return { ok: false, error: NO_PUEDE_CORREGIR }
+
+  const supabase = await createClient()
+  const { data: canto, error: errorLectura } = await supabase
+    .from('cantos')
+    .select('cifrado, updated_at')
+    .eq('id', cantoId)
+    .maybeSingle()
+  if (errorLectura) return { ok: false, error: 'No pudimos leer el canto.' }
+  if (!canto) return { ok: false, error: 'Ese canto no está acá.' }
+
+  if (huellaDeEstrofa(canto.cifrado, estrofa) !== huella) return { ok: false, error: CAMBIO_ENTRETANTO }
+
+  const cifrado = marcarEstrofa(canto.cifrado, estrofa, canta)
+  if (cifrado === canto.cifrado) return { ok: true }
+
+  const { data, error } = await supabase
+    .from('cantos')
+    .update({ cifrado, updated_at: new Date().toISOString() })
+    .eq('id', cantoId)
+    .eq('updated_at', canto.updated_at)
+    .select('id')
+    .maybeSingle()
+  if (error) return { ok: false, error: 'No pudimos guardar la marca.' }
+  // Cero filas: cambió entretanto o la RLS dijo que no (§14).
+  if (!data) return { ok: false, error: CAMBIO_ENTRETANTO }
+
+  // La marca se ve en la ficha y en cualquier misa que tenga el canto.
+  revalidatePath(`/repertorio/${cantoId}`)
+  revalidatePath(`/repertorio/${cantoId}/versiones`)
+  revalidatePath('/misas', 'layout')
+  return { ok: true }
 }

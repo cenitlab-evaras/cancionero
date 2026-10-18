@@ -58,6 +58,20 @@ export function marcarEstrofa(cifrado: string, indice: number, canta: QuienCanta
   return lineas.join('\n')
 }
 
+/**
+ * La letra de la primera línea de la estrofa, sin acordes ni la marca. Es lo
+ * que manda la pantalla al marcar quién canta: si la base ya no tiene esa
+ * letra en ese lugar, alguien editó el canto entretanto y no se marca a ciegas.
+ * No depende del tono, así que sirve igual en la misa con el tono fijado.
+ */
+export function huellaDeEstrofa(cifrado: string, indice: number): string | null {
+  const estrofa = estrofasDe(cifrado)[indice]
+  if (!estrofa) return null
+  const lineas = cifrado.split('\n').slice(estrofa.desde, estrofa.hasta + 1)
+  const primera = lineas.find((l) => !MARCA.test(l.trim())) ?? ''
+  return primera.replace(/\[[^\]\n]*\]/g, '').trim()
+}
+
 /** Qué cuerdas del coro cantan esa estrofa. El solista no es ninguna. */
 export function cuerdasQueCantan(canta: QuienCanta): CuerdaDelCoro[] {
   if (canta === 'todos') return [...CUERDAS_DEL_CORO]
@@ -65,6 +79,16 @@ export function cuerdasQueCantan(canta: QuienCanta): CuerdaDelCoro[] {
   if (canta === 'hombres') return ['tenor', 'bajo']
   if (canta === 'solista') return []
   return [canta]
+}
+
+/**
+ * ¿Se atenúa esta estrofa para quien canta `miCuerda`? (herramienta «Resaltar
+ * lo que canta mi cuerda»). Solo si está marcada y no le toca: una estrofa sin
+ * marcar, o alguien sin cuerda en su perfil, ve todo entero.
+ */
+export function atenuarParaMiCuerda(canta: QuienCanta | null, miCuerda: CuerdaDelCoro | null): boolean {
+  if (!canta || !miCuerda) return false
+  return !cuerdasQueCantan(canta).includes(miCuerda)
 }
 
 const NOMBRE: Record<QuienCanta, string> = {

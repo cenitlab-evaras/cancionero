@@ -21,6 +21,9 @@ import { EnlaceIcono, clasesBotonIcono } from '@/app/componentes/boton-icono'
 import ConmutadorTema from '@/app/componentes/conmutador-tema'
 import { IconoEditar, IconoVolver } from '@/app/componentes/iconos'
 import Cifrado from '@/app/componentes/cifrado'
+import DarTono from '@/app/componentes/dar-tono'
+import { herramientasDelCanto } from '@/lib/datos/herramientas'
+import { americanaALatina } from '@/lib/motores/notacion-latina'
 import CartaAcorde from '@/app/componentes/carta-acorde'
 import Controles from './controles'
 import SoloLetra from './solo-letra'
@@ -120,6 +123,13 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
     digitacion: buscarDigitacion(nombre, DIGITACIONES),
   }))
 
+  // Las «Herramientas» que prendió esta persona (2026-10-17). En Do-Re-Mi solo
+  // cambia lo que se LEE: los diagramas y la transposición siguen en americano.
+  const herramientas = await herramientasDelCanto(sesion, perfil.herramientas, canto.id)
+  const nombrar = (acorde: string) => (herramientas.latina ? americanaALatina(acorde) : acorde)
+  // Sin tonalidad declarada, el primer acorde: casi siempre es el tono.
+  const tonoParaDar = tonalidadActual ?? acordesDeCanto(cifradoEnPantalla)[0] ?? null
+
   return (
     <>
       {/* SIN cabecera global, a propósito (§DESIGN: «no hay a dónde navegar
@@ -171,11 +181,17 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
           {[
             canto.autor,
             canto.momentos.map((m) => m.nombre).join(', ') || null,
-            canto.tonalidadOriginal ? `original en ${canto.tonalidadOriginal}` : null,
+            canto.tonalidadOriginal ? `original en ${nombrar(canto.tonalidadOriginal)}` : null,
           ]
             .filter(Boolean)
             .join(' · ')}
         </p>
+
+        {herramientas.darTono && tonoParaDar && (
+          <div className="mt-3 px-4">
+            <DarTono tonalidad={tonoParaDar} etiqueta={nombrar(tonoParaDar)} />
+          </div>
+        )}
 
         {partitura && <PestanasCanto cantoId={canto.id} activa="cifrado" />}
 
@@ -184,7 +200,12 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
             izquierdos no coincidían. */}
         <div className="mt-5 px-4">
           <ZonaAcordes>
-            <Cifrado cifrado={cifradoEnPantalla} tamano={tamanoLetra} mostrarAcordes={mostrarAcordes} />
+            <Cifrado
+              cifrado={cifradoEnPantalla}
+              tamano={tamanoLetra}
+              mostrarAcordes={mostrarAcordes}
+              herramientas={herramientas}
+            />
           </ZonaAcordes>
         </div>
 
@@ -268,7 +289,7 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
             {diagramas.map((d, i) => (
               <CascaronCarta key={i} indice={i}>
                 {/* El SVG se dibuja en el SERVIDOR y baja pintado. */}
-                <CartaAcorde nombre={d.nombre} digitacion={d.digitacion} />
+                <CartaAcorde nombre={nombrar(d.nombre)} digitacion={d.digitacion} />
               </CascaronCarta>
             ))}
           </HojaDiagramas>
@@ -279,7 +300,7 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
           coroId={sesion.coroActivo!.id}
           transposicion={transposicion}
           tamanoLetra={tamanoLetra}
-          tonalidadActual={tonalidadActual}
+          tonalidadActual={tonalidadActual && nombrar(tonalidadActual)}
           mostrarAcordes={mostrarAcordes}
         />
       </div>

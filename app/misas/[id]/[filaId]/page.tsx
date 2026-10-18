@@ -13,6 +13,9 @@ import { buscarDigitacion } from '@/lib/motores/buscar-digitacion'
 import { DIGITACIONES } from '@/lib/motores/digitaciones'
 import Cabecera from '@/app/componentes/cabecera'
 import Cifrado from '@/app/componentes/cifrado'
+import DarTono from '@/app/componentes/dar-tono'
+import { herramientasDelCanto } from '@/lib/datos/herramientas'
+import { americanaALatina } from '@/lib/motores/notacion-latina'
 import CartaAcorde from '@/app/componentes/carta-acorde'
 import PantallaEncendida from '@/app/componentes/pantalla-encendida'
 import { EnlaceIcono, clasesBotonIcono } from '@/app/componentes/boton-icono'
@@ -109,6 +112,12 @@ export default async function EjecucionPage({
     digitacion: buscarDigitacion(nombre, DIGITACIONES),
   }))
 
+  // Las «Herramientas», igual que en la ficha del canto (2026-10-17). El tono
+  // que se da es el de ESTA misa: el que fijó el director, si lo fijó.
+  const herramientas = await herramientasDelCanto(sesion, perfil.herramientas, canto.id)
+  const nombrar = (acorde: string) => (herramientas.latina ? americanaALatina(acorde) : acorde)
+  const tonoParaDar = tonalidadActual ?? acordesDeCanto(cifradoEnPantalla)[0] ?? null
+
   return (
     <>
       <PantallaEncendida />
@@ -133,7 +142,7 @@ export default async function EjecucionPage({
             </h1>
             {(canto.autor || canto.tonalidadOriginal) && (
               <p className="mt-1 text-sm text-texto-tenue">
-                {[canto.autor, canto.tonalidadOriginal ? `original en ${canto.tonalidadOriginal}` : null]
+                {[canto.autor, canto.tonalidadOriginal ? `original en ${nombrar(canto.tonalidadOriginal)}` : null]
                   .filter(Boolean)
                   .join(' · ')}
               </p>
@@ -150,9 +159,20 @@ export default async function EjecucionPage({
             )}
           </div>
 
+          {herramientas.darTono && tonoParaDar && (
+            <div className="mt-3 px-4">
+              <DarTono tonalidad={tonoParaDar} etiqueta={nombrar(tonoParaDar)} />
+            </div>
+          )}
+
           <div className="mt-5 px-4">
             <ZonaAcordes>
-              <Cifrado cifrado={cifradoEnPantalla} tamano={tamanoLetra} mostrarAcordes={mostrarAcordes} />
+              <Cifrado
+                cifrado={cifradoEnPantalla}
+                tamano={tamanoLetra}
+                mostrarAcordes={mostrarAcordes}
+                herramientas={herramientas}
+              />
             </ZonaAcordes>
           </div>
 
@@ -166,7 +186,7 @@ export default async function EjecucionPage({
             <HojaDiagramas>
               {diagramas.map((d, i) => (
                 <CascaronCarta key={i} indice={i}>
-                  <CartaAcorde nombre={d.nombre} digitacion={d.digitacion} />
+                  <CartaAcorde nombre={nombrar(d.nombre)} digitacion={d.digitacion} />
                 </CascaronCarta>
               ))}
             </HojaDiagramas>
@@ -220,7 +240,7 @@ export default async function EjecucionPage({
             coroId={sesion.coroActivo!.id}
             transposicion={transposicion}
             tamanoLetra={tamanoLetra}
-            tonalidadActual={tonalidadActual}
+            tonalidadActual={tonalidadActual && nombrar(tonalidadActual)}
             mostrarAcordes={mostrarAcordes}
             misa={{
               misaId: misa.id,

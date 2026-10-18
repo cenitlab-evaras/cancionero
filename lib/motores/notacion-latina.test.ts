@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { esNotacionLatina, latinaAAmericana } from './notacion-latina'
+import { americanaALatina, esNotacionLatina, latinaAAmericana } from './notacion-latina'
 
 /**
  * H9 · docs/PRD.md §18-7.
@@ -112,5 +112,39 @@ describe('esNotacionLatina', () => {
   test('un texto vacío no es latina', () => {
     expect(esNotacionLatina('')).toBe(false)
     expect(esNotacionLatina('   ')).toBe(false)
+  })
+})
+
+/**
+ * Herramienta «Acordes en Do-Re-Mi» (2026-10-17): el sentido inverso, solo para
+ * MOSTRAR. Lo guardado sigue siendo americano; esto se aplica al pintar.
+ */
+describe('americanaALatina', () => {
+  test('las siete notas, con su sufijo intacto', () => {
+    expect(['C', 'D', 'E', 'F', 'G', 'A', 'B'].map(americanaALatina)).toEqual([
+      'Do', 'Re', 'Mi', 'Fa', 'Sol', 'La', 'Si',
+    ])
+    expect(americanaALatina('Am')).toBe('Lam')
+    expect(americanaALatina('F#m7')).toBe('Fa#m7')
+    expect(americanaALatina('Bb')).toBe('Sib')
+    expect(americanaALatina('Gmaj7')).toBe('Solmaj7')
+    expect(americanaALatina('Csus4')).toBe('Dosus4')
+  })
+
+  test('el bajo de un acorde con barra también', () => {
+    expect(americanaALatina('D/F#')).toBe('Re/Fa#')
+    expect(americanaALatina('A9/C#')).toBe('La9/Do#')
+  })
+
+  test('lo que no es acorde pasa intacto', () => {
+    expect(americanaALatina('')).toBe('')
+    expect(americanaALatina('N.C.')).toBe('N.C.')
+    expect(americanaALatina('x2')).toBe('x2')
+  })
+
+  test('ida y vuelta da lo mismo', () => {
+    for (const a of ['C', 'C#m', 'Ebmaj7', 'F#7', 'G/B', 'Bm7b5']) {
+      expect(latinaAAmericana(americanaALatina(a))).toBe(a)
+    }
   })
 })
