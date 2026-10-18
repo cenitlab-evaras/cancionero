@@ -95,6 +95,15 @@ export default function RepertorioOrdenable({
     [momentos]
   )
   const [listas, setListas] = useState<Listas>(delServidor)
+  // Cuando el servidor trae otro repertorio (después de guardar, o porque
+  // alguien más lo cambió), se arranca de lo guardado. Se sincroniza acá y no
+  // remontando la isla: remontar le quitaba el foco al asa a quien ordena con
+  // el teclado.
+  const [base, setBase] = useState(delServidor)
+  if (base !== delServidor) {
+    setBase(delServidor)
+    setListas(delServidor)
+  }
   const [activo, setActivo] = useState<string | null>(null)
   const [error, setError] = useState<{ codigo: string; texto: string } | null>(null)
   const [pendiente, startTransition] = useTransition()
@@ -267,7 +276,7 @@ export default function RepertorioOrdenable({
           <FilaCanto
             como="div"
             canto={levantado}
-            className="-mx-2 rounded-lg border-b-0 bg-superficie-alta px-2"
+            className="rounded-lg border-b-0 bg-superficie-alta shadow-[0_0_0_0.5rem_var(--color-superficie-alta)]"
             asa={<Asa titulo={levantado.titulo} agarrado />}
           />
         )}

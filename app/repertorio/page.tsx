@@ -139,13 +139,7 @@ export default async function RepertorioPage({
             numerados. No hay tarjetas — las filas continuas dejan que el ojo
             recorra la lista sin tropezar con un marco por canto. */}
         {ordenable ? (
-          // La isla se vuelve a montar cuando el servidor trae otro orden: así
-          // arranca de lo guardado y no de lo que quedó en pantalla.
-          <RepertorioOrdenable
-            key={momentos.map((m) => `${m.codigo}:${m.cantos.join(',')}`).join(';')}
-            momentos={momentos}
-            filas={filas}
-          />
+          <RepertorioOrdenable momentos={momentos} filas={filas} />
         ) : (
           momentos.map((m) => (
             <section key={m.codigo} className="pt-6">
