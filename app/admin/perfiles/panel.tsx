@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { aprobarPerfil, crearCoro } from '../../coro/acciones'
+import { aprobarPerfil, cambiarRolPerfil, crearCoro } from '../../coro/acciones'
 import type { CoroDeAdmin, PerfilConVinculo } from '@/lib/datos/gobierno'
 import TituloSeccion from '@/app/componentes/titulo-seccion'
 import { clasesBotonIcono } from '@/app/componentes/boton-icono'
@@ -89,8 +89,29 @@ export default function PanelAdmin({
                 {p.id === yoId && <span className="text-sm text-texto-tenue"> (tú)</span>}
               </span>
               <span className="block truncate text-sm text-texto-tenue">{p.email}</span>
-              <span className="block text-sm text-texto-tenue capitalize">{p.rol}</span>
+              {p.id === yoId || p.rol === 'externo' ? (
+                <span className="block text-sm text-texto-tenue capitalize">{p.rol}</span>
+              ) : null}
             </span>
+            {p.id !== yoId && p.rol !== 'externo' && (
+              <select
+                value={p.rol}
+                onChange={(e) =>
+                  correr(() =>
+                    cambiarRolPerfil({
+                      perfilId: p.id,
+                      rol: e.target.value as 'admin' | 'usuario',
+                    })
+                  )
+                }
+                disabled={pendiente}
+                aria-label={`Rol de ${nombreDe(p)}`}
+                className="tactil shrink-0 cursor-pointer rounded-lg border border-borde-fuerte bg-superficie px-2 text-sm text-texto disabled:cursor-default disabled:opacity-40"
+              >
+                <option value="usuario">Usuario</option>
+                <option value="admin">Admin</option>
+              </select>
+            )}
             {p.id !== yoId && (
               <button
                 type="button"
