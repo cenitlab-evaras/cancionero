@@ -13,7 +13,8 @@ cambiar por SQL.
 ## Alcance
 
 - La entrada de «Más» pasa de **«Administración»** a **«Usuarios»** (misma ruta
-  `/admin/perfiles`: no se rompen enlaces ni el PRD).
+  `/admin/perfiles`: no se rompen enlaces ni el PRD). El enlace a la misma
+  pantalla desde `/coros` también dice «Usuarios».
 - Título y metadata de la pantalla: «Usuarios».
 - Los habilitados ganan un **select de rol global** (`usuario` / `admin`) que
   guarda al cambiar. El propio admin no puede cambiarse el rol.
@@ -45,7 +46,8 @@ cambiar por SQL.
   Guardar por fila como el CRM.
 - Regla pura en `lib/motores/gobierno.ts` (`puedeCambiarRol`) con test: el
   admin no se cambia su propio rol.
-- Ícono nuevo `IconoUsuarios` (dos personas) para no repetir el de Miembros.
+- Ícono nuevo `IconoUsuarios` (una persona y su lista) para no repetir el de
+  Miembros.
 
 ## Verificación
 
