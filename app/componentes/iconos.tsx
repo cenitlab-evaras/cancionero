@@ -149,6 +149,15 @@ export const IconoMiembros = (p: Props) => (
   </Trazo>
 )
 
+/** Las cuentas de la instalación: una persona y su lista. */
+export const IconoUsuarios = (p: Props) => (
+  <Trazo {...p}>
+    <circle cx="8" cy="8" r="3.2" />
+    <path d="M2.5 19.5c.5-3.2 2.7-5.2 5.5-5.2s5 2 5.5 5.2" />
+    <path d="M15 7h6M15 11h6M15 15h4" />
+  </Trazo>
+)
+
 export const IconoPerfil = (p: Props) => (
   <Trazo {...p}>
     <circle cx="12" cy="8.5" r="4" />

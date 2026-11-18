@@ -5,7 +5,6 @@ import Cabecera from '@/app/componentes/cabecera'
 import BotonSalir from '@/app/componentes/boton-salir'
 import Opciones, { type Fila } from './opciones'
 import {
-  IconoAdmin,
   IconoArchivo,
   IconoCambiar,
   IconoHistorial,
@@ -13,6 +12,7 @@ import {
   IconoMiembros,
   IconoPerfil,
   IconoSugerencias,
+  IconoUsuarios,
   IconoRepertorio,
 } from '@/app/componentes/iconos'
 
@@ -80,7 +80,7 @@ export default async function MasPage() {
     coro.push({ href: '/repertorio/archivados', texto: 'Cantos archivados', icono: <IconoArchivo /> })
   }
   if (puede(s, 'aprobar_perfil')) {
-    coro.push({ href: '/admin/perfiles', texto: 'Administración', icono: <IconoAdmin /> })
+    coro.push({ href: '/admin/perfiles', texto: 'Usuarios', icono: <IconoUsuarios /> })
   }
 
   const cuenta: Fila[] = []

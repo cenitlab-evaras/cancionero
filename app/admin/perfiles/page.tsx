@@ -6,7 +6,7 @@ import { corosDeLaInstalacion, perfilesConVinculo } from '@/lib/datos/gobierno'
 import Cabecera from '@/app/componentes/cabecera'
 import PanelAdmin from './panel'
 
-export const metadata = { title: 'Administración · Cantoral' }
+export const metadata = { title: 'Usuarios · Cantoral' }
 
 /**
  * El portón, del lado de adentro (H7 · §8.4).
@@ -55,7 +55,10 @@ export default async function AdminPerfilesPage() {
 
       {/* Destino de primer nivel (se llega desde «Más»): sin flecha de volver. */}
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 pt-6 pb-10">
-        <h1 className="titulo-pantalla leading-tight">Administración</h1>
+        <h1 className="titulo-pantalla leading-tight">Usuarios</h1>
+        <p className="mt-2 max-w-prose text-sm text-texto-tenue">
+          Quién entra, con qué rol y a qué coro pertenece.
+        </p>
 
         <PanelAdmin perfiles={perfiles} coros={coros} yoId={sesion.usuarioId} />
       </main>

@@ -10,7 +10,7 @@ export const metadata = { title: 'Coros · Cantoral' }
  * Elegir el coro activo (PRD §18-3).
  *
  * Un admin ve todos los coros porque la RLS se lo permite, pero no pertenece a
- * ninguno: los gobierna desde Administración (H7). Eso se dice, no se disimula.
+ * ninguno: los gobierna desde Usuarios (H7). Eso se dice, no se disimula.
  */
 export default async function CorosPage() {
   const sesion = await obtenerSesion()
@@ -33,7 +33,7 @@ export default async function CorosPage() {
                   href="/admin/perfiles"
                   className="text-acento underline underline-offset-2"
                 >
-                  Administración
+                  Usuarios
                 </Link>
                 .
               </>

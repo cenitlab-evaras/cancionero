@@ -519,7 +519,7 @@ Cada uno con su motivo explícito; ninguno es una pantalla en blanco. Catálogo 
 | `/misas/[id]/editar` | asignar canto por momento y ordenar | director | sí | H6 |
 | `/historial` | el repertorio ordenado por uso, y el bloque de **nunca cantados** | miembro | no | H13 |
 | `/coro/miembros` | admitir miembros, cambiar `rol_local` | director | sí | H7 |
-| `/admin/perfiles` | aprobar perfiles, crear coros | admin | sí | H7 |
+| `/admin/perfiles` | usuarios (rol y aprobación) y coros | admin | sí | H7 |
 | `/repertorio/[cantoId]/ensayar` · `/repertorio/[cantoId]/partitura` · `/exportaciones` | el bloque de ensayo — ver §21.7 | miembro · director · director | — | H23–H26 |
 
 ---
