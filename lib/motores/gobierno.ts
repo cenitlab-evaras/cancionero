@@ -57,3 +57,17 @@ export function resumenDeMiembros<T extends PerfilDelCoro>(perfiles: T[]) {
     directores: enElCoro.filter((p) => p.rolLocal === 'director').length,
   }
 }
+
+/**
+ * ¿Puede este admin cambiar el rol global de esta cuenta?
+ *
+ * La única regla es la de no dejar la instalación sin administrador por un
+ * clic: nadie se cambia su propio rol. La RLS y la server action vuelven a
+ * decidir; esto solo convierte el rechazo en un mensaje.
+ */
+export function puedeCambiarRol(actorId: string, perfilId: string): Veredicto {
+  if (actorId === perfilId) {
+    return { ok: false, motivo: 'No puedes cambiarte tu propio rol.' }
+  }
+  return { ok: true }
+}

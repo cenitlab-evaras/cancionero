@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { puedeVincularse, resumenDeMiembros } from './gobierno'
+import { puedeCambiarRol, puedeVincularse, resumenDeMiembros } from './gobierno'
 
 /**
  * H7 · docs/PRD.md §8.4.
@@ -66,5 +66,17 @@ describe('resumenDeMiembros', () => {
 
   test('una lista vacía no rompe', () => {
     expect(resumenDeMiembros([])).toEqual({ enElCoro: [], disponibles: [], directores: 0 })
+  })
+})
+
+describe('puedeCambiarRol', () => {
+  test('otra persona: permitido', () => {
+    expect(puedeCambiarRol('admin-1', 'perfil-2')).toEqual({ ok: true })
+  })
+
+  test('a uno mismo: no, y dice por qué', () => {
+    const r = puedeCambiarRol('admin-1', 'admin-1')
+    expect(r.ok).toBe(false)
+    expect(r.ok === false && r.motivo).toMatch(/propio/i)
   })
 })
