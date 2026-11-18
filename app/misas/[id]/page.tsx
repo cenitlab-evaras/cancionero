@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import FilaCantoMisa from './fila-canto-misa'
 import { redirect } from 'next/navigation'
 import { obtenerSesion } from '@/lib/sesion'
 import { puede } from '@/lib/permisos'
@@ -52,7 +53,7 @@ export default async function MisaPage({
       <>
         <Cabecera sesion={sesion} />
         <main className="mx-auto w-full max-w-2xl px-4 pt-6 pb-10">
-          <h1 className="titulo-libro text-[1.75rem] leading-tight text-peligro">
+          <h1 className="titulo-pantalla leading-tight text-peligro">
             No tienes acceso a esta misa
           </h1>
           <p className="mt-2 max-w-prose text-sm text-texto-tenue">
@@ -70,6 +71,7 @@ export default async function MisaPage({
   }
 
   const puedeEditar = puede(sesion.sujeto, 'editar_misa')
+  const puedeQuitar = puede(sesion.sujeto, 'quitar_canto_misa')
   const puedeVerQuienVa = puede(sesion.sujeto, 'ver_inscripciones')
 
   // H15. Las fichas solo salen para quien puede leerlas (H14: su dueño y el
@@ -117,7 +119,7 @@ export default async function MisaPage({
           </EnlaceIcono>
         </div>
 
-        <h1 className="titulo-libro mt-1 text-[1.75rem] leading-tight text-balance">
+        <h1 className="titulo-pantalla mt-1 leading-tight text-balance">
           {misa.nombre}
         </h1>
         {/* La fecha no aparecía en ninguna parte del detalle: había que volver
@@ -156,24 +158,16 @@ export default async function MisaPage({
                 tonalidad sí va en ámbar: es un acorde. */}
             <ol className="mt-4 divide-y divide-borde border-t border-borde">
               {misa.cantos.map((c) => (
-                <li key={c.id}>
-                  <Link
-                    href={`/misas/${misa.id}/${c.id}`}
-                    className="-mx-2 flex min-h-14 items-center gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-superficie"
-                  >
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-base">{c.titulo}</span>
-                      <span className="block text-sm text-texto-tenue">{c.momentoNombre}</span>
-                    </span>
-                    {/* H27 · el tono en que va EN ESTA MISA, si el director
-                        lo fijó; si no, el original del cifrado. */}
-                    {tonalidadDeLaFila(c.tonalidadOriginal, c.tonoDeMisa) && (
-                      <span className="shrink-0 font-cifrado text-sm text-acorde">
-                        {tonalidadDeLaFila(c.tonalidadOriginal, c.tonoDeMisa)}
-                      </span>
-                    )}
-                  </Link>
-                </li>
+                // El director la desliza a la izquierda para quitarla.
+                <FilaCantoMisa
+                  key={c.id}
+                  misaId={misa.id}
+                  filaId={c.id}
+                  titulo={c.titulo}
+                  momento={c.momentoNombre}
+                  tono={tonalidadDeLaFila(c.tonalidadOriginal, c.tonoDeMisa)}
+                  puedeQuitar={puedeQuitar}
+                />
               ))}
             </ol>
 
@@ -292,7 +286,9 @@ export default async function MisaPage({
                 manda la inscripción. */}
             {faltan.length > 0 && (
               <div className="mt-6">
-                <TituloSeccion detalle={String(faltan.length)}>Faltan</TituloSeccion>
+                <TituloSeccion detalle={String(faltan.length)}>
+                  {faltan.length === 1 ? 'Falta' : 'Faltan'}
+                </TituloSeccion>
                 <ul className="mt-2 divide-y divide-borde border-t border-borde">
                   {faltan.map((f) => (
                     <li key={f.perfilId} className="flex min-h-11 items-center gap-3 py-1.5">

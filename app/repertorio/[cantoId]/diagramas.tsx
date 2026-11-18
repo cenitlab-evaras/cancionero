@@ -8,10 +8,13 @@ import {
   useMemo,
   useRef,
   useState,
+  useTransition,
   type ReactNode,
 } from 'react'
+import { useRouter } from 'next/navigation'
 import { BotonIcono } from '@/app/componentes/boton-icono'
 import { IconoCerrar } from '@/app/componentes/iconos'
+import { corregirAcorde } from './acciones'
 
 /**
  * La parte de cliente de H5, y nada más que eso.
@@ -93,18 +96,168 @@ export function useDiagramas() {
  * Server Component y los acordes siguen siendo `<button>` de verdad, así que el
  * teclado funciona sin una línea extra.
  */
-export function ZonaAcordes({ children }: { children: ReactNode }) {
+/**
+ * La zona del cifrado: abre los diagramas al TOCAR un acorde y, para el
+ * director, deja ARRASTRARLO a otra columna de la letra (2026-11-17).
+ *
+ * El arrastre no inventa un gesto nuevo: el toque sigue abriendo la hoja. Si el
+ * puntero se mueve más de 8 px en horizontal, el toque se convierte en
+ * arrastre: el acorde se mueve pegado a la rejilla monoespaciada y una guía
+ * marca la columna donde va a caer. Al soltar se guarda UNA vez, con la misma
+ * action de «Corregir» (validación, vista sin cambios y versión en el historial).
+ *
+ * El camino accesible no cambia: tocar → «Corregir este acorde» → flechas.
+ */
+export function ZonaAcordes({
+  children,
+  arrastre,
+}: {
+  children: ReactNode
+  /** Solo el director (`editar_canto`): la vista del cifrado y su tono. */
+  arrastre?: { cantoId: string; vista: string; transposicion: number }
+}) {
   const { abrirEn } = useDiagramas()
+  const router = useRouter()
+  const [, iniciar] = useTransition()
+  const [error, setError] = useState<string | null>(null)
+  /** Hasta cuándo ignorar el clic: soltar un arrastre no debe abrir la hoja. */
+  const arrastroReciente = useRef(0)
+  const gesto = useRef<{
+    btn: HTMLButtonElement
+    linea: HTMLElement
+    indice: number
+    col0: number
+    min: number
+    max: number
+    x0: number
+    y0: number
+    activo: boolean
+    destino: number
+    charW: number
+    guia: HTMLElement | null
+    pointerId: number
+  } | null>(null)
+
+  function terminar() {
+    const g = gesto.current
+    if (!g) return null
+    gesto.current = null
+    g.guia?.remove()
+    g.linea.style.position = ''
+    g.btn.style.transform = ''
+    g.btn.style.backgroundColor = ''
+    g.btn.style.borderRadius = ''
+    return g
+  }
 
   return (
     <div
+      className={arrastre ? 'con-arrastre' : ''}
+      onPointerDown={(e) => {
+        if (!arrastre || e.button !== 0) return
+        const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-acorde]')
+        const linea = btn?.closest<HTMLElement>('[data-linea-cifrado]')
+        if (!btn || !linea) return
+        const col0 = Number(btn.dataset.columna)
+        if (!Number.isFinite(col0)) return
+        // Los vecinos de la MISMA línea ponen los topes: un acorde no atraviesa
+        // a otro; se queda en la columna de al lado.
+        const cols = [...linea.querySelectorAll<HTMLButtonElement>('[data-acorde]')].map((b) =>
+          Number(b.dataset.columna)
+        )
+        const izquierda = cols.filter((c) => c < col0)
+        const derecha = cols.filter((c) => c > col0)
+        const letra = linea.querySelector<HTMLElement>('[data-letra]')
+        const min = (izquierda.length ? Math.max(...izquierda) : -1) + 1
+        const max = Math.min(
+          derecha.length ? Math.min(...derecha) - 1 : Number.POSITIVE_INFINITY,
+          letra?.textContent?.length ?? col0
+        )
+        if (max < min) return
+        const raiz = btn.closest<HTMLElement>('.cifrado')
+        const charW = (Number.parseFloat(getComputedStyle(raiz ?? btn).fontSize) || 16) * 0.615
+        gesto.current = {
+          btn,
+          linea,
+          indice: Number(btn.dataset.indice),
+          col0,
+          min,
+          max,
+          x0: e.clientX,
+          y0: e.clientY,
+          activo: false,
+          destino: col0,
+          charW,
+          guia: null,
+          pointerId: e.pointerId,
+        }
+        btn.setPointerCapture(e.pointerId)
+      }}
+      onPointerMove={(e) => {
+        const g = gesto.current
+        if (!g || e.pointerId !== g.pointerId) return
+        const dx = e.clientX - g.x0
+        const dy = e.clientY - g.y0
+        if (!g.activo) {
+          // Vertical gana el navegador (leer); horizontal, nosotros (mover).
+          if (Math.abs(dx) < 8 || Math.abs(dx) <= Math.abs(dy)) return
+          g.activo = true
+          g.linea.style.position = 'relative'
+          g.guia = document.createElement('span')
+          Object.assign(g.guia.style, {
+            position: 'absolute',
+            top: '0',
+            bottom: '0',
+            width: '2px',
+            borderRadius: '1px',
+            background: 'var(--color-acorde)',
+            opacity: '0.85',
+            pointerEvents: 'none',
+          })
+          g.linea.appendChild(g.guia)
+          g.btn.style.backgroundColor = 'var(--color-superficie-alta)'
+          g.btn.style.borderRadius = '3px'
+        }
+        const pasos = Math.round(dx / g.charW)
+        g.destino = Math.max(g.min, Math.min(g.max, g.col0 + pasos))
+        g.btn.style.transform = `translateX(${(g.destino - g.col0) * g.charW}px)`
+        if (g.guia) g.guia.style.left = `${g.destino * g.charW}px`
+      }}
+      onPointerUp={(e) => {
+        const actual = gesto.current
+        if (!actual || e.pointerId !== actual.pointerId) return
+        const g = terminar()
+        if (!g) return
+        if (!g.activo) return // fue un toque: el clic sigue su camino
+        arrastroReciente.current = Date.now()
+        if (g.destino === g.col0 || !arrastre) return
+        iniciar(async () => {
+          const r = await corregirAcorde({
+            cantoId: arrastre.cantoId,
+            transposicion: arrastre.transposicion,
+            vista: arrastre.vista,
+            correccion: { tipo: 'mover', indice: g.indice, columna: g.destino },
+          })
+          setError(r.ok ? null : r.error)
+          router.refresh()
+        })
+      }}
+      onPointerCancel={() => {
+        terminar()
+      }}
       onClick={(e) => {
+        if (Date.now() - arrastroReciente.current < 500) return
         const boton = (e.target as HTMLElement).closest<HTMLElement>('[data-acorde]')
         if (!boton?.dataset.acorde) return
         const indice = Number(boton.dataset.indice)
         abrirEn(boton.dataset.acorde, Number.isInteger(indice) ? indice : undefined)
       }}
     >
+      {error && (
+        <p role="status" className="mb-2 text-sm text-peligro">
+          {error}
+        </p>
+      )}
       {children}
     </div>
   )

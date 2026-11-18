@@ -145,3 +145,40 @@ describe('pareceAcordesSobreLetra', () => {
     expect(pareceAcordesSobreLetra('')).toBe(false)
   })
 })
+
+describe('desdeElCancionero · restos del cancionero (2026-11-18)', () => {
+  // El libro envuelve las intros entre paréntesis que ABARCAN DOS LÍNEAS, numera
+  // variantes con «1)», y algunas líneas mezclan barras de repetición. Todo eso
+  // quedaba como texto plano en el repertorio (el QA encontró ~84 cantos así).
+  test('la intro entre paréntesis en dos líneas queda como líneas de acordes, sin fundirse', () => {
+    const texto = '(SOL RE/FA# mim mim/re\nDO SOL/SI lam7 RE)\nY ven todo es fiesta'
+    expect(desdeElCancionero(texto)).toBe(
+      '[G] [D/F#] [Em] [Em/D]\n[C] [G/B] [Am7] [D]\nY ven todo es fiesta'
+    )
+  })
+
+  test('una anotación «1)» no impide reconocer la línea; la línea queda sola (intro)', () => {
+    // Al dropear «1)» las columnas dejan de ser las del verso: fundirlas pondría
+    // los acordes dentro de las palabras. Se leen como intro, y el verso queda.
+    expect(desdeElCancionero('1) FA SOL DO mim lam\nCantamos al Señor')).toBe(
+      '[F] [G] [C] [Em] [Am]\nCantamos al Señor'
+    )
+  })
+
+  test('las barras de repetición se ignoran', () => {
+    expect(desdeElCancionero('|: LA RE | MI LA :|\nAbre tu jardín')).toBe(
+      '[A] [D] [E] [A]\nAbre tu jardín'
+    )
+  })
+
+  test('los sufijos del libro (7+, m7, /bajo) se convierten conservando la columna', () => {
+    expect(desdeElCancionero('DO7+ RE/DO SOL\nGracias Señor')).toBe(
+      '[C7+]Graci[D/C]as Señ[G]or'
+    )
+  })
+
+  test('la letra que empieza con sílabas de nota NO se toma por acordes', () => {
+    expect(desdeElCancionero('las mis')).toBe('las mis')
+    expect(desdeElCancionero('respiro la aurora')).toBe('respiro la aurora')
+  })
+})

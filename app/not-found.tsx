@@ -13,7 +13,7 @@ export const metadata = { title: 'Página no encontrada · Cantoral' }
 export default function NoEncontrada() {
   return (
     <main className="mx-auto w-full max-w-2xl px-4 pt-10 pb-10">
-      <h1 className="titulo-libro text-[1.75rem] leading-tight">Esta página no existe</h1>
+      <h1 className="titulo-pantalla leading-tight">Esta página no existe</h1>
       <p className="mt-2 max-w-prose text-base text-texto-tenue">
         Puede que el enlace esté incompleto o que lo que buscabas ya no esté.
       </p>

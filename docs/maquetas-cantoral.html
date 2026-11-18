@@ -1,0 +1,465 @@
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Maquetas de Cantoral</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+  /* ── El lienzo (la página alrededor de las maquetas) ─────────────── */
+  :root {
+    --bg: #0C0A08;
+    --fg: #F0E8DA;
+    --muted: #A89B87;
+    --surface: #17130E;
+    --border: #2A231B;
+    --accent: #E4B85A;
+    --phone-edge: #3A3027;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #F2ECE0; --fg: #2A2218; --muted: #6B5E4C;
+      --surface: #FBF7EE; --border: #DDD2BF; --accent: #8A6A1C; --phone-edge: #C9BCA5;
+      color-scheme: light;
+    }
+  }
+  :root[data-theme="dark"] { --bg:#0C0A08; --fg:#F0E8DA; --muted:#A89B87; --surface:#17130E; --border:#2A231B; --accent:#E4B85A; --phone-edge:#3A3027; color-scheme: dark; }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'Atkinson Hyperlegible', system-ui, -apple-system, sans-serif;
+    line-height: 1.5;
+  }
+  .lienzo {
+    padding-left: max(20px, env(safe-area-inset-left, 0px));
+    padding-right: max(20px, env(safe-area-inset-right, 0px));
+    padding-block: 28px 56px;
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+  a { color: var(--accent); }
+
+  header.encabezado { max-width: 34em; }
+  header.encabezado h1 {
+    font-family: 'Source Serif 4', Georgia, serif;
+    font-size: clamp(1.9rem, 4vw, 2.7rem);
+    font-weight: 600; letter-spacing: -0.01em;
+    line-height: 1.1; margin: 0; text-wrap: balance;
+  }
+  header.encabezado p.lead { color: var(--muted); margin: 12px 0 0; max-width: 32em; }
+  .legenda { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .legenda span { font-size: .8rem; color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; }
+  .legenda b { color: var(--fg); font-weight: 700; }
+
+  /* ── Cada opción ─────────────────────────────────────────────────── */
+  .opcion {
+    margin-top: 44px;
+    border-top: 1px solid var(--border);
+    padding-top: 24px;
+  }
+  .opcion .cab {
+    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+  }
+  .opcion .num {
+    font-family: 'Source Serif 4', Georgia, serif;
+    color: var(--accent); font-size: 1rem; font-weight: 600;
+  }
+  .opcion h2 { margin: 0; font-family: 'Source Serif 4', Georgia, serif; font-size: 1.5rem; font-weight: 600; letter-spacing: -0.01em; }
+  .opcion .tesis { color: var(--muted); margin: 6px 0 0; max-width: 40em; }
+  .opcion .cuando { margin: 6px 0 0; font-size: .9rem; color: var(--muted); }
+  .opcion .cuando b { color: var(--fg); }
+
+  .telefonos { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 18px; }
+  .tel { flex: 0 1 auto; }
+  .tel .pie { font-size: .78rem; color: var(--muted); margin-top: 8px; text-align: center; }
+
+  /* ── Marco de teléfono ───────────────────────────────────────────── */
+  .phone {
+    width: 360px; height: 690px;
+    border: 1px solid var(--phone-edge);
+    border-radius: 36px;
+    overflow: hidden;
+    background: #000;
+    box-shadow: 0 12px 40px rgba(0,0,0,.35);
+    position: relative;
+  }
+  .phone .pantalla { position: absolute; inset: 0; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* piezas comunes de pantalla */
+  .p-header { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--m-borde); flex: 0 0 auto; }
+  .p-logo { width: 30px; height: 30px; border-radius: 50%; flex: 0 0 auto;
+    background: radial-gradient(circle at 50% 40%, var(--m-acento) 0 40%, var(--m-fondo) 42%);
+    border: 1px solid var(--m-borde); }
+  .p-coro { font-weight: 700; font-size: .95rem; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .p-chip { font-size: .75rem; border: 1px solid var(--m-borde-fuerte); color: var(--m-tenue); border-radius: 999px; padding: 4px 10px; }
+  .p-main { flex: 1 1 auto; overflow: hidden; padding: 0 16px; }
+  .p-cuerpo { height: 100%; overflow: hidden; }
+
+  .titulo-seccion { font-size: .8rem; font-weight: 700; color: var(--m-tenue); }
+  .titulo-seccion em { font-style: normal; color: var(--m-acento); }
+
+  .cifrado { font-family: var(--m-cifrado); line-height: 1.5; }
+  .cifrado .ac { color: var(--m-acorde); font-weight: 600; white-space: pre; font-size: .92em; }
+  .cifrado .lx { color: var(--m-texto); white-space: pre; }
+
+  .p-nav { flex: 0 0 auto; border-top: 1px solid var(--m-borde); display: flex; padding: 6px 0 14px; }
+  .p-nav a { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; text-decoration: none; font-size: .74rem; color: var(--m-tenue); position: relative; }
+  .p-nav a.activo { color: var(--m-acento); font-weight: 700; }
+  .p-nav a.activo::before { content: ''; position: absolute; top: -7px; width: 26px; height: 3px; border-radius: 0 0 4px 4px; background: var(--m-acento); }
+  .p-nav svg { width: 20px; height: 20px; }
+
+  /* controles de lectura */
+  .p-controles { flex: 0 0 auto; border-top: 1px solid var(--m-borde); padding: 10px 12px 16px; display: flex; align-items: center; gap: 8px; background: var(--m-fondo); }
+  .bt { border: 1px solid var(--m-borde-fuerte); border-radius: 10px; min-width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; color: var(--m-texto); font-size: .9rem; }
+  .bt.tonalidad { flex: 1; display: flex; flex-direction: column; line-height: 1.05; border: none; }
+  .bt.tonalidad .n { font-family: var(--m-cifrado); color: var(--m-acorde); font-weight: 700; font-size: 1.05rem; }
+  .bt.tonalidad .s { font-size: .7rem; color: var(--m-tenue); }
+
+  /* ── Direcciones: cada una redefine la paleta de pantalla ───────── */
+  .d1 { --m-fondo:#15110D; --m-superficie:#221B15; --m-sup-alta:#2D241C; --m-borde:#3A3027; --m-borde-fuerte:#7A6A58;
+        --m-texto:#F0E8DA; --m-tenue:#B3A594; --m-acorde:#FF9D3D; --m-acento:#E4B85A; --m-peligro:#E5674F; --m-exito:#6FBF73;
+        --m-titulo:'Source Serif 4', Georgia, serif; --m-interfaz:'Atkinson Hyperlegible', sans-serif; --m-cifrado:'JetBrains Mono', monospace; }
+  .d2 { --m-fondo:#16130F; --m-superficie:#201A14; --m-sup-alta:#2A221B; --m-borde:#342C23; --m-borde-fuerte:#7A6A58;
+        --m-texto:#F2EADC; --m-tenue:#B3A594; --m-acorde:#FF9D3D; --m-acento:#E4B85A; --m-peligro:#E5674F; --m-exito:#6FBF73;
+        --m-titulo:'Source Serif 4', Georgia, serif; --m-interfaz:'Atkinson Hyperlegible', sans-serif; --m-cifrado:'JetBrains Mono', monospace; }
+  .d3 { --m-fondo:#FAF6EE; --m-superficie:#F1E9D9; --m-sup-alta:#E9DFC9; --m-borde:#E0D4BC; --m-borde-fuerte:#A08A5C;
+        --m-texto:#3B2E1B; --m-tenue:#6E4F22; --m-acorde:#B23A2A; --m-acento:#7F5D0E; --m-peligro:#B3361F; --m-exito:#2A7030;
+        --m-titulo:'Source Serif 4', Georgia, serif; --m-interfaz:'Atkinson Hyperlegible', sans-serif; --m-cifrado:'JetBrains Mono', monospace; }
+  .d4 { --m-fondo:#0B0907; --m-superficie:#0F0C09; --m-sup-alta:#14110C; --m-borde:#231D15; --m-borde-fuerte:#6E5F4B;
+        --m-texto:#F5EFE4; --m-tenue:#B3A594; --m-acorde:#FF9D3D; --m-acento:#E4B85A; --m-peligro:#E5674F; --m-exito:#6FBF73;
+        --m-titulo:'Source Serif 4', Georgia, serif; --m-interfaz:'Atkinson Hyperlegible', sans-serif; --m-cifrado:'JetBrains Mono', monospace; }
+  .d5 { --m-fondo:#15110D; --m-superficie:#221B15; --m-sup-alta:#2D241C; --m-borde:#3A3027; --m-borde-fuerte:#7A6A58;
+        --m-texto:#F0E8DA; --m-tenue:#B3A594; --m-acorde:#FF9D3D; --m-acento:#E4B85A; --m-peligro:#E5674F; --m-exito:#6FBF73;
+        --m-titulo:'Source Serif 4', Georgia, serif; --m-interfaz:'Atkinson Hyperlegible', sans-serif; --m-cifrado:'JetBrains Mono', monospace; }
+
+  .phone { background: var(--m-fondo); color: var(--m-texto); font-family: var(--m-interfaz); }
+
+  /* Ajustes por dirección */
+  .d1 .halo { background: radial-gradient(120% 80% at 50% 0%, color-mix(in oklab, var(--m-acento) 18%, transparent), transparent 70%); }
+  .d3 .halo { background: radial-gradient(120% 80% at 50% 0%, color-mix(in oklab, var(--m-acento) 16%, transparent), transparent 70%); }
+  .d3 .p-logo { background: radial-gradient(circle at 50% 40%, #E4B85A 0 40%, #7F5D0E 42%); border-color:#C9A94E; }
+  .d4 .halo { background: transparent; }
+
+  /* proyección: todo grande */
+  .d4 .p-titulo-lectura { font-size: 1.6rem; }
+  .d4 .cifrado { font-size: 1.5rem; }
+  .d4 .p-controles .bt { height: 52px; min-width: 52px; font-size: 1.2rem; }
+  .d4 .p-nav { display: none; }
+
+  /* libro impreso: serif en títulos de sección, números de canto */
+  .d3 .titulo-seccion { font-family: 'Source Serif 4', serif; letter-spacing: .03em; font-weight: 600; }
+  .d3 .p-numero { font-family: 'Source Serif 4', serif; color: var(--m-acento); font-weight: 600; }
+
+  .etiqueta-estrofa { font-family: var(--m-interfaz); font-size: .7rem; font-weight: 700; color: var(--m-tenue); letter-spacing: .06em; text-transform: uppercase; margin: 10px 0 2px; }
+  .d3 .etiqueta-estrofa { text-transform: none; font-variant: small-caps; letter-spacing: .04em; }
+
+  .banda-meta { display: flex; gap: 8px; flex-wrap: wrap; font-size: .72rem; color: var(--m-tenue); border-top: 1px solid var(--m-borde); border-bottom: 1px solid var(--m-borde); padding: 8px 0; margin: 8px 0; }
+  .banda-meta b { color: var(--m-texto); font-weight: 700; }
+
+  .hoja-acordes { border: 1px solid var(--m-borde); border-radius: 10px; padding: 8px; display: flex; gap: 4px; flex-wrap: wrap; background: var(--m-superficie); }
+  .hoja-acordes .mini { width: 26px; height: 30px; border-radius: 4px; border: 1px solid var(--m-borde-fuerte); display: flex; align-items: flex-end; justify-content: center; font-size: .7rem; color: var(--m-acorde); font-family: var(--m-cifrado); padding-bottom: 3px; }
+</style>
+
+<div class="lienzo">
+  <header class="encabezado">
+    <h1>Cinco maquetas para Cantoral</h1>
+    <p class="lead">Cada opción muestra dos pantallas —el Inicio con su barra de navegación, y la lectura— para que elijas una dirección como sistema completo. El contenido es el mismo en las cinco: solo cambia el diseño.</p>
+    <div class="legenda">
+      <span><b>Coro San José</b> · Director</span>
+      <span>Misa del domingo · 23 de noviembre</span>
+      <span>Canto: «El Señor es mi fortaleza»</span>
+    </div>
+  </header>
+
+  <!-- 1 · A sangre -->
+  <section class="opcion d1">
+    <div class="cab"><span class="num">1</span><h2>A sangre</h2></div>
+    <p class="tesis">El cifrado sin marco, el fondo es el papel y el ámbar es solo del acorde. Máximo ancho de lectura; la identidad vive en la tipografía.</p>
+    <p class="cuando"><b>Elegila si</b> querés pulir lo que ya está, sin reestructurar nada.</p>
+    <div class="telefonos">
+      <figure class="tel">
+        <div class="phone">
+          <div class="pantalla">
+            <div class="p-header"><span class="p-logo"></span><span class="p-coro">Coro San José</span><span class="p-chip">Director</span></div>
+            <div class="p-main"><div class="p-cuerpo">
+              <div class="halo" style="margin:0 -16px;padding:16px;">
+                <div style="display:flex;gap:12px;align-items:center;">
+                  <svg width="60" height="60" viewBox="0 0 60 60" style="transform:rotate(-90deg);flex:0 0 auto"><circle cx="30" cy="30" r="25" fill="none" stroke="var(--m-borde)" stroke-width="6"/><circle cx="30" cy="30" r="25" fill="none" stroke="var(--m-acento)" stroke-width="6" stroke-linecap="round" stroke-dasharray="113 157"/></svg>
+                  <div><div style="font-size:.82rem;font-weight:700;color:var(--m-acento)">en 6 días <span style="color:var(--m-tenue);font-weight:400">· 23 de noviembre</span></div><div style="font-family:var(--m-titulo);font-size:1.5rem;font-weight:600;line-height:1.1">Misa del domingo</div><div style="font-size:.82rem;color:var(--m-tenue)">Lista en un 72&nbsp;%</div></div>
+                </div>
+              </div>
+              <div class="titulo-seccion" style="margin-top:14px">Voces que van <em>· 11 de 20</em></div>
+              <div style="display:flex;height:10px;border-radius:99px;overflow:hidden;background:var(--m-sup-alta);margin-top:6px"><span style="width:45%;background:#c2457a"></span><span style="width:27%;background:#b3202f"></span><span style="width:18%;background:#3f7fb5"></span><span style="width:10%;background:#2f6fae"></span></div>
+              <div style="font-size:.75rem;color:var(--m-tenue);margin-top:5px">Soprano 5 · Contralto 3 · Tenor 2 · Bajo 1</div>
+              <div class="titulo-seccion" style="margin-top:14px">Para que quede lista</div>
+              <div style="font-size:.9rem;margin-top:4px">
+                <div style="display:flex;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--m-borde)"><span style="background:color-mix(in oklab, var(--m-exito) 18%, transparent);color:var(--m-exito);border-radius:99px;padding:4px 10px;font-weight:700">✓ 8</span>cantos elegidos</div>
+                <div style="display:flex;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--m-borde)"><span style="background:color-mix(in oklab, var(--m-exito) 18%, transparent);color:var(--m-exito);border-radius:99px;padding:4px 10px;font-weight:700">✓ 8/8</span>tonos fijados</div>
+                <div style="display:flex;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--m-borde)"><span style="background:color-mix(in oklab, var(--m-peligro) 18%, transparent);color:var(--m-peligro);border-radius:99px;padding:4px 10px;font-weight:700">2</span>no han dicho si van</div>
+              </div>
+            </div></div>
+            <nav class="p-nav"><a class="activo" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>Inicio</a><a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>Repertorio</a><a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>Misa</a><a href="#"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>Más</a></nav>
+          </div>
+        </div>
+        <figcaption class="pie">Inicio · barra de navegación</figcaption>
+      </figure>
+
+      <figure class="tel">
+        <div class="phone">
+          <div class="pantalla">
+            <div class="p-header"><span style="font-size:1.1rem;color:var(--m-tenue)">←</span><span style="font-family:var(--m-titulo);font-weight:600;font-size:1.15rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">El Señor es mi fortaleza</span><span style="font-size:.8rem;color:var(--m-tenue)">Aa</span><span style="font-size:.8rem">☾</span><span style="font-size:.9rem;color:var(--m-acento)">✎</span></div>
+            <div class="p-main"><div class="p-cuerpo" style="padding-top:8px">
+              <div style="font-size:.78rem;color:var(--m-tenue)"><span style="border:1px solid var(--m-borde-fuerte);border-radius:4px;padding:0 6px;font-weight:700;color:var(--m-texto)">En ensayo</span> · Taizé · Comunión · original en Re &nbsp;<span style="color:var(--m-acento)">♪ Re</span></div>
+              <div class="cifrado" style="margin-top:16px">
+                <div class="ac">        Re        La        Sim</div><div class="lx">Cantando la alegría de vivir,</div>
+                <div class="ac">         Sol        Re        La</div><div class="lx">lleguemos a la casa del Señor.</div>
+                <div class="ac">        Re        La        Sim</div><div class="lx">Caminando juntos como hermanos</div>
+                <div class="ac">        Sol          La       Re</div><div class="lx">vamos a tu altar, oh Padre bueno.</div>
+              </div>
+            </div></div>
+            <div class="p-controles">
+              <span class="bt">▶</span>
+              <span class="bt">−</span>
+              <span class="bt tonalidad"><span class="n">Re</span><span class="s">original</span></span>
+              <span class="bt">＋</span>
+              <span class="bt" style="font-weight:700">A</span>
+              <span class="bt" style="font-size:1.1rem;font-weight:700">A</span>
+            </div>
+          </div>
+        </div>
+        <figcaption class="pie">Lectura · controles</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- 2 · Cantero UG -->
+  <section class="opcion d2">
+    <div class="cab"><span class="num">2</span><h2>Cantero UG</h2></div>
+    <p class="tesis">Tomar de Ultimate Guitar la estructura explícita: rótulos de sección, franja de metadatos y la hoja de acordes siempre a la vista. Más <i>herramienta</i>, menos <i>libro</i>.</p>
+    <p class="cuando"><b>Elegila si</b> querés que el que lee sepa siempre en qué sección está y qué acordes vienen.</p>
+    <div class="telefonos">
+      <figure class="tel">
+        <div class="phone">
+          <div class="pantalla">
+            <div class="p-header"><span class="p-logo"></span><span class="p-coro">Coro San José</span><span class="p-chip">Director</span></div>
+            <div class="p-main"><div class="p-cuerpo">
+              <div style="background:var(--m-superficie);border:1px solid var(--m-borde);border-radius:12px;padding:14px;margin-top:12px">
+                <div style="font-size:.8rem;font-weight:700;color:var(--m-acento)">en 6 días · 23 de noviembre</div>
+                <div style="font-family:var(--m-titulo);font-size:1.4rem;font-weight:600;line-height:1.1;margin-top:2px">Misa del domingo</div>
+                <div style="display:flex;gap:8px;margin-top:10px;font-size:.82rem">
+                  <span style="background:color-mix(in oklab, var(--m-acento) 16%, transparent);color:var(--m-acento);border-radius:6px;padding:4px 10px">72&nbsp;% lista</span>
+                  <span style="color:var(--m-tenue)">11 de 20 van</span>
+                </div>
+              </div>
+              <div class="titulo-seccion" style="margin-top:14px">Voces que van</div>
+              <div style="display:flex;height:10px;border-radius:99px;overflow:hidden;background:var(--m-sup-alta);margin-top:6px"><span style="width:45%;background:#c2457a"></span><span style="width:27%;background:#b3202f"></span><span style="width:18%;background:#3f7fb5"></span><span style="width:10%;background:#2f6fae"></span></div>
+              <div class="titulo-seccion" style="margin-top:14px">Para que quede lista</div>
+              <div style="margin-top:4px">
+                <div style="display:flex;gap:8px;align-items:center;padding:8px;border:1px solid var(--m-borde);border-radius:8px;margin-bottom:6px;font-size:.85rem"><span style="color:var(--m-exito)">✓</span> 8 cantos elegidos</div>
+                <div style="display:flex;gap:8px;align-items:center;padding:8px;border:1px solid var(--m-borde);border-radius:8px;margin-bottom:6px;font-size:.85rem"><span style="color:var(--m-exito)">✓</span> 8/8 tonos fijados</div>
+                <div style="display:flex;gap:8px;align-items:center;padding:8px;border:1px solid var(--m-borde);border-radius:8px;font-size:.85rem"><span style="color:var(--m-peligro)">2</span> no han dicho si van</div>
+              </div>
+            </div></div>
+            <nav class="p-nav"><a class="activo" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>Inicio</a><a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>Repertorio</a><a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>Misa</a><a href="#"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>Más</a></nav>
+          </div>
+        </div>
+        <figcaption class="pie">Inicio · tarjetas</figcaption>
+      </figure>
+
+      <figure class="tel">
+        <div class="phone">
+          <div class="pantalla">
+            <div class="p-header"><span style="font-size:1.1rem;color:var(--m-tenue)">←</span><span style="font-family:var(--m-titulo);font-weight:600;font-size:1.15rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">El Señor es mi fortaleza</span><span style="font-size:.8rem;color:var(--m-tenue)">Aa</span><span style="font-size:.8rem">☾</span><span style="font-size:.9rem;color:var(--m-acento)">✎</span></div>
+            <div class="p-main"><div class="p-cuerpo" style="padding-top:6px">
+              <div class="banda-meta"><span>Tono <b>Re</b></span><span>Clave <b>4/4</b></span><span>♩ <b>62</b></span><span>Capo <b>—</b></span></div>
+              <div class="cifrado" style="margin-top:4px">
+                <div class="etiqueta-estrofa">Estrofa</div>
+                <div class="ac">        Re        La        Sim</div><div class="lx">Cantando la alegría de vivir,</div>
+                <div class="ac">         Sol        Re        La</div><div class="lx">lleguemos a la casa del Señor.</div>
+                <div class="etiqueta-estrofa">Estribillo</div>
+                <div class="ac">        Re        La        Sim</div><div class="lx">Caminando juntos como hermanos</div>
+                <div class="ac">        Sol          La       Re</div><div class="lx">vamos a tu altar, oh Padre bueno.</div>
+              </div>
+              <div class="hoja-acordes" style="margin-top:10px"><span class="mini">Re</span><span class="mini">La</span><span class="mini">Sim</span><span class="mini">Sol</span><span class="mini">Fa#</span></div>
+            </div></div>
+            <div class="p-controles">
+              <span class="bt">▶</span>
+              <span class="bt">−</span>
+              <span class="bt tonalidad"><span class="n">Re</span><span class="s">original</span></span>
+              <span class="bt">＋</span>
+              <span class="bt" style="font-weight:700">A</span>
+              <span class="bt" style="font-size:1.1rem;font-weight:700">A</span>
+            </div>
+          </div>
+        </div>
+        <figcaption class="pie">Lectura · secciones y hoja de acordes</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- 3 · Libro impreso -->
+  <section class="opcion d3">
+    <div class="cab"><span class="num">3</span><h2>Libro impreso</h2></div>
+    <p class="tesis">Ir a fondo con el cancionero: papel, tinta café, serif dominante, cantos numerados y rúbricas sobrias. La app se siente como el cuadernillo del coro.</p>
+    <p class="cuando"><b>Elegila si</b> querés que Cantoral se lea como el libro que reemplaza.</p>
+    <div class="telefonos">
+      <figure class="tel">
+        <div class="phone">
+          <div class="pantalla">
+            <div class="p-header"><span class="p-logo"></span><span class="p-coro">Coro San José</span><span class="p-chip">Director</span></div>
+            <div class="p-main"><div class="p-cuerpo">
+              <div class="halo" style="margin:0 -16px;padding:16px">
+                <div style="font-size:.8rem;color:var(--m-acento);font-weight:600">Próxima misa · en 6 días</div>
+                <div style="font-family:var(--m-titulo);font-size:1.6rem;font-weight:600;line-height:1.1;margin-top:2px">Misa del domingo</div>
+                <div style="font-size:.82rem;color:var(--m-tenue);margin-top:2px">23 de noviembre · lista en un 72&nbsp;%</div>
+              </div>
+              <div class="titulo-seccion" style="margin-top:14px">Voces que van</div>
+              <div style="display:flex;height:8px;border-radius:99px;overflow:hidden;background:var(--m-sup-alta);margin-top:6px"><span style="width:45%;background:#c2457a"></span><span style="width:27%;background:#b3202f"></span><span style="width:18%;background:#3f7fb5"></span><span style="width:10%;background:#2f6fae"></span></div>
+              <div style="font-size:.78rem;color:var(--m-tenue);margin-top:5px">Soprano 5 · Contralto 3 · Tenor 2 · Bajo 1</div>
+              <div class="titulo-seccion" style="margin-top:14px">Para que quede lista</div>
+              <div style="font-size:.9rem;margin-top:4px">
+                <div style="padding:8px 0;border-bottom:1px solid var(--m-borde)"><span style="color:var(--m-exito);font-weight:700">✓</span> 8 cantos elegidos</div>
+                <div style="padding:8px 0;border-bottom:1px solid var(--m-borde)"><span style="color:var(--m-exito);font-weight:700">✓</span> 8/8 tonos fijados</div>
+                <div style="padding:8px 0"><span style="color:var(--m-peligro);font-weight:700">2</span> no han dicho si van</div>
+              </div>
+            </div></div>
+            <nav class="p-nav"><a class="activo" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>Inicio</a><a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>Repertorio</a><a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>Misa</a><a href="#"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>Más</a></nav>
+          </div>
+        </div>
+        <figcaption class="pie">Inicio · papel de cancionero</figcaption>
+      </figure>
+
+      <figure class="tel">
+        <div class="phone">
+          <div class="pantalla">
+            <div class="p-header"><span style="font-size:1.1rem;color:var(--m-tenue)">←</span><span style="font-family:var(--m-titulo);font-weight:600;font-size:1.2rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">El Señor es mi fortaleza</span><span style="font-size:.8rem;color:var(--m-tenue)">Aa</span><span style="font-size:.8rem">☀︎</span><span style="font-size:.9rem;color:var(--m-acento)">✎</span></div>
+            <div class="p-main"><div class="p-cuerpo" style="padding-top:6px">
+              <div style="font-size:.8rem;color:var(--m-tenue)"><span class="p-numero">Canto 214</span> · Taizé · Comunión · original en Re</div>
+              <div class="cifrado" style="margin-top:10px">
+                <div class="etiqueta-estrofa">Estrofa</div>
+                <div class="ac">        Re        La        Sim</div><div class="lx">Cantando la alegría de vivir,</div>
+                <div class="ac">         Sol        Re        La</div><div class="lx">lleguemos a la casa del Señor.</div>
+                <div class="etiqueta-estrofa">Estribillo</div>
+                <div class="ac">        Re        La        Sim</div><div class="lx">Caminando juntos como hermanos</div>
+                <div class="ac">        Sol          La       Re</div><div class="lx">vamos a tu altar, oh Padre bueno.</div>
+              </div>
+            </div></div>
+            <div class="p-controles">
+              <span class="bt">▶</span>
+              <span class="bt">−</span>
+              <span class="bt tonalidad"><span class="n">Re</span><span class="s">original</span></span>
+              <span class="bt">＋</span>
+              <span class="bt" style="font-weight:700">A</span>
+              <span class="bt" style="font-size:1.1rem;font-weight:700">A</span>
+            </div>
+          </div>
+        </div>
+        <figcaption class="pie">Lectura · canto numerado, rúbricas</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- 4 · Proyección -->
+  <section class="opcion d4">
+    <div class="cab"><span class="num">4</span><h2>Proyección</h2></div>
+    <p class="tesis">Letra enorme, cromo mínimo, pensada para el que ve poco o para proyectar en el ensayo: pocos controles y gigantes.</p>
+    <p class="cuando"><b>Elegila si</b> la pantalla va a leerse de lejos o de pie con poca luz.</p>
+    <div class="telefonos">
+      <figure class="tel">
+        <div class="phone">
+          <div class="pantalla">
+            <div class="p-main"><div class="p-cuerpo" style="padding-top:26px">
+              <div style="font-size:1rem;color:var(--m-acento);font-weight:700">en 6 días · 23 de noviembre</div>
+              <div style="font-family:var(--m-titulo);font-size:2.3rem;font-weight:600;line-height:1.05;margin-top:4px">Misa del domingo</div>
+              <div style="font-size:1.05rem;color:var(--m-tenue);margin-top:8px">Lista en un 72&nbsp;%</div>
+              <div style="display:flex;height:12px;border-radius:99px;overflow:hidden;background:var(--m-sup-alta);margin-top:18px"><span style="width:45%;background:#c2457a"></span><span style="width:27%;background:#b3202f"></span><span style="width:18%;background:#3f7fb5"></span><span style="width:10%;background:#2f6fae"></span></div>
+              <div style="font-size:1rem;color:var(--m-texto);margin-top:12px"><b>11</b> de 20 van a cantar</div>
+              <div style="font-size:.95rem;color:var(--m-tenue);margin-top:4px">Soprano 5 · Contralto 3 · Tenor 2 · Bajo 1</div>
+              <div style="margin-top:22px"><span style="background:var(--m-acento);color:var(--m-fondo);font-weight:700;border-radius:12px;padding:14px 22px;display:inline-block">Empezar la misa ▶</span></div>
+            </div></div>
+          </div>
+        </div>
+        <figcaption class="pie">Inicio · una sola decisión</figcaption>
+      </figure>
+
+      <figure class="tel">
+        <div class="phone">
+          <div class="pantalla">
+            <div class="p-main"><div class="p-cuerpo" style="padding-top:14px">
+              <div style="font-family:var(--m-titulo);font-weight:600;font-size:1.6rem;line-height:1.05">El Señor es mi fortaleza</div>
+              <div class="cifrado" style="margin-top:18px;font-size:1.5rem">
+                <div class="ac">    Re     La    Sim</div><div class="lx">Cantando la alegría</div>
+                <div class="ac">     Sol    Re    La</div><div class="lx">lleguemos al Señor.</div>
+                <div class="ac">    Re     La    Sim</div><div class="lx">Caminando como</div>
+                <div class="ac">     Sol   La    Re</div><div class="lx">hermanos a tu altar.</div>
+              </div>
+            </div></div>
+            <div class="p-controles" style="justify-content:space-between">
+              <span class="bt" style="font-size:1.3rem">←</span>
+              <span class="bt tonalidad" style="max-width:120px"><span class="n" style="font-size:1.4rem">Re</span><span class="s">original</span></span>
+              <span class="bt" style="font-size:1.3rem">→</span>
+            </div>
+          </div>
+        </div>
+        <figcaption class="pie">Lectura · tipo gigante, sin barra</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- 5 · Cinturón de herramientas -->
+  <section class="opcion d5">
+    <div class="cab"><span class="num">5</span><h2>Cinturón de herramientas</h2></div>
+    <p class="tesis">La barra inferior ampliada: las cinco herramientas siempre a la vista, para quien toca y dirige a la vez sin esconder nada detrás de un gesto.</p>
+    <p class="cuando"><b>Elegila si</b> el director necesita transponer, desplazar, dar el tono y marcar quién canta sin cambiar de modo.</p>
+    <div class="telefonos">
+      <figure class="tel">
+        <div class="phone">
+          <div class="pantalla">
+            <div class="p-header"><span class="p-logo"></span><span class="p-coro">Coro San José</span><span class="p-chip">Director</span></div>
+            <div class="p-main"><div class="p-cuerpo">
+              <div class="halo" style="margin:0 -16px;padding:16px">
+                <div style="font-size:.82rem;font-weight:700;color:var(--m-acento)">en 6 días · 23 de noviembre</div>
+                <div style="font-family:var(--m-titulo);font-size:1.5rem;font-weight:600;line-height:1.1">Misa del domingo</div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
+                <div style="border:1px solid var(--m-borde);border-radius:10px;padding:10px;font-size:.8rem;color:var(--m-tenue)">Voces<br><b style="color:var(--m-texto);font-size:1.2rem">11</b></div>
+                <div style="border:1px solid var(--m-borde);border-radius:10px;padding:10px;font-size:.8rem;color:var(--m-tenue)">Lista<br><b style="color:var(--m-acento);font-size:1.2rem">72&nbsp;%</b></div>
+                <div style="border:1px solid var(--m-borde);border-radius:10px;padding:10px;font-size:.8rem;color:var(--m-tenue)">A repasar<br><b style="color:var(--m-texto);font-size:1.2rem">3</b></div>
+                <div style="border:1px solid var(--m-borde);border-radius:10px;padding:10px;font-size:.8rem;color:var(--m-tenue)">Pendiente<br><b style="color:var(--m-peligro);font-size:1.2rem">2</b></div>
+              </div>
+              <div style="margin-top:12px"><span style="background:var(--m-acento);color:var(--m-fondo);font-weight:700;border-radius:10px;padding:10px 14px;display:inline-block;font-size:.9rem">Empezar la misa ▶</span></div>
+            </div></div>
+            <nav class="p-nav"><a class="activo" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>Inicio</a><a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>Repertorio</a><a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>Misa</a><a href="#"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>Más</a></nav>
+          </div>
+        </div>
+        <figcaption class="pie">Inicio · tablero de accesos</figcaption>
+      </figure>
+
+      <figure class="tel">
+        <div class="phone">
+          <div class="pantalla">
+            <div class="p-header"><span style="font-size:1.1rem;color:var(--m-tenue)">←</span><span style="font-family:var(--m-titulo);font-weight:600;font-size:1.1rem;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">El Señor es mi fortaleza</span><span style="font-size:.8rem;color:var(--m-tenue)">Aa</span><span style="font-size:.8rem">☾</span><span style="font-size:.9rem;color:var(--m-acento)">✎</span></div>
+            <div class="p-main"><div class="p-cuerpo" style="padding-top:8px">
+              <div style="font-size:.78rem;color:var(--m-tenue)">Taizé · Comunión · original en Re</div>
+              <div class="cifrado" style="margin-top:12px">
+                <div class="ac">        Re        La        Sim</div><div class="lx">Cantando la alegría de vivir,</div>
+                <div class="ac">         Sol        Re        La</div><div class="lx">lleguemos a la casa del Señor.</div>
+                <div class="ac">        Re        La        Sim</div><div class="lx">Caminando juntos como hermanos</div>
+                <div class="ac">        Sol          La       Re</div><div class="lx">vamos a tu altar, oh Padre bueno.</div>
+              </div>
+            </div></div>
+            <div class="p-controles" style="flex-wrap:wrap;gap:6px;padding:10px 10px 16px">
+              <span class="bt" style="font-size:.7rem;flex-direction:column;height:46px">▶<small style="font-size:.7rem;color:var(--m-tenue)">correr</small></span>
+              <span class="bt" style="font-size:.7rem;flex-direction:column;height:46px">− <b style="color:var(--m-acorde)">Re</b> ＋<small style="font-size:.7rem;color:var(--m-tenue)">transponer</small></span>
+              <span class="bt" style="font-size:.7rem;flex-direction:column;height:46px">A − A＋<small style="font-size:.7rem;color:var(--m-tenue)">letra</small></span>
+              <span class="bt" style="font-size:.7rem;flex-direction:column;height:46px">♪<small style="font-size:.7rem;color:var(--m-tenue)">tono</small></span>
+              <span class="bt" style="font-size:.7rem;flex-direction:column;height:46px">☺<small style="font-size:.7rem;color:var(--m-tenue)">quién</small></span>
+            </div>
+          </div>
+        </div>
+        <figcaption class="pie">Lectura · cinco herramientas visibles</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <p style="margin-top:48px;color:var(--muted);font-size:.9rem">Elegí una opción (o pedime combinar dos) y bajo el estilo a las pantallas que faltan: repertorio, misas, edición y Ensayar.</p>
+</div>

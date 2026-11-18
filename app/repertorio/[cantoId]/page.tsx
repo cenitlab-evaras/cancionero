@@ -9,6 +9,7 @@ import { contarVersiones } from '@/lib/datos/versiones'
 import { misasDelCoro } from '@/lib/datos/misas'
 import { partituraPublicada } from '@/lib/datos/partitura'
 import { agruparMisas } from '@/lib/motores/agenda'
+import { renderizarCifrado } from '@/lib/motores/renderizar-cifrado'
 import { transponer, transponerAcorde } from '@/lib/motores/transponer'
 import { acordesDeCanto } from '@/lib/motores/acordes-de-canto'
 import { buscarDigitacion } from '@/lib/motores/buscar-digitacion'
@@ -27,9 +28,11 @@ import { americanaALatina } from '@/lib/motores/notacion-latina'
 import CartaAcorde from '@/app/componentes/carta-acorde'
 import Controles from './controles'
 import SoloLetra from './solo-letra'
+import PanelLectura, { HerramientaDelPanel } from './panel-lectura'
 import HistorialDelCanto from './historial-canto'
 import Sugerir from './sugerir'
 import CorregirAcorde from './corregir'
+import MarcarQuienCanta from './marcar-quien-canta'
 import PestanasCanto from './pestanas'
 import {
   CascaronCarta,
@@ -94,7 +97,7 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
             Pertenece a un coro del que no eres parte, o ya no existe.
           </p>
           <Link href="/repertorio" className={clasesBotonIcono('borde', 'mt-6 px-4')}>
-            Volver al repertorio
+            Volver a las canciones
           </Link>
         </main>
       </>
@@ -129,6 +132,14 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
   const nombrar = (acorde: string) => (herramientas.latina ? americanaALatina(acorde) : acorde)
   // Sin tonalidad declarada, el primer acorde: casi siempre es el tono.
   const tonoParaDar = tonalidadActual ?? acordesDeCanto(cifradoEnPantalla)[0] ?? null
+  // Si el canto ya tiene marcado quién canta alguna estrofa. Se consulta acá
+  // (y no dentro del cifrado) porque el aviso vive al pie: el cifrado ya no
+  // planifica nada encima de la letra (2026-11-17).
+  const marcado = renderizarCifrado(cifradoEnPantalla, {
+    ancho: 42,
+    mostrarAcordes,
+    latina: herramientas.latina,
+  }).quienCanta.some(Boolean)
 
   return (
     <>
@@ -143,29 +154,16 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
       <ProveedorDiagramas acordes={acordes}>
       <PantallaEncendida />
       <main className="mx-auto w-full max-w-2xl flex-1 pb-8">
-        {/* La cabecera de lectura: lo único que hace falta acá —volver, saber
-            qué canto es, y los dos controles que no son de tocar—, cada uno con
-            su objetivo de 44 px (antes el ← medía 23×20 y «Editar» 41×16). Va
-            fija porque volver tiene que estar a mano después de media misa. */}
-        <div className="sticky top-0 z-(--z-cabecera) flex items-center gap-1 border-b border-borde bg-fondo py-1 pr-2 pl-1">
-          <EnlaceIcono href="/repertorio" etiqueta="Volver al repertorio">
+        {/* La cinta (maqueta «Teleprompter», 2026-11-18): volver y el nombre, y
+            nada más. Los controles no viven acá: se piden tocando un borde o el
+            botón de arriba a la derecha (PanelLectura). */}
+        <div className="sticky top-0 z-(--z-cabecera) flex items-center gap-1 border-b border-borde bg-fondo py-1 pr-14 pl-1">
+          <EnlaceIcono href="/repertorio" etiqueta="Volver a las canciones">
             <IconoVolver />
           </EnlaceIcono>
-          <h1 className="titulo-libro min-w-0 flex-1 text-[1.375rem] leading-tight">
+          <h1 className="min-w-0 flex-1 truncate text-sm font-semibold text-texto-tenue">
             {canto.titulo}
           </h1>
-          {/* H11 · El interruptor de acordes va antes que «Editar» porque lo usa
-              todo el mundo y «Editar» solo el director: el orden lo decide quién
-              lo toca, no la jerarquía. */}
-          <SoloLetra mostrarAcordes={mostrarAcordes} />
-          <ConmutadorTema />
-          {/* Corregir un acorde a oído es trabajo esperable (§17.1): el acceso
-              vive donde se descubre el error, no en un menú aparte. */}
-          {puede(sesion.sujeto, 'editar_canto') && (
-            <EnlaceIcono href={`/repertorio/${canto.id}/editar`} etiqueta="Editar el canto">
-              <IconoEditar />
-            </EnlaceIcono>
-          )}
         </div>
 
         {/* Una línea, y solo con lo que se sabe: sin «Autor no declarado»
@@ -174,7 +172,7 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
           {/* H10 · El miembro tiene que enterarse acá, no solo en el listado:
               esta es la pantalla donde se para a tocar. */}
           {etiquetaEstado(canto.estado) && (
-            <span className="rounded border border-borde-fuerte px-1.5 text-xs font-bold text-texto">
+            <span className="rounded border border-borde-fuerte px-1.5 text-sm font-bold text-texto">
               {etiquetaEstado(canto.estado)}
             </span>
           )}
@@ -196,7 +194,15 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
             iba pegado al borde mientras el título tenía 16 px, y los dos bordes
             izquierdos no coincidían. */}
         <div className="mt-5 px-4">
-          <ZonaAcordes>
+          <ZonaAcordes
+            // Solo el director: arrastrar un acorde a su columna (2026-11-17).
+            // El miembro ve los diagramas y nada más; la action lo re-comprueba.
+            arrastre={
+              puede(sesion.sujeto, 'editar_canto')
+                ? { cantoId: canto.id, vista: cifradoEnPantalla, transposicion }
+                : undefined
+            }
+          >
             <Cifrado
               cifrado={cifradoEnPantalla}
               tamano={tamanoLetra}
@@ -213,7 +219,7 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
         )}
 
         {canto.fuenteTitulo && (
-          <p className="mt-10 max-w-prose px-4 text-sm leading-relaxed text-texto-tenue">
+          <p className="mt-10 max-w-prose px-4 text-sm leading-relaxed text-texto-tenue prosa-equilibrada">
             {canto.fuenteTitulo}
             {canto.fuenteNumero ? `, canto n.º ${canto.fuenteNumero}` : ''}
             {canto.fuentePagina ? `, pág. ${canto.fuentePagina}` : ''}.
@@ -238,6 +244,27 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
           <div className="mt-3 flex flex-col gap-4">
             {/* H13 · cuánto hace que se cantó y cada cuánto vuelve. */}
             <HistorialDelCanto historial={historial} anioActual={hoyISO().slice(0, 4)} />
+
+            {/* Las herramientas que tocan el cifrado dicen acá lo que falta
+                (2026-11-17): la crítica los sacó de antes del primer acorde y
+                DESIGN.md manda la planificación al pie. Para el director, el
+                marcado de estrofas es esta misma lista, editable. */}
+            {herramientas.resaltarMiCuerda && !herramientas.miCuerda && (
+              <p className="text-sm text-texto-tenue">
+                Para resaltar tu cuerda, elige tu tesitura en{' '}
+                <Link href="/mi-perfil" className="underline underline-offset-2 hover:text-texto">
+                  Mi perfil
+                </Link>
+                .
+              </p>
+            )}
+            {herramientas.marcar ? (
+              <MarcarQuienCanta cantoId={canto.id} cifrado={cifradoEnPantalla} />
+            ) : (herramientas.quienCanta || herramientas.resaltarMiCuerda) && !marcado ? (
+              <p className="text-sm text-texto-tenue">
+                Este canto todavía no tiene marcado quién canta cada estrofa.
+              </p>
+            ) : null}
 
             {/* H19-A · solo si hubo correcciones. Lo ve todo el coro: el que
                 toca es el que oye que el acorde cambió. */}
@@ -267,7 +294,7 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
       {/* La pila inferior: la hoja de diagramas se apila ENCIMA de los
           controles, que siguen accesibles — hay que poder transponer con la
           hoja abierta. El `sticky` vive acá, no dentro de <Controles>. */}
-      <div className="relative sticky bottom-0 z-(--z-barra)">
+      <div className="relative sticky bottom-0 z-(--z-cabecera)">
         {acordes.length > 0 && (
           <HojaDiagramas
             pie={
@@ -292,14 +319,28 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
           </HojaDiagramas>
         )}
 
-        <Controles
-          cantoId={canto.id}
-          coroId={sesion.coroActivo!.id}
-          transposicion={transposicion}
-          tamanoLetra={tamanoLetra}
-          tonalidadActual={tonalidadActual && nombrar(tonalidadActual)}
-          mostrarAcordes={mostrarAcordes}
-        />
+        <PanelLectura>
+          {/* Las herramientas que no son de tocar, pedidas junto con la barra
+              (maqueta «Teleprompter»): el interruptor de acordes lo usa todo el
+              mundo; «Editar», solo el director. */}
+          <div className="flex items-center gap-1 px-2 pt-1">
+            <SoloLetra mostrarAcordes={mostrarAcordes} />
+            <ConmutadorTema />
+            {puede(sesion.sujeto, 'editar_canto') && (
+              <HerramientaDelPanel href={`/repertorio/${canto.id}/editar`} etiqueta="Editar el canto">
+                <IconoEditar />
+              </HerramientaDelPanel>
+            )}
+          </div>
+          <Controles
+            cantoId={canto.id}
+            coroId={sesion.coroActivo!.id}
+            transposicion={transposicion}
+            tamanoLetra={tamanoLetra}
+            tonalidadActual={tonalidadActual && nombrar(tonalidadActual)}
+            mostrarAcordes={mostrarAcordes}
+          />
+        </PanelLectura>
       </div>
       </ProveedorDiagramas>
     </>

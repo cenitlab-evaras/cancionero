@@ -61,6 +61,9 @@ export default function Controles({
   const [, iniciarTransicion] = useTransition()
   const [optimista, aplicarOptimista] = useOptimistic({ transposicion, tamanoLetra })
   const [aviso, setAviso] = useState<string | null>(null)
+  // La hoja del tamaño de letra (2026-11-17): un control con su valor en vez
+  // de dos «A» que no decían en qué tamaño estaba la persona.
+  const [ajustando, setAjustando] = useState(false)
   const scroll = useAutoScroll()
 
   useEffect(() => {
@@ -159,11 +162,11 @@ export default function Controles({
               <span className="font-cifrado text-lg leading-none font-bold text-acorde">
                 {tonalidadActual ?? (misa?.fijado ? signo : '—')}
               </span>
-              <span className="mt-1 text-xs leading-none text-texto-tenue">
+              <span className="mt-1 text-sm leading-none text-texto-tenue">
                 {misa?.fijado
                   ? quitaElDeLaMisa
-                    ? 'de la misa · quitar'
-                    : 'de la misa'
+                    ? 'misa · quitar'
+                    : 'misa'
                   : enOriginal
                     ? 'original'
                     : `${signo} · volver`}
@@ -185,28 +188,50 @@ export default function Controles({
         )}
 
         {/* Tamaño de letra. No es un ajuste secundario: hay gente en el coro que
-            ve poco y este control es su forma de usar la app (PRODUCT.md). */}
-        <div className="flex shrink-0 items-center gap-1">
-          <BotonIcono
-            etiqueta={`Achicar la letra, ahora en ${optimista.tamanoLetra}`}
-            apariencia="borde"
-            disabled={optimista.tamanoLetra <= TAMANO_MIN}
-            onClick={() => tamano(-1)}
+            ve poco y este control es su forma de usar la app (PRODUCT.md).
+            Desde el 2026-11-17 es UN control con el valor a la vista: antes
+            eran dos «A» sin número y la barra pasaba de los cinco controles.
+            La hoja queda abierta al costado para repetir el toque. */}
+        <div className="relative shrink-0">
+          {ajustando && (
+            <div className="absolute right-0 bottom-[calc(100%+8px)] flex items-center gap-1 rounded-lg border border-borde-fuerte bg-superficie p-1.5">
+              <BotonIcono
+                etiqueta={`Achicar la letra, ahora en ${optimista.tamanoLetra}`}
+                apariencia="borde"
+                disabled={optimista.tamanoLetra <= TAMANO_MIN}
+                onClick={() => tamano(-1)}
+              >
+                <span className="text-sm font-bold" aria-hidden>
+                  A
+                </span>
+              </BotonIcono>
+              <span className="w-9 text-center text-sm font-bold tabular-nums" aria-live="polite">
+                {optimista.tamanoLetra}
+              </span>
+              <BotonIcono
+                etiqueta={`Agrandar la letra, ahora en ${optimista.tamanoLetra}`}
+                apariencia="borde"
+                disabled={optimista.tamanoLetra >= TAMANO_MAX}
+                onClick={() => tamano(1)}
+              >
+                <span className="text-xl font-bold" aria-hidden>
+                  A
+                </span>
+              </BotonIcono>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => setAjustando(!ajustando)}
+            aria-expanded={ajustando}
+            aria-label={`Tamaño de letra, ahora en ${optimista.tamanoLetra}`}
+            className={`tactil flex h-11 items-center justify-center gap-1 rounded-lg border border-borde-fuerte px-2.5 text-sm font-bold ${
+              ajustando ? 'border-texto bg-superficie-alta' : ''
+            }`}
           >
-            <span className="text-sm font-bold" aria-hidden>
-              A
-            </span>
-          </BotonIcono>
-          <BotonIcono
-            etiqueta={`Agrandar la letra, ahora en ${optimista.tamanoLetra}`}
-            apariencia="borde"
-            disabled={optimista.tamanoLetra >= TAMANO_MAX}
-            onClick={() => tamano(1)}
-          >
-            <span className="text-xl font-bold" aria-hidden>
-              A
-            </span>
-          </BotonIcono>
+            <span aria-hidden>Aa</span>
+            <span className="tabular-nums">{optimista.tamanoLetra}</span>
+          </button>
         </div>
       </div>
     </div>

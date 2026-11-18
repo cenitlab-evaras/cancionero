@@ -27,10 +27,10 @@ export default function Buscador({ valorInicial }: { valorInicial: string }) {
   return (
     <>
       <TituloConLupa
-        titulo="Repertorio"
+        titulo="Canciones"
         valor={valor}
         alCambiar={buscar}
-        etiqueta="Buscar en el repertorio por título o autor"
+        etiqueta="Buscar en las canciones por título o autor"
         muestra="Título o autor"
       />
       {pendiente && <span className="sr-only">Buscando…</span>}

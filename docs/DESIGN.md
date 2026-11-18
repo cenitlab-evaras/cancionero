@@ -8,6 +8,17 @@ contradice.
 resuelta y todo lo demás era un boceto sobre buenos tokens. El dueño pidió que fuera **más cálida,
 con identidad y fácil de navegar**. Este documento describe el sistema que salió de ahí.
 
+**Mundo «Teleprompter» en la lectura (2026-11-18).** La pantalla de tocar dejó de tener barra
+fija: la letra manda. Abajo ya no hay nada hasta que se pide; se abre tocando un **borde** de la
+pantalla o el botón de arriba a la derecha, y se cierra tocando afuera o con Esc. La cinta de
+arriba se redujo a volver y el nombre (en la misa, también «n de N»); el interruptor de acordes,
+el tema y «Editar» viven en el panel. El siguiente canto de la misa sigue en la fila del pie, que
+se ve siempre. Dos reglas técnicas sostienen el gesto: el panel se oculta con `transform` y
+`inert` y **no se desmonta** (el auto scroll vive adentro de `Controles`, y esconderlo no puede
+detener la letra), y la pila inferior quedó en el z de la cabecera para que su botón no quede
+tapado por la cinta. El mundo incluye Inicio, lectura y ejecución; los datos, permisos y caminos
+accesibles no cambiaron.
+
 ## Visual Theme
 
 **Tema oscuro y cálido, y uno claro con el sol y la luna.** La escena sigue siendo la iglesia a las
@@ -49,6 +60,7 @@ Todos los tokens en OKLCH. Contraste medido contra el fondo (Nave).
 | `--color-acento` | Halo | `#E4B85A` | marca, lugar activo, acción principal, enlaces | 10,1:1 |
 | `--color-sobre-acento` | | = Nave | el texto ENCIMA del halo | 10,1:1 |
 | `--color-peligro` | | `#E5674F` | sin acceso, error, quitar | 5,7:1 |
+| `--color-sobre-peligro` | | = Nave | el texto ENCIMA del peligro cuando el rojo es fondo (Archivar, Quitar) | 5,7:1 |
 | `--color-exito` | | `#6FBF73` | confirmación | 8,4:1 |
 
 **La regla del acorde, reescrita para la paleta cálida.** El Ámbar del acorde y el Halo de la marca
@@ -66,8 +78,13 @@ contra el de un `.acorde-tocable`; si dan el mismo color, la regla está rota.
 **Sobre el halo, texto oscuro.** El azul anterior con texto blanco daba 3,7:1 y no llegaba a AA. El
 halo con blanco encima daría 1,6:1; con Nave encima da 10,1:1.
 
-**El halo como resplandor** (`.halo`) se usa en **un solo lugar**: detrás de la próxima misa en
-Inicio. Es la firma del coro; repetido en tarjetas y botones perdería su sentido.
+**Sobre el peligro, también texto oscuro.** Cuando el rojo se usa como fondo de un botón
+(Archivar, Quitar), el texto va en `--color-sobre-peligro` (Nave en oscuro, blanco en claro). Blanco
+sobre `#E5674F` daba 3,29:1: no llegaba a AA justo en la acción destructiva.
+
+**El halo como resplandor** (`.halo`) se retiró con el mundo «Teleprompter» (2026-11-18): Inicio
+es negro de escenario y el título manda. El halo sigue siendo la firma del coro en el logo, en
+las acciones principales y en el lugar activo; lo que no vuelve es el resplandor de fondo.
 
 ## Typography
 

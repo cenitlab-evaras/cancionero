@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { agregarCanto, cambiarTono, moverCanto, quitarCanto } from '../../acciones'
 import { cambiarTonoDeMisa, tonalidadDeLaFila } from '@/lib/motores/tono-en-la-misa'
@@ -29,6 +29,7 @@ export default function Armador({
   sugerenciasDeEstaMisa,
   sugerenciasGenerales,
   hoy,
+  momentos,
 }: {
   misaId: string
   asignados: CantoDeMisa[]
@@ -41,6 +42,8 @@ export default function Armador({
      primero la concreta: alguien la pidió para esta misa. */
   sugerenciasDeEstaMisa: FilaDelRanking[]
   sugerenciasGenerales: FilaDelRanking[]
+  /** El catálogo de momentos, en orden litúrgico: es el mapa del armado. */
+  momentos: { nombre: string; orden: number }[]
 }) {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
@@ -59,6 +62,34 @@ export default function Armador({
   function fijarTono(filaId: string, transposicion: number | null) {
     correr(() => cambiarTono({ misaId, filaId, transposicion }))
   }
+
+  // La misa, POR SEGMENTO (2026-11-18): los cantos se agrupan por momento
+  // litúrgico y el director ve cómo se llena cada uno; subir y bajar mueven
+  // dentro del segmento (lo resuelve `moverCanto` en la base).
+  const grupos = useMemo(() => {
+    const lista: { clave: string; nombre: string; orden: number; filas: CantoDeMisa[] }[] = []
+    for (const c of asignados) {
+      const ultimo = lista.at(-1)
+      if (ultimo && ultimo.orden === c.momentoOrden && ultimo.nombre === c.momentoNombre) {
+        ultimo.filas.push(c)
+      } else {
+        lista.push({
+          clave: `${c.momentoOrden}·${c.momentoNombre}`,
+          nombre: c.momentoNombre,
+          orden: c.momentoOrden,
+          filas: [c],
+        })
+      }
+    }
+    // Asignados llega en el orden guardado; se agrupa respetando el momento.
+    return lista.sort((a, b) => a.orden - b.orden)
+  }, [asignados])
+
+  // Los segmentos del catálogo que todavía no tienen canto: el mapa de lo que
+  // falta, sin obligar a nada (María o Salmos no siempre van).
+  const vacios = momentos
+    .filter((m) => !asignados.some((c) => c.momentoNombre === m.nombre))
+    .map((m) => m.nombre)
 
   // Agrupado por momento para que el director busque como piensa la misa.
   const porMomento = disponibles.reduce<Record<string, Disponible[]>>((acc, c) => {
@@ -134,90 +165,101 @@ export default function Armador({
           Todavía no hay cantos. Agrega uno de la lista de abajo.
         </p>
       ) : (
-        <ol className="mt-2 divide-y divide-borde border-t border-borde">
-          {/* Subir y bajar juntos, de 44 px y con borde; quitar aparte, sin
-              borde y separado por un hueco: antes eran tres glifos de 36 px
-              pegados y el ✕ rojo quedaba a un dedo del ↓. */}
-          {asignados.map((c, i) => (
-            <li key={c.id} className="py-2">
-              <div className="flex min-h-11 items-center gap-2">
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate">{c.titulo}</span>
-                  <span className="block truncate text-sm text-texto-tenue">{c.momentoNombre}</span>
-                </span>
+        grupos.map((g) => (
+          <section key={g.clave} className="mt-4">
+            {/* El segmento y cuánto tiene: así se ve cómo se llena la misa. */}
+            <h3 className="text-sm font-semibold text-texto-tenue">
+              {g.nombre} <span className="font-normal">· {g.filas.length}</span>
+            </h3>
+            <ol className="mt-1 divide-y divide-borde border-t border-borde">
+              {/* Subir y bajar juntos, de 44 px y con borde; quitar aparte, sin
+                  borde y separado por un hueco: antes eran tres glifos de 36 px
+                  pegados y el ✕ rojo quedaba a un dedo del ↓. */}
+              {g.filas.map((c, i) => (
+                <li key={c.id} className="py-2">
+                  <div className="flex min-h-11 items-center gap-2">
+                    <span className="min-w-0 flex-1 truncate">{c.titulo}</span>
 
-                <BotonIcono
-                  etiqueta={`Subir ${c.titulo}`}
-                  apariencia="borde"
-                  onClick={() =>
-                    correr(() => moverCanto({ misaId, filaId: c.id, direccion: 'arriba' }))
-                  }
-                  disabled={i === 0 || pendiente}
-                >
-                  <IconoSubir tamano={18} />
-                </BotonIcono>
-                <BotonIcono
-                  etiqueta={`Bajar ${c.titulo}`}
-                  apariencia="borde"
-                  onClick={() =>
-                    correr(() => moverCanto({ misaId, filaId: c.id, direccion: 'abajo' }))
-                  }
-                  disabled={i === asignados.length - 1 || pendiente}
-                >
-                  <IconoBajar tamano={18} />
-                </BotonIcono>
-                <BotonIcono
-                  etiqueta={`Quitar ${c.titulo} de la misa`}
-                  onClick={() => correr(() => quitarCanto({ misaId, filaId: c.id }))}
-                  disabled={pendiente}
-                  // La única acción destructiva del producto tiene el único color
-                  // de peligro (PRD §11.1). Quitar de una misa no borra el
-                  // canto del repertorio.
-                  className="ml-3 !text-peligro"
-                >
-                  <IconoQuitar tamano={18} />
-                </BotonIcono>
-              </div>
+                    <BotonIcono
+                      etiqueta={`Subir ${c.titulo}`}
+                      apariencia="borde"
+                      onClick={() =>
+                        correr(() => moverCanto({ misaId, filaId: c.id, direccion: 'arriba' }))
+                      }
+                      disabled={i === 0 || pendiente}
+                    >
+                      <IconoSubir tamano={18} />
+                    </BotonIcono>
+                    <BotonIcono
+                      etiqueta={`Bajar ${c.titulo}`}
+                      apariencia="borde"
+                      onClick={() =>
+                        correr(() => moverCanto({ misaId, filaId: c.id, direccion: 'abajo' }))
+                      }
+                      disabled={i === g.filas.length - 1 || pendiente}
+                    >
+                      <IconoBajar tamano={18} />
+                    </BotonIcono>
+                    <BotonIcono
+                      etiqueta={`Quitar ${c.titulo} de la misa`}
+                      onClick={() => correr(() => quitarCanto({ misaId, filaId: c.id }))}
+                      disabled={pendiente}
+                      // La única acción destructiva del producto tiene el único color
+                      // de peligro (PRD §11.1). Quitar de una misa no borra el
+                      // canto del repertorio.
+                      className="ml-3 !text-peligro"
+                    >
+                      <IconoQuitar tamano={18} />
+                    </BotonIcono>
+                  </div>
 
-              {/* H27 · En qué tono va este canto en ESTA misa. Sin fijar, cada
-                  uno lo ve en su tono personal; fijado, todos lo ven en este. */}
-              <div className="mt-1.5 flex items-center gap-2">
-                <span className="w-12 shrink-0 text-sm text-texto-tenue">Tono</span>
-                <BotonIcono
-                  etiqueta={`Bajar el tono de ${c.titulo} en esta misa`}
-                  apariencia="borde"
-                  disabled={pendiente}
-                  onClick={() => fijarTono(c.id, cambiarTonoDeMisa(c.tonoDeMisa, -1))}
-                >
-                  <IconoQuitar tamano={18} />
-                </BotonIcono>
-                <span className="min-w-12 text-center font-cifrado font-bold text-acorde">
-                  {tonalidadDeLaFila(c.tonalidadOriginal, c.tonoDeMisa) ?? semitonos(c.tonoDeMisa)}
-                </span>
-                <BotonIcono
-                  etiqueta={`Subir el tono de ${c.titulo} en esta misa`}
-                  apariencia="borde"
-                  disabled={pendiente}
-                  onClick={() => fijarTono(c.id, cambiarTonoDeMisa(c.tonoDeMisa, 1))}
-                >
-                  <IconoAgregar tamano={18} />
-                </BotonIcono>
-                {c.tonoDeMisa === null ? (
-                  <span className="text-sm text-texto-tenue">sin fijar</span>
-                ) : (
-                  <button
-                    type="button"
-                    disabled={pendiente}
-                    onClick={() => fijarTono(c.id, null)}
-                    className="tactil px-2 text-sm text-texto-tenue underline underline-offset-2 hover:text-texto disabled:opacity-40"
-                  >
-                    Quitar
-                  </button>
-                )}
-              </div>
-            </li>
-          ))}
-        </ol>
+                  {/* H27 · En qué tono va este canto en ESTA misa. Sin fijar, cada
+                      uno lo ve en su tono personal; fijado, todos lo ven en este. */}
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <span className="w-12 shrink-0 text-sm text-texto-tenue">Tono</span>
+                    <BotonIcono
+                      etiqueta={`Bajar el tono de ${c.titulo} en esta misa`}
+                      apariencia="borde"
+                      disabled={pendiente}
+                      onClick={() => fijarTono(c.id, cambiarTonoDeMisa(c.tonoDeMisa, -1))}
+                    >
+                      <IconoQuitar tamano={18} />
+                    </BotonIcono>
+                    <span className="min-w-12 text-center font-cifrado font-bold text-acorde">
+                      {tonalidadDeLaFila(c.tonalidadOriginal, c.tonoDeMisa) ?? semitonos(c.tonoDeMisa)}
+                    </span>
+                    <BotonIcono
+                      etiqueta={`Subir el tono de ${c.titulo} en esta misa`}
+                      apariencia="borde"
+                      disabled={pendiente}
+                      onClick={() => fijarTono(c.id, cambiarTonoDeMisa(c.tonoDeMisa, 1))}
+                    >
+                      <IconoAgregar tamano={18} />
+                    </BotonIcono>
+                    {c.tonoDeMisa === null ? (
+                      <span className="text-sm text-texto-tenue">sin fijar</span>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={pendiente}
+                        onClick={() => fijarTono(c.id, null)}
+                        className="tactil px-2 text-sm text-texto-tenue underline underline-offset-2 hover:text-texto disabled:opacity-40"
+                      >
+                        Quitar
+                      </button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </section>
+        ))
+      )}
+
+      {asignados.length > 0 && vacios.length > 0 && (
+        <p className="mt-4 text-sm text-texto-tenue">
+          Sin cantos todavía: {vacios.join(', ')}.
+        </p>
       )}
 
       {[
@@ -279,9 +321,15 @@ export default function Armador({
       ) : (
         Object.entries(porMomento).map(([momento, cantos]) => {
           const { cantados, nunca } = ordenados(cantos)
+          // Plegado por segmento (2026-11-18): con el cancionero entero cargado,
+          // la lista abierta medía 25 000 px. El director abre el segmento que
+          // está llenando y el resto no estorba.
           return (
-            <section key={momento} className="mt-6">
-              <h3 className="text-sm font-semibold text-texto-tenue">{momento}</h3>
+            <details key={momento} className="mt-3 border-t border-borde">
+              <summary className="tactil flex min-h-11 cursor-pointer items-center gap-2 py-2 text-sm font-semibold text-texto-tenue">
+                {momento}
+                <span className="font-normal">· {cantos.length}</span>
+              </summary>
               {cantados.length > 0 && (
                 <ul className="mt-1 divide-y divide-borde border-t border-borde">
                   {cantados.map(filaDisponible)}
@@ -297,7 +345,7 @@ export default function Armador({
                   </ul>
                 </>
               )}
-            </section>
+            </details>
           )
         })
       )}

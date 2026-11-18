@@ -56,7 +56,7 @@ export default async function VersionesPage({ params }: { params: Promise<{ cant
             El historial de un canto lo ve el coro al que pertenece.
           </p>
           <Link href="/repertorio" className={clasesBotonIcono('borde', 'mt-6 px-4')}>
-            Volver al repertorio
+            Volver a las canciones
           </Link>
         </main>
       </>
@@ -77,7 +77,7 @@ export default async function VersionesPage({ params }: { params: Promise<{ cant
             O no existe, o es de un coro al que no perteneces.
           </p>
           <Link href="/repertorio" className={clasesBotonIcono('borde', 'mt-6 px-4')}>
-            Volver al repertorio
+            Volver a las canciones
           </Link>
         </main>
       </>
@@ -98,7 +98,7 @@ export default async function VersionesPage({ params }: { params: Promise<{ cant
           </EnlaceIcono>
           {/* «Historial de cambios» y no «Historial» a secas: ese nombre ya es
               el de la pantalla de qué se canta seguido, en «Más». */}
-          <h1 className="titulo-libro min-w-0 text-[1.75rem] leading-tight">Historial de cambios</h1>
+          <h1 className="titulo-pantalla min-w-0 leading-tight">Historial de cambios</h1>
         </div>
         <p className="mt-1 text-texto-tenue">{canto.titulo}</p>
 

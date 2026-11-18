@@ -10,10 +10,11 @@ import TituloSeccion from '@/app/componentes/titulo-seccion'
 import { clasesBotonIcono } from '@/app/componentes/boton-icono'
 import { repetidas } from '@/lib/motores/catalogo'
 import Buscador from './buscador'
+import AvisoDeslizar from './aviso-deslizar'
 import FilaCanto, { type DatosFila } from './fila-canto'
 import RepertorioOrdenable from './repertorio-ordenable'
 
-export const metadata = { title: 'Repertorio · Cantoral' }
+export const metadata = { title: 'Canciones · Cantoral' }
 
 /**
  * El repertorio del coro, ordenado como el cancionero (rediseño 2026-10-17).
@@ -40,7 +41,7 @@ export default async function RepertorioPage({
       <>
         <Cabecera sesion={sesion} />
         <main className="mx-auto w-full max-w-2xl px-4 pt-6 pb-10">
-          <h1 className="titulo-libro text-[1.75rem] leading-tight">
+          <h1 className="titulo-pantalla leading-tight">
             Todavía no perteneces a ningún coro
           </h1>
           <p className="mt-2 max-w-prose text-texto-tenue">
@@ -89,6 +90,8 @@ export default async function RepertorioPage({
         repetida: veces.get(c.id) ?? null,
         partitura: conPartitura.get(c.id) ?? null,
         tonalidad: c.tonalidadOriginal,
+        numero: c.fuenteNumero,
+        autor: c.autor,
       },
     ])
   )
@@ -109,6 +112,12 @@ export default async function RepertorioPage({
           <Buscador valorInicial={q} />
         </div>
 
+        {/* El gesto de archivar es un atajo sin pista: se dice una vez, solo a
+            quien puede usarlo y solo cuando el swipe existe (sin búsqueda). El
+            camino con teclado y lector de pantalla sigue siendo «Editar»
+            (DESIGN.md · afueras del gesto). */}
+        {ordenable && puede(sesion.sujeto, 'archivar_canto') && <AvisoDeslizar />}
+
         {total === 0 && q !== '' && (
           <div className="py-10">
             <p className="text-texto-tenue">Ningún canto coincide con «{q}».</p>
@@ -121,7 +130,7 @@ export default async function RepertorioPage({
         {/* Un estado vacío explica por qué está vacío (PRD §14). */}
         {total === 0 && q === '' && (
           <div className="py-10">
-            <p>Este coro todavía no tiene repertorio.</p>
+            <p>Este coro todavía no tiene canciones.</p>
             <p className="mt-2 max-w-prose text-texto-tenue">
               {puedeEditar
                 ? 'Como director puedes cargar el primero.'

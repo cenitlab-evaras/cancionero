@@ -52,14 +52,14 @@ export default async function EnsayarPage({
       <>
         <Cabecera sesion={sesion} />
         <main className="mx-auto w-full max-w-2xl px-4 pt-6 pb-10">
-          <h1 className="titulo-libro text-[1.75rem] leading-tight text-peligro">
+          <h1 className="titulo-pantalla leading-tight text-peligro">
             No tienes acceso a este canto
           </h1>
           <p className="mt-2 max-w-prose text-sm text-texto-tenue">
             Pertenece a un coro del que no eres parte, o ya no existe.
           </p>
           <Link href="/repertorio" className={clasesBotonIcono('borde', 'mt-6 px-4')}>
-            Volver al repertorio
+            Volver a las canciones
           </Link>
         </main>
       </>
@@ -71,7 +71,7 @@ export default async function EnsayarPage({
       <>
         <Cabecera sesion={sesion} />
         <main className="mx-auto w-full max-w-2xl px-4 pt-6 pb-10">
-          <h1 className="titulo-libro text-[1.75rem] leading-tight">{canto.titulo}</h1>
+          <h1 className="titulo-pantalla leading-tight">{canto.titulo}</h1>
           <p className="mt-2 max-w-prose text-base text-texto-tenue">
             Este canto todavía no tiene partitura para ensayar.
           </p>
@@ -105,7 +105,7 @@ export default async function EnsayarPage({
       <main className="mx-auto w-full max-w-2xl flex-1">
         {/* La misma cabecera de lectura que el cifrado: volver y el nombre. */}
         <div className="sticky top-0 z-(--z-cabecera) flex items-center gap-1 border-b border-borde bg-fondo py-1 pr-2 pl-1">
-          <EnlaceIcono href={volver} etiqueta={fila ? 'Volver a la misa' : 'Volver al repertorio'}>
+          <EnlaceIcono href={volver} etiqueta={fila ? 'Volver a la misa' : 'Volver a las canciones'}>
             <IconoVolver />
           </EnlaceIcono>
           <h1 className="titulo-libro min-w-0 flex-1 text-[1.375rem] leading-tight">

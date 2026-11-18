@@ -22,7 +22,7 @@ export default async function CorosPage() {
       <Cabecera sesion={sesion} />
       {/* Destino de primer nivel (se llega desde «Más»): sin flecha de volver. */}
       <main className="mx-auto w-full max-w-2xl px-4 pt-6 pb-10">
-        <h1 className="titulo-libro text-[1.75rem] leading-tight">Tus coros</h1>
+        <h1 className="titulo-pantalla leading-tight">Tus coros</h1>
 
         {sesion.coros.length === 0 ? (
           <p className="mt-3 max-w-prose text-sm leading-relaxed text-texto-tenue">

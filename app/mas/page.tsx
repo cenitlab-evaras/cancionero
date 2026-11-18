@@ -68,8 +68,8 @@ export default async function MasPage() {
   if (hayCoro) {
     coro.push({
       href: '/canciones',
-      texto: 'Canciones',
-      detalle: 'Todas, una vez cada una: cuántas hay y cuáles se repiten',
+      texto: 'Todas las canciones',
+      detalle: 'Una vez cada una: la cuenta, las repetidas y los filtros por momento',
       icono: <IconoRepertorio />,
     })
   }

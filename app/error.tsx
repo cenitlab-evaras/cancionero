@@ -30,7 +30,7 @@ export default function ErrorDePantalla({
 
   return (
     <main className="mx-auto w-full max-w-2xl px-4 pt-10 pb-10">
-      <h1 className="titulo-libro text-[1.75rem] leading-tight">Algo falló</h1>
+      <h1 className="titulo-pantalla leading-tight">Algo falló</h1>
       <p className="mt-2 max-w-prose text-base text-texto-tenue">
         No pudimos mostrar esta pantalla. Revisa que tengas conexión y vuelve a intentarlo.
       </p>

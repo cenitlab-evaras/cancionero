@@ -20,7 +20,7 @@ import Cabecera from '@/app/componentes/cabecera'
 import TituloSeccion from '@/app/componentes/titulo-seccion'
 import Anotados from '@/app/componentes/anotados'
 import { clasesBotonIcono } from '@/app/componentes/boton-icono'
-import { IconoReproducir, IconoSeguir } from '@/app/componentes/iconos'
+import { IconoListo, IconoReproducir, IconoSeguir } from '@/app/componentes/iconos'
 import Inscripcion from '@/app/misas/[id]/inscripcion'
 
 export const metadata = { title: 'Inicio · Cantoral' }
@@ -42,8 +42,9 @@ export const metadata = { title: 'Inicio · Cantoral' }
  * La raíz sigue repartiendo con `rutaInicial()` (PRD §8.3): quien no puede ver
  * un repertorio no ve Inicio, va adonde le corresponde.
  *
- * El halo detrás de la misa es el ÚNICO lugar de la app donde se usa: es la
- * firma del coro, sacada de su logo, y repetida perdería su sentido.
+ * Mundo «Teleprompter» (2026-11-18): sin el resplandor del halo y con el
+ * título en sans grande — la pantalla es de la misa, como la lectura es de la
+ * letra. El halo sigue siendo la firma en el logo y en las acciones.
  */
 export default async function Inicio() {
   const sesion = await obtenerSesion()
@@ -137,7 +138,7 @@ export default async function Inicio() {
       <main className="mx-auto w-full max-w-2xl px-4 pt-5 pb-10">
         {misa && resumen?.fecha ? (
           <>
-            <section aria-labelledby="proxima-misa" className="halo -mx-4 px-4 pt-6 pb-6">
+            <section aria-labelledby="proxima-misa" className="-mx-4 px-4 pt-6 pb-6">
               <div className="flex items-center gap-4">
                 {esDirector && avance && <Anillo porcentaje={avance.porcentaje} />}
                 <div className="min-w-0">
@@ -145,7 +146,7 @@ export default async function Inicio() {
                     {cuantoFalta(resumen.fecha, hoy)}
                     <span className="font-normal text-texto-tenue"> · {fechaLarga(resumen.fecha)}</span>
                   </p>
-                  <h1 id="proxima-misa" className="titulo-libro mt-1 text-[1.75rem] leading-[1.1]">
+                  <h1 id="proxima-misa" className="mt-1 text-[2.5rem] leading-[1.02] font-bold tracking-[-0.02em]">
                     {misa.nombre}
                   </h1>
                   {esDirector && avance && (
@@ -223,7 +224,7 @@ export default async function Inicio() {
                 <section aria-labelledby="van-a-cantar" className="mt-6">
                   <TituloSeccion id="van-a-cantar">Van a cantar</TituloSeccion>
                   <div className="mt-2 flex items-center gap-4">
-                    <span className="titulo-libro text-[2.25rem] leading-none">{quienesCantan.length}</span>
+                    <span className="text-4xl font-bold tabular-nums">{quienesCantan.length}</span>
                     <Anotados quienes={quienesCantan} />
                   </div>
                 </section>
@@ -265,10 +266,10 @@ export default async function Inicio() {
           </>
         ) : (
           <section aria-labelledby="sin-misa" className="pt-4 pb-6">
-            <h1 id="sin-misa" className="titulo-libro text-[1.75rem] leading-tight">
+            <h1 id="sin-misa" className="text-[2.5rem] leading-[1.02] font-bold tracking-[-0.02em]">
               No hay ninguna misa agendada
             </h1>
-            <p className="mt-2 max-w-prose text-texto-tenue">
+            <p className="mt-2 max-w-prose text-texto-tenue prosa-equilibrada">
               {puedeEditarMisa
                 ? 'Agenda la próxima y aparece acá, lista para empezar.'
                 : 'Cuando el director agende la próxima, aparece acá, lista para empezar.'}
@@ -309,9 +310,17 @@ export default async function Inicio() {
           )}
           {enEnsayo.length > 0 && (
             <Chico titulo="Se está ensayando">
-              {enEnsayo.map((c) => (
+              {/* Con el cancionero entero «en ensayo» la lista era una pared
+                  (2026-11-18): se muestran cinco y la cuenta del resto. */}
+              {enEnsayo.slice(0, 5).map((c) => (
                 <FilaChica key={c.id} href={`/repertorio/${c.id}`} texto={c.titulo} />
               ))}
+              {enEnsayo.length > 5 && (
+                <FilaChica
+                  href="/repertorio"
+                  texto={`y ${enEnsayo.length - 5} más en ensayo`}
+                />
+              )}
             </Chico>
           )}
           {despues.length > 0 && (
@@ -406,11 +415,18 @@ function FilaDeAvance({ href, bien, numero, texto }: { href: string; bien: boole
         className="tactil -mx-2 flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-superficie"
       >
         <span
-          className={`min-w-11 rounded-full px-2 py-0.5 text-center text-sm font-bold tabular-nums ${
+          className={`inline-flex min-w-11 items-center justify-center gap-0.5 rounded-full px-2 py-0.5 text-center text-sm font-bold tabular-nums ${
             bien ? 'bg-exito/15 text-exito' : 'bg-peligro/15 text-peligro'
           }`}
         >
-          {bien ? (numero === '0' ? '✓' : `✓ ${numero}`) : numero}
+          {bien ? (
+            <>
+              <IconoListo tamano={14} />
+              {numero !== '0' && numero}
+            </>
+          ) : (
+            numero
+          )}
         </span>
         <span className="min-w-0 flex-1 truncate">{texto}</span>
         <IconoSeguir tamano={18} className="shrink-0 text-texto-tenue" />
@@ -423,7 +439,7 @@ function FilaDeAvance({ href, bien, numero, texto }: { href: string; bien: boole
 function Chico({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
     <section>
-      <h2 className="text-xs font-bold tracking-wide text-texto-tenue uppercase">{titulo}</h2>
+      <TituloSeccion>{titulo}</TituloSeccion>
       <ul className="mt-1">{children}</ul>
     </section>
   )
@@ -434,10 +450,10 @@ function FilaChica({ href, texto, detalle }: { href: string; texto: string; deta
     <li>
       <Link
         href={href}
-        className="-mx-1.5 flex min-h-9 items-baseline gap-2 rounded px-1.5 py-1 text-sm transition-colors hover:bg-superficie"
+        className="-mx-1.5 flex min-h-11 items-baseline gap-2 rounded px-1.5 py-1 text-sm transition-colors hover:bg-superficie"
       >
         <span className="min-w-0 truncate">{texto}</span>
-        {detalle && <span className="min-w-0 shrink truncate text-xs text-texto-tenue">{detalle}</span>}
+        {detalle && <span className="min-w-0 shrink truncate text-sm text-texto-tenue">{detalle}</span>}
       </Link>
     </li>
   )

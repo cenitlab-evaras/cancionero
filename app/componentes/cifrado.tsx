@@ -1,14 +1,10 @@
-import type { ReactNode } from 'react'
-import Link from 'next/link'
 import { renderizarCifrado, type LineaCifrado } from '@/lib/motores/renderizar-cifrado'
 import {
   atenuarParaMiCuerda,
-  huellaDeEstrofa,
   nombreDeQuienCanta,
   type QuienCanta,
 } from '@/lib/motores/quien-canta'
 import type { CuerdaDelCoro } from '@/lib/motores/cuerdas'
-import MarcaEstrofa from './marca-estrofa'
 
 /**
  * Pinta el cifrado con los acordes sobre la letra (H2, RF-17).
@@ -63,7 +59,11 @@ export type HerramientasDelCifrado = {
   resaltarMiCuerda: boolean
   /** La cuerda de su tesitura; null si no la cargó en «Mi perfil». */
   miCuerda: CuerdaDelCoro | null
-  /** Solo el director, y solo con «Quién canta» prendida: marca las estrofas. */
+  /**
+   * Solo el director, y solo con «Quién canta» prendida. Lo usa la PÁGINA para
+   * ofrecer el marcado al pie (2026-11-17); el cifrado ya NO dibuja selects:
+   * solo el rótulo de lectura.
+   */
   marcar: { cantoId: string } | null
 }
 
@@ -113,31 +113,8 @@ export default function Cifrado({
     latina: herramientas?.latina,
   })
 
-  const marcado = quienCanta.some(Boolean)
   const verQuien = !!herramientas?.quienCanta
   const resaltar = !!herramientas?.resaltarMiCuerda
-  const marcar = verQuien ? herramientas?.marcar ?? null : null
-
-  // Lo que la herramienta no puede hacer todavía, dicho en vez de callado.
-  const avisos: ReactNode[] = []
-  if (resaltar && !herramientas?.miCuerda) {
-    avisos.push(
-      <>
-        Para resaltar tu cuerda, elige tu tesitura en{' '}
-        <Link href="/mi-perfil" className="text-acento underline underline-offset-2">
-          Mi perfil
-        </Link>
-        .
-      </>
-    )
-  }
-  if ((verQuien || resaltar) && !marcado) {
-    avisos.push(
-      marcar
-        ? 'Elige quién canta cada estrofa en el rótulo que está sobre ella.'
-        : 'Este canto todavía no tiene marcado quién canta cada estrofa.'
-    )
-  }
 
   function pintarLinea(linea: LineaCifrado, i: number) {
     if (linea.esSeparador) return <div key={i} className="h-4" aria-hidden />
@@ -162,7 +139,9 @@ export default function Cifrado({
     let cursor = 0
 
     return (
-      <div key={i}>
+      // `data-linea-cifrado` y `data-columna` los usa el arrastre del director
+      // (ZonaAcordes): el acorde arrastrado sabe su columna y sus vecinos.
+      <div key={i} data-linea-cifrado>
         {linea.acordes.length > 0 && (
           <div className="whitespace-pre font-semibold text-acorde">
             {linea.acordes.map((a, j) => {
@@ -175,6 +154,7 @@ export default function Cifrado({
                     type="button"
                     data-acorde={a.americano ?? a.acorde}
                     data-indice={a.indice}
+                    data-columna={a.columna}
                     className="acorde-tocable"
                   >
                     {a.acorde}
@@ -184,7 +164,7 @@ export default function Cifrado({
             })}
           </div>
         )}
-        <div className="whitespace-pre text-texto">{linea.texto || ' '}</div>
+        <div data-letra className="whitespace-pre text-texto">{linea.texto || ' '}</div>
       </div>
     )
   }
@@ -194,13 +174,6 @@ export default function Cifrado({
   // unidades se resolverían contra el viewport, que es más ancho.
   return (
     <div style={{ containerType: 'inline-size' }}>
-      {avisos.length > 0 && (
-        <div className="mb-4 space-y-1 text-sm text-texto-tenue">
-          {avisos.map((a, i) => (
-            <p key={i}>{a}</p>
-          ))}
-        </div>
-      )}
       <div
         className="cifrado"
         style={{
@@ -213,14 +186,9 @@ export default function Cifrado({
 
           const canta = quienCanta[bloque.estrofa] ?? null
           const atenuada = resaltar && atenuarParaMiCuerda(canta, herramientas?.miCuerda ?? null)
-          const rotulo = marcar ? (
-            <MarcaEstrofa
-              cantoId={marcar.cantoId}
-              estrofa={bloque.estrofa}
-              huella={huellaDeEstrofa(cifrado, bloque.estrofa) ?? ''}
-              canta={canta}
-            />
-          ) : verQuien && canta ? (
+          // De solo lectura (2026-11-17): el marcado del director vive al pie
+          // de la ficha; acá no se planifica encima del cifrado.
+          const rotulo = verQuien && canta ? (
             <span className="font-bold">{nombreDeQuienCanta(canta)}</span>
           ) : null
 

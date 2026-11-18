@@ -26,12 +26,16 @@ export default async function MiFichaPage() {
   // El tamaño de letra es de la persona, no del coro (RN-14): sale aunque no
   // haya coro activo ni permiso para la ficha. Solo depende de poder guardar
   // una preferencia propia, que es lo que la action exige.
+  const preferencias = await preferenciasDelPerfil()
   const tamano = puede(sesion.sujeto, 'guardar_preferencia_propia') ? (
-    <TamanoLetra tamanoLetra={(await preferenciasDelPerfil()).tamanoLetra} />
+    <TamanoLetra
+      tamanoLetra={preferencias.tamanoLetra}
+      latina={preferencias.herramientas.includes('notacion_latina')}
+    />
   ) : null
 
   // Destino de primer nivel (se llega desde «Más»): sin flecha de volver.
-  const titulo = <h1 className="titulo-libro text-[1.75rem] leading-tight">Mi perfil</h1>
+  const titulo = <h1 className="titulo-pantalla leading-tight">Mi perfil</h1>
 
   if (!sesion.coroActivo) {
     return (

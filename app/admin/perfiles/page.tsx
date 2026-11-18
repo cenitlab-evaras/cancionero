@@ -25,7 +25,7 @@ export default async function AdminPerfilesPage() {
       <>
         <Cabecera sesion={sesion} />
         <main className="mx-auto w-full max-w-2xl px-4 pt-6 pb-10">
-          <h1 className="titulo-libro text-[1.75rem] leading-tight text-peligro">
+          <h1 className="titulo-pantalla leading-tight text-peligro">
             Esta pantalla es de administración
           </h1>
           <p className="mt-2 max-w-prose text-sm text-texto-tenue">
@@ -35,7 +35,7 @@ export default async function AdminPerfilesPage() {
             href="/repertorio"
             className="mt-6 inline-block text-sm text-acento underline underline-offset-2"
           >
-            Volver al repertorio
+            Volver a las canciones
           </Link>
         </main>
       </>
@@ -55,7 +55,7 @@ export default async function AdminPerfilesPage() {
 
       {/* Destino de primer nivel (se llega desde «Más»): sin flecha de volver. */}
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 pt-6 pb-10">
-        <h1 className="titulo-libro text-[1.75rem] leading-tight">Administración</h1>
+        <h1 className="titulo-pantalla leading-tight">Administración</h1>
 
         <PanelAdmin perfiles={perfiles} coros={coros} yoId={sesion.usuarioId} />
       </main>

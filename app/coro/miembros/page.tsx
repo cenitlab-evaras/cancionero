@@ -20,7 +20,7 @@ export default async function MiembrosPage() {
       <>
         <Cabecera sesion={sesion} />
         <main className="mx-auto w-full max-w-2xl px-4 pt-6 pb-10">
-          <h1 className="titulo-libro text-[1.75rem] leading-tight">Miembros</h1>
+          <h1 className="titulo-pantalla leading-tight">Miembros</h1>
           <p className="mt-2 text-sm text-texto-tenue">
             Todavía no perteneces a ningún coro.
           </p>
@@ -36,7 +36,7 @@ export default async function MiembrosPage() {
       <>
         <Cabecera sesion={sesion} />
         <main className="mx-auto w-full max-w-2xl px-4 pt-6 pb-10">
-          <h1 className="titulo-libro text-[1.75rem] leading-tight text-peligro">
+          <h1 className="titulo-pantalla leading-tight text-peligro">
             No tienes permiso para administrar los miembros
           </h1>
           <p className="mt-2 max-w-prose text-sm text-texto-tenue">
@@ -46,7 +46,7 @@ export default async function MiembrosPage() {
             href="/repertorio"
             className="mt-6 inline-block text-sm text-acento underline underline-offset-2"
           >
-            Volver al repertorio
+            Volver a las canciones
           </Link>
         </main>
       </>
@@ -67,7 +67,7 @@ export default async function MiembrosPage() {
 
       {/* Destino de primer nivel (se llega desde «Más»): sin flecha de volver. */}
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 pt-6 pb-10">
-        <h1 className="titulo-libro text-[1.75rem] leading-tight">Miembros</h1>
+        <h1 className="titulo-pantalla leading-tight">Miembros</h1>
         <p className="mt-1 text-sm text-texto-tenue">{sesion.coroActivo.nombre}</p>
 
         <ListaMiembros

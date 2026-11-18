@@ -16,7 +16,7 @@ import {
 } from '@/app/componentes/marcas'
 import Filtros from './filtros'
 
-export const metadata = { title: 'Canciones · Cantoral' }
+export const metadata = { title: 'Todas las canciones · Cantoral' }
 
 /**
  * «Canciones» (pedido del dueño, 2026-10-17): todas las del coro, una vez cada
@@ -77,7 +77,7 @@ export default async function CancionesPage({
       {/* Sin el buscador global: esta pantalla tiene el suyo, con filtros. */}
       <Cabecera sesion={sesion} buscador={false} />
       <main className="mx-auto w-full max-w-2xl px-4 pt-6 pb-10">
-        <h1 className="titulo-libro text-[1.75rem] leading-tight">Canciones</h1>
+        <h1 className="titulo-pantalla leading-tight">Todas las canciones</h1>
         {/* La cuenta es lo que se vino a buscar: va primero y grande. */}
         <p className="mt-1 text-base text-texto-tenue">
           <span className="font-semibold text-texto tabular-nums">{canciones.length}</span>{' '}
@@ -149,10 +149,15 @@ export default async function CancionesPage({
                 const n = veces.get(c.id)
                 const susMomentos = c.momentos.map((m) => nombreMomento.get(m) ?? m).join(', ')
                 return (
-                  <tr key={c.id} className="border-b border-borde align-top">
+                  <tr key={c.id} className="relative border-b border-borde align-top">
                     <td className="py-2.5 pr-3">
                       <span className="flex items-center gap-2">
-                        <Link href={`/repertorio/${c.id}`} className="font-medium hover:underline">
+                        {/* La fila entera abre el canto: `after` cubre el tr.
+                            Antes solo el texto tenía 24 px de alto. */}
+                        <Link
+                          href={`/repertorio/${c.id}`}
+                          className="font-medium after:absolute after:inset-0 after:content-[''] hover:underline"
+                        >
                           {c.titulo}
                         </Link>
                         {/* En el teléfono no hay columna de estado: va al lado. */}

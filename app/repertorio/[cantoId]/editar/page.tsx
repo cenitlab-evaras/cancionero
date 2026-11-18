@@ -56,7 +56,7 @@ export default async function EditarCantoPage({
         <main className="mx-auto w-full max-w-2xl px-4 py-10">
           <h1 className="text-lg font-semibold text-peligro">No tienes acceso a este canto</h1>
           <Link href="/repertorio" className={clasesBotonIcono('borde', 'mt-6 px-4')}>
-            Volver al repertorio
+            Volver a las canciones
           </Link>
         </main>
       </>
@@ -74,7 +74,7 @@ export default async function EditarCantoPage({
           <EnlaceIcono href={`/repertorio/${cantoId}`} etiqueta="Volver al canto">
             <IconoVolver />
           </EnlaceIcono>
-          <h1 className="titulo-libro min-w-0 text-[1.75rem] leading-tight">{canto.titulo}</h1>
+          <h1 className="titulo-pantalla min-w-0 leading-tight">{canto.titulo}</h1>
         </div>
 
         <FormularioCanto

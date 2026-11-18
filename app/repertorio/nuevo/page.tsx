@@ -29,7 +29,7 @@ export default async function NuevoCantoPage() {
             Cargar y corregir cantos es trabajo del director del coro.
           </p>
           <Link href="/repertorio" className={clasesBotonIcono('borde', 'mt-6 px-4')}>
-            Volver al repertorio
+            Volver a las canciones
           </Link>
         </main>
       </>
@@ -50,7 +50,7 @@ export default async function NuevoCantoPage() {
           <EnlaceIcono href="/herramientas" etiqueta="Volver a Herramientas">
             <IconoVolver />
           </EnlaceIcono>
-          <h1 className="titulo-libro min-w-0 text-[1.75rem] leading-tight">Canto nuevo</h1>
+          <h1 className="titulo-pantalla min-w-0 leading-tight">Canto nuevo</h1>
         </div>
 
         <FormularioCanto

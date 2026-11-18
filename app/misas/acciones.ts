@@ -166,12 +166,15 @@ export async function quitarCanto(raw: unknown): Promise<Resultado> {
   if (!misa) return { ok: false, error: 'No tienes acceso a esta misa.' }
 
   const supabase = await createClient()
-  const { error } = await supabase
+  const { data: borradas, error } = await supabase
     .from('misa_cantos')
     .delete()
     .eq('id', datos.data.filaId)
+    .select('id')
 
   if (error) return { ok: false, error: 'No pudimos quitar el canto.' }
+  // Cero filas sin error es la RLS diciendo que no (§14), o que ya no estaba.
+  if (!borradas?.length) return { ok: false, error: 'Ese canto ya no está en la misa, o no puedes quitarlo.' }
 
   // Quitar deja un hueco en el orden. Se renumera para que siga siendo
   // 0,1,2… y el recorrido no dependa de números arbitrarios.
@@ -179,6 +182,8 @@ export async function quitarCanto(raw: unknown): Promise<Resultado> {
 
   revalidatePath(`/misas/${datos.data.misaId}`)
   revalidatePath(`/misas/${datos.data.misaId}/editar`)
+  // El Inicio cuenta y lista los cantos de la próxima misa.
+  revalidatePath('/')
   return { ok: true }
 }
 
@@ -190,7 +195,12 @@ const Mover = z.object({
   direccion: z.enum(['arriba', 'abajo']),
 })
 
-/** Mueve un canto una posición. El orden explícito manda sobre el del momento. */
+/**
+ * Mueve un canto una posición DENTRO DE SU SEGMENTO (2026-11-18): la pantalla
+ * agrupa por momento litúrgico, así que subir/bajar cruza al vecino del mismo
+ * momento, no al de la lista plana. Si no hay vecino en ese segmento, no hace
+ * nada (ya está en la punta).
+ */
 export async function moverCanto(raw: unknown): Promise<Resultado> {
   const datos = Mover.safeParse(raw)
   if (!datos.success) return { ok: false, error: 'Revisa los datos.' }
@@ -201,11 +211,20 @@ export async function moverCanto(raw: unknown): Promise<Resultado> {
   const misa = await obtenerMisa(datos.data.misaId)
   if (!misa) return { ok: false, error: 'No tienes acceso a esta misa.' }
 
-  const ids = misa.cantos.map((c) => c.id)
-  const i = ids.indexOf(datos.data.filaId)
-  const j = datos.data.direccion === 'arriba' ? i - 1 : i + 1
-  if (i === -1 || j < 0 || j >= ids.length) return { ok: true } // ya está en la punta
+  const fila = misa.cantos.find((c) => c.id === datos.data.filaId)
+  if (!fila) return { ok: true }
 
+  // Los vecinos del MISMO segmento, en el orden en que están dentro de él.
+  const delMismo = misa.cantos
+    .map((c, posicion) => ({ c, posicion }))
+    .filter(({ c }) => c.momentoOrden === fila.momentoOrden)
+  const k = delMismo.findIndex(({ c }) => c.id === fila.id)
+  const vecino = datos.data.direccion === 'arriba' ? delMismo[k - 1] : delMismo[k + 1]
+  if (!vecino) return { ok: true } // ya está en la punta del segmento
+
+  const ids = misa.cantos.map((c) => c.id)
+  const i = delMismo[k].posicion
+  const j = vecino.posicion
   ;[ids[i], ids[j]] = [ids[j], ids[i]]
   await escribirOrden(ids)
 

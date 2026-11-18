@@ -12,6 +12,8 @@
  * y del video exportado, para que el coro vea lo mismo en los dos lados.
  */
 
+import { franjasDeVelos } from '@/lib/motores/velos'
+
 export const TINTA = '#1a1a1a'
 export const ACTIVA = '#d2691e'
 export const CURSOR = '#e8a54b'
@@ -97,9 +99,12 @@ function velos(svg: SVGSVGElement): SVGRectElement[] {
   const pent: [number, number][] = []
   for (let i = 0; i + 4 < ys.length; i += 5) pent.push([ys[i], ys[i + 4]])
   const vb = svg.viewBox.baseVal
-  return pent.map(([arriba, abajo], i) => {
-    const y0 = i === 0 ? arriba - 450 : (pent[i - 1][1] + arriba) / 2 + 150
-    const y1 = i === pent.length - 1 ? abajo + 650 : (abajo + pent[i + 1][0]) / 2 + 150
+  // La aritmética de las franjas vive en el motor `velos` (compartida con la
+  // hoja de Verovio): acá ya vienen de arriba abajo y con alto positivo.
+  return franjasDeVelos(
+    pent.map(([arriba, abajo]) => ({ ys: [arriba, abajo] })),
+    1
+  ).map(({ y0, y1 }) => {
     const r = document.createElementNS(SVG, 'rect')
     r.setAttribute('x', String(vb.x))
     r.setAttribute('width', String(vb.width))

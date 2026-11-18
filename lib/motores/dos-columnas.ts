@@ -163,7 +163,21 @@ export function tituloDeCanto(linea: string): { numero: number; titulo: string }
   // perdían los seis salmos completos.
   const base = crudo.replace(/\s*\([^)]*\)\s*$/, '').trim()
   if (!base) return null
-  if (base !== base.toLocaleUpperCase('es')) return null
+  // El libro versalea a medias: el tipógrafo deja los conectores cortos en
+  // minúscula («189. JESÚS El CARPINTERO»). Sin aceptarlos, ese canto se
+  // perdía y su letra se pegaba al anterior (2026-11-17).
+  const CONECTORES = new Set([
+    'el', 'la', 'los', 'las', 'de', 'del', 'y', 'en', 'a', 'al', 'con', 'por', 'para', 'que', 'mi', 'tu', 'su',
+  ])
+  const esTitulo = base.split(/\s+/).every((palabra) => {
+    const limpia = palabra.replace(/[^\p{L}]/gu, '')
+    if (!limpia) return true
+    return (
+      limpia === limpia.toLocaleUpperCase('es') ||
+      CONECTORES.has(limpia.toLocaleLowerCase('es'))
+    )
+  })
+  if (!esTitulo) return null
 
   return { numero: Number(m[1]), titulo: normalizarTitulo(base) }
 }

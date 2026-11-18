@@ -36,7 +36,7 @@ export default async function ArchivadosPage() {
             Sacar un canto del repertorio y devolverlo es trabajo del director del coro.
           </p>
           <Link href="/repertorio" className={clasesBotonIcono('borde', 'mt-6 px-4')}>
-            Volver al repertorio
+            Volver a las canciones
           </Link>
         </main>
       </>
@@ -53,14 +53,15 @@ export default async function ArchivadosPage() {
           <EnlaceIcono href="/mas" etiqueta="Volver a Más">
             <IconoVolver />
           </EnlaceIcono>
-          <h1 className="titulo-libro min-w-0 text-[1.75rem] leading-tight">Cantos archivados</h1>
+          <h1 className="titulo-pantalla min-w-0 leading-tight">Cantos archivados</h1>
         </div>
 
         {cantos.length === 0 ? (
           // Un estado vacío explica POR QUÉ está vacío (PRD §14).
           <div className="mt-4">
             <p className="max-w-prose text-texto-tenue">
-              No hay ningún canto archivado. Cuando saques uno del repertorio desde «Editar», va a
+              No hay ningún canto archivado. Cuando saques uno del repertorio desde «Editar» o
+              deslizándolo en la lista, va a
               aparecer acá y vas a poder devolverlo.
             </p>
             <Link href="/repertorio" className={clasesBotonIcono('borde', 'mt-5 px-4')}>

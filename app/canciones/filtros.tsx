@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useRef, useState, useTransition } from 'react'
-import { IconoBuscar } from '@/app/componentes/iconos'
+import { IconoBuscar, IconoListo } from '@/app/componentes/iconos'
 
 /**
  * Los filtros de «Canciones». Solo llevan lo elegido a la URL; filtra el motor
@@ -102,22 +102,36 @@ export default function Filtros({
           <option value="con">Con partitura</option>
           <option value="sin">Sin partitura</option>
         </select>
-        <label className="tactil flex items-center gap-2 px-1 text-sm text-texto">
+        <label className="casilla tactil flex items-center gap-2 px-1 text-sm text-texto">
           <input
             type="checkbox"
             checked={valores.repetidas}
             onChange={(e) => ir({ repetidas: e.target.checked })}
-            className="size-4 accent-[var(--color-acento)]"
+            className="peer sr-only"
           />
+          {/* La casilla dibujada: el mismo alto y contraste en todo navegador.
+              El input sigue siendo nativo y accesible; solo se ve esta. */}
+          <span
+            aria-hidden
+            className="flex size-4 shrink-0 items-center justify-center rounded border border-borde-fuerte text-transparent transition-[background-color,border-color,color] peer-checked:border-acento peer-checked:bg-acento peer-checked:text-sobre-acento caja-casilla"
+          >
+            <IconoListo tamano={12} />
+          </span>
           Solo repetidas
         </label>
-        <label className="tactil flex items-center gap-2 px-1 text-sm text-texto">
+        <label className="casilla tactil flex items-center gap-2 px-1 text-sm text-texto">
           <input
             type="checkbox"
             checked={valores.solistas}
             onChange={(e) => ir({ solistas: e.target.checked })}
-            className="size-4 accent-[var(--color-acento)]"
+            className="peer sr-only"
           />
+          <span
+            aria-hidden
+            className="flex size-4 shrink-0 items-center justify-center rounded border border-borde-fuerte text-transparent transition-[background-color,border-color,color] peer-checked:border-acento peer-checked:bg-acento peer-checked:text-sobre-acento caja-casilla"
+          >
+            <IconoListo tamano={12} />
+          </span>
           Con solista
         </label>
       </div>

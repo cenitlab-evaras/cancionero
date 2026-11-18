@@ -40,6 +40,11 @@ export type Correccion =
   | { tipo: 'borrar'; indice: number }
   /** Uno nuevo en la sílaba que sigue a `despuesDe`, corrido `pasos` desde ahí. */
   | { tipo: 'agregar'; despuesDe: number; acorde: string; pasos: number }
+  /**
+   * Arrastrarlo a una COLUMNA exacta de la letra (el gesto de la lectura,
+   * 2026-11-17). No cambia el nombre; la columna se limita al largo del verso.
+   */
+  | { tipo: 'mover'; indice: number; columna: number }
 
 export type ResultadoCorreccion =
   | {
@@ -174,6 +179,17 @@ export function aplicarCorreccion(cifrado: string, c: Correccion): ResultadoCorr
 
   if (c.tipo === 'borrar') {
     nuevos = acordes.filter((_, i) => i !== enLinea)
+  } else if (c.tipo === 'mover') {
+    // El arrastre trae una columna de carácter; la columna no puede salirse del
+    // verso ni partir de una posición que ya era la suya.
+    const destino = Math.max(0, Math.min(c.columna, texto.length))
+    if (destino === ref.columna) return { ok: false, error: 'El acorde no cambió.' }
+    movido = { acorde: ref.acorde, columna: destino, orden: enLinea }
+    const resto = acordes.filter((_, i) => i !== enLinea)
+    const k = resto.filter(
+      (a) => a.columna < destino || (a.columna === destino && a.orden < enLinea)
+    ).length
+    nuevos = [...resto.slice(0, k), movido, ...resto.slice(k)]
   } else {
     const nombre = normalizarAcorde(c.acorde)
     if (nombre === null) return { ok: false, error: `«${c.acorde.trim()}» no es un acorde.` }

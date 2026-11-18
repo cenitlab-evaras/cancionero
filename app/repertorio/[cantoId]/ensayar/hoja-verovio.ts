@@ -11,6 +11,7 @@
  * `public/vendor/` (lo copia `scripts/copiar-vendor.mjs`), sin empaquetarlo.
  */
 import { ACTIVA, CURSOR, ESPACIO_MUSESCORE, type Elemento, type Hoja, type Momento, type Pagina } from './hoja'
+import { franjasDeVelos } from '@/lib/motores/velos'
 
 const SVG = 'http://www.w3.org/2000/svg'
 
@@ -103,28 +104,32 @@ export async function prepararHojaVerovio(contenedor: HTMLElement, xml: string, 
     capa.prepend(marca) // bajo todo lo demás
 
     // Un velo por pentagrama, sistema por sistema y de arriba abajo, como en la
-    // hoja de MuseScore: el i-ésimo es la cuerda i módulo las cuerdas.
+    // hoja de MuseScore: el i-ésimo es la cuerda i módulo las cuerdas. La
+    // geometría la decide el motor `velos`: Verovio repite cada pentagrama
+    // dentro del sistema (una vez por voz) y la cuenta anterior dibujaba
+    // franjas con alto negativo (2026-11-17).
     const velos: SVGRectElement[] = []
     for (const sistema of capa.querySelectorAll('g.system')) {
-      const pent = [...sistema.querySelectorAll('g.staff')].map(lineas).filter((l) => l.ys.length === 5)
-      if (pent.length === 0) continue
+      const staves = [...sistema.querySelectorAll('g.staff')].map(lineas).filter((l) => l.ys.length === 5)
+      if (staves.length === 0) continue
+      const franjas = franjasDeVelos(staves, k)
+      const arriba = Math.min(...staves.map((l) => Math.min(...l.ys)))
+      const abajo = Math.max(...staves.map((l) => Math.max(...l.ys)))
       sistemas.set(sistema, {
-        y: pent[0].ys[0],
-        h: pent[pent.length - 1].ys[4] - pent[0].ys[0],
-        x1: pent[0].x1,
+        y: arriba,
+        h: abajo - arriba,
+        x1: Math.max(...staves.map((l) => l.x1)),
       })
-      pent.forEach((l, i) => {
-        const arriba = l.ys[0]
-        const abajo = l.ys[4]
-        const y0 = i === 0 ? arriba - 450 * k : (pent[i - 1].ys[4] + arriba) / 2 + 150 * k
-        const y1 = i === pent.length - 1 ? abajo + 650 * k : (abajo + pent[i + 1].ys[0]) / 2 + 150 * k
+      const x0 = Math.min(...staves.map((l) => l.x0))
+      const x1 = Math.max(...staves.map((l) => l.x1))
+      franjas.forEach((franja) => {
         const r = document.createElementNS(SVG, 'rect')
         // De borde a borde de la hoja, con el nombre de la cuerda incluido (la
         // capa está corrida por el margen de la página: se parte de antes de 0).
-        r.setAttribute('x', String(-l.x0))
-        r.setAttribute('width', String(l.x1 + 2 * l.x0))
-        r.setAttribute('y', String(y0))
-        r.setAttribute('height', String(y1 - y0))
+        r.setAttribute('x', String(-x0))
+        r.setAttribute('width', String(x1 + 2 * x0))
+        r.setAttribute('y', String(franja.y0))
+        r.setAttribute('height', String(franja.y1 - franja.y0))
         r.setAttribute('fill', '#fff')
         r.setAttribute('fill-opacity', '0.72')
         r.style.pointerEvents = 'none'

@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useRef, useState, useSyncExternalStore, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   closestCorners,
   defaultDropAnimationSideEffects,
@@ -30,7 +31,7 @@ import { CSS } from '@dnd-kit/utilities'
 import TituloSeccion from '@/app/componentes/titulo-seccion'
 import { IconoAgarrar } from '@/app/componentes/iconos'
 import { soltarCanto } from '@/lib/motores/orden-en-el-momento'
-import { soltarEnElRepertorio } from './acciones'
+import { archivarCanto, soltarEnElRepertorio } from './acciones'
 import FilaCanto, { type DatosFila } from './fila-canto'
 
 /**
@@ -110,6 +111,15 @@ export default function RepertorioOrdenable({
   // La foto de cuando se levantó el canto: de dónde salió y cómo estaba todo.
   const inicio = useRef<{ de: string; listas: Listas } | null>(null)
   const reducido = useMovimientoReducido()
+  const router = useRouter()
+
+  /** Un canto archivado sale al instante de todas las secciones; el servidor confirma. */
+  function sacarDeLaLista(cantoId: string) {
+    setListas((ls) =>
+      Object.fromEntries(Object.entries(ls).map(([codigo, fichas]) => [codigo, fichas.filter((f) => cantoDe(f) !== cantoId)]))
+    )
+    router.refresh()
+  }
 
   const sensores = useSensors(
     // Unos pocos píxeles antes de levantar: un toque en el asa no es un arrastre.
@@ -264,7 +274,9 @@ export default function RepertorioOrdenable({
             <ul className="mt-1">
               {(listas[m.codigo] ?? []).map((f) => {
                 const canto = filas[cantoDe(f)]
-                return canto ? <FilaArrastrable key={f} ficha={f} canto={canto} quieta={pendiente} /> : null
+                return canto ? (
+                  <FilaArrastrable key={f} ficha={f} canto={canto} quieta={pendiente} alArchivar={sacarDeLaLista} />
+                ) : null
               })}
             </ul>
           </SortableContext>
@@ -296,7 +308,17 @@ function Seccion({ codigo, nombre, children }: { codigo: string; nombre: string;
   )
 }
 
-function FilaArrastrable({ ficha, canto, quieta }: { ficha: string; canto: DatosFila; quieta: boolean }) {
+function FilaArrastrable({
+  ficha,
+  canto,
+  quieta,
+  alArchivar,
+}: {
+  ficha: string
+  canto: DatosFila
+  quieta: boolean
+  alArchivar: (cantoId: string) => void
+}) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
     useSortable({ id: ficha, disabled: quieta, transition: { duration: DURACION, easing: CURVA } })
 
@@ -307,6 +329,13 @@ function FilaArrastrable({ ficha, canto, quieta }: { ficha: string; canto: Datos
       style={{ transform: CSS.Translate.toString(transform), transition }}
       // El hueco que deja el canto levantado: se ve, pero apagado.
       className={isDragging ? 'opacity-40' : ''}
+      // Deslizar a la izquierda archiva (2026-10-17). Se archiva el CANTO:
+      // sale de todos los momentos donde estaba; vuelve desde «Archivados».
+      deslizar={{
+        texto: 'Archivar',
+        alConfirmar: () => archivarCanto(canto.id),
+        alTerminar: () => alArchivar(canto.id),
+      }}
       asa={
         <Asa
           titulo={canto.titulo}
@@ -339,6 +368,9 @@ function Asa({
       type="button"
       ref={ref}
       {...resto}
+      // El asa tiene su propio gesto (arrastrar): el deslizado de la fila no
+      // arranca acá.
+      data-sin-deslizar
       aria-label={`Mover ${titulo}`}
       title="Arrastra para mover"
       className={`tactil inline-flex size-11 shrink-0 touch-none items-center justify-center rounded-lg text-texto-tenue hover:bg-superficie hover:text-texto aria-disabled:opacity-40 ${

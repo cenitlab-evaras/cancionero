@@ -17,6 +17,9 @@ import { IconoAcordes } from '@/app/componentes/iconos'
  * que no decía qué hacía. Ahora es un control de 44 px con su ícono y su texto,
  * y el estado se dice con superficie y con una barra que tacha el ícono —
  * nunca con el color del acorde, que es solo para los acordes.
+ *
+ * 2026-11-17: el texto visible volvió de verdad. El ícono solo no descubría
+ * «solo letra», que es la salida de quien canta sin instrumento (la crítica).
  */
 export default function SoloLetra({ mostrarAcordes }: { mostrarAcordes: boolean }) {
   const router = useRouter()
@@ -39,8 +42,8 @@ export default function SoloLetra({ mostrarAcordes }: { mostrarAcordes: boolean 
       // El nombre dice el ESTADO, no la acción: un lector de pantalla anuncia
       // "Ver acordes, activado", que es la forma en que se lee un interruptor.
       aria-label="Ver acordes"
-      title={optimista ? 'Ocultar los acordes en todo el repertorio' : 'Volver a ver los acordes'}
-      className={clasesBotonIcono(optimista ? 'activo' : 'plano')}
+      title={optimista ? 'Ocultar los acordes en todas las canciones' : 'Volver a ver los acordes'}
+      className={clasesBotonIcono(optimista ? 'activo' : 'plano', 'gap-1.5 px-2')}
     >
       <span className="relative">
         <IconoAcordes />
@@ -51,6 +54,9 @@ export default function SoloLetra({ mostrarAcordes }: { mostrarAcordes: boolean 
           />
         )}
       </span>
+      {/* El texto dice el estado, no la acción: «Acordes» los muestra,
+          «Solo letra» los oculta. */}
+      <span className="text-sm font-semibold">Acordes</span>
     </button>
   )
 }

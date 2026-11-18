@@ -140,6 +140,20 @@ describe('tituloDeCanto', () => {
   test('NO toma una línea de letra que empiece con número', () => {
     expect(tituloDeCanto('40 días en el desierto')).toBeNull()
   })
+
+  test('acepta las minúsculas de enlace del tipógrafo (el libro versalea a medias)', () => {
+    // «189. JESÚS El CARPINTERO» es un título: solo «El» va en minúsculas, como
+    // conector. Sin esta regla, el canto se perdía y su letra se pegaba al
+    // anterior (2026-11-17).
+    expect(tituloDeCanto('189. JESÚS El CARPINTERO')).toEqual({
+      numero: 189,
+      titulo: 'Jesús el carpintero',
+    })
+  })
+
+  test('pero una línea de prosa con número sigue sin ser título', () => {
+    expect(tituloDeCanto('3. Ven y sígueme con tu cruz')).toBeNull()
+  })
 })
 
 describe('normalizarTitulo', () => {

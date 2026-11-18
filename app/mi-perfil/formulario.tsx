@@ -53,7 +53,7 @@ export default function FormularioFicha({ ficha }: { ficha: FichaPropia | null }
   }
 
   return (
-    <form onSubmit={enviar} className="mt-6 space-y-5">
+    <form onSubmit={enviar} className="mt-6 flex flex-col gap-5">
       <div>
         <label htmlFor="fechaNacimiento" className="block text-sm font-medium">
           Fecha de nacimiento

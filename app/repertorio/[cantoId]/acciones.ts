@@ -182,6 +182,13 @@ const EntradaCorreccion = z.object({
       acorde: NombreAcorde,
       pasos: z.number().int().min(-200).max(200),
     }),
+    // Arrastrar a una columna exacta de la letra (2026-11-17): no cambia el
+    // nombre, solo dónde cae.
+    z.object({
+      tipo: z.literal('mover'),
+      indice: NumeroAcorde,
+      columna: z.number().int().min(0).max(2000),
+    }),
   ]),
 })
 
@@ -218,8 +225,9 @@ export async function corregirAcorde(raw: unknown): Promise<ResultadoCorreccionA
 
   // 2 · El nombre, al tono guardado. Se valida ANTES de transponer: un nombre
   // que no es acorde volvería intacto de `transponerAcorde` y pasaría.
+  // Mover no lleva nombre: la columna es la misma en cualquier tono.
   let enTonoGuardado = correccion
-  if (correccion.tipo !== 'borrar') {
+  if (correccion.tipo === 'cambiar' || correccion.tipo === 'agregar') {
     const nombre = normalizarAcorde(correccion.acorde)
     if (nombre === null)
       return {

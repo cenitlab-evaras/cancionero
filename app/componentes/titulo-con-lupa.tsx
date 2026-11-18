@@ -42,7 +42,7 @@ export default function TituloConLupa({
   if (!abierta) {
     return (
       <div className="flex min-h-11 items-center justify-between gap-3">
-        <h1 className="titulo-libro text-[1.75rem] leading-tight">{titulo}</h1>
+        <h1 className="titulo-pantalla leading-tight">{titulo}</h1>
         <BotonIcono etiqueta={etiqueta} onClick={() => setAbierta(true)}>
           <IconoBuscar />
         </BotonIcono>

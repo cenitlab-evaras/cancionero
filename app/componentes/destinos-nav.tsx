@@ -42,7 +42,7 @@ export default function DestinosNav({ destinos }: { destinos: DestinoNav[] }) {
               <Link
                 href={d.href}
                 aria-current={activo ? 'page' : undefined}
-                className={`relative flex h-full flex-col items-center justify-center gap-1 text-xs transition-colors ${
+                className={`relative flex h-full flex-col items-center justify-center gap-1 text-sm transition-colors ${
                   activo ? 'font-bold text-acento' : 'text-texto-tenue hover:text-texto'
                 }`}
               >

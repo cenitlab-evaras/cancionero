@@ -21,7 +21,7 @@ export default async function NuevaMisaPage() {
       <>
         <Cabecera sesion={sesion} />
         <main className="mx-auto w-full max-w-2xl px-4 pt-6 pb-10">
-          <h1 className="titulo-libro text-[1.75rem] leading-tight text-peligro">
+          <h1 className="titulo-pantalla leading-tight text-peligro">
             No tienes permiso para crear misas
           </h1>
           <p className="mt-2 max-w-prose text-sm text-texto-tenue">
@@ -47,7 +47,7 @@ export default async function NuevaMisaPage() {
             <IconoVolver />
           </EnlaceIcono>
         </div>
-        <h1 className="titulo-libro mt-1 text-[1.75rem] leading-tight">Nueva misa</h1>
+        <h1 className="titulo-pantalla mt-1 leading-tight">Nueva misa</h1>
         <p className="mt-1 text-sm text-texto-tenue">
           Después le asignas un canto por momento.
         </p>

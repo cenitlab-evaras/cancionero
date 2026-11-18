@@ -88,7 +88,7 @@ function FilaMas({ fila }: { fila: Fila }) {
         <span className="min-w-0 flex-1">
           <span className="block">{fila.texto}</span>
           {fila.detalle && (
-            <span className="block truncate text-sm text-texto-tenue">{fila.detalle}</span>
+            <span className="mt-0.5 block line-clamp-2 text-sm text-texto-tenue">{fila.detalle}</span>
           )}
         </span>
         <IconoSeguir tamano={18} className="shrink-0 text-texto-tenue" />

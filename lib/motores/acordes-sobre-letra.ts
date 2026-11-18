@@ -23,29 +23,58 @@ import { latinaAAmericana } from './notacion-latina.ts'
  * Se acepta la latina acá también porque el cancionero viene así y la
  * detección tiene que funcionar ANTES de traducir: si esta línea no se
  * reconoce como de acordes, no hay nada que traducir.
+ *
+ * Los sufijos son los del libro: `7+`, `m7`, `sus4`, `dim`, `°`… y el bajo con
+ * barra (`RE/DO#`). Las letras sueltas solo valen como parte de un modificador
+ * conocido: así «las» o «mis» (LA/MI + «s») siguen siendo letra.
  */
 const TOKEN_ACORDE =
-  /^([A-G]|DO|RE|MI|FA|SOL|LA|SI)(#|b)?(m|maj|sus|dim|aug|add|M)?[0-9]*(\/([A-G]|DO|RE|MI|FA|SOL|LA|SI)(#|b)?)?$/i
+  /^([A-G]|DO|RE|MI|FA|SOL|LA|SI)(#|b)?([0-9#b+\-°ø()]|maj|min|sus|dim|aug|add|m|M)*(\/([A-G]|DO|RE|MI|FA|SOL|LA|SI)(#|b)?)?$/i
+
+/** Anotaciones del libro que no son música: «1)», «2)», barras y dos puntos. */
+const SE_IGNORA = /^(\d+\)|[|:/.()\-]+)$/
+
+/** Los tokens de la línea ya limpios (sin paréntesis de adorno), o `null` si
+ *  alguno no es un acorde. Las anotaciones y las barras se descartan. */
+function tokensDeAcordes(linea: string): string[] | null {
+  const crudos = linea.trim().split(/\s+/).filter(Boolean)
+  const utiles: string[] = []
+  for (const t of crudos) {
+    if (SE_IGNORA.test(t)) continue
+    // El libro encierra la intro entera entre paréntesis: «(SOL …» y «… RE)».
+    const limpio = t.replace(/^\(+/, '').replace(/\)+$/, '')
+    if (SE_IGNORA.test(limpio)) continue
+    if (!TOKEN_ACORDE.test(limpio)) return null
+    utiles.push(limpio)
+  }
+  return utiles.length > 0 ? utiles : null
+}
 
 /** ¿Esta línea es una línea de acordes y no de letra? */
 function esLineaDeAcordes(linea: string): boolean {
-  const tokens = linea.trim().split(/\s+/).filter(Boolean)
-  if (tokens.length === 0) return false
-  // TODOS los tokens tienen que parecer acordes. Con "alguno" alcanzaría para
-  // que «respiro la aurora» pasara por línea de acordes: en español «la» y
-  // «mi» son palabras, no solo notas.
-  return tokens.every((t) => TOKEN_ACORDE.test(t))
+  return tokensDeAcordes(linea) !== null
 }
 
-/** Los acordes de una línea, con la columna donde empieza cada uno. */
+/** Los acordes de una línea ya limpia, con la columna donde empieza cada uno. */
 function acordesConColumna(linea: string): { acorde: string; columna: number }[] {
   const salida: { acorde: string; columna: number }[] = []
   const re = /\S+/g
   let m: RegExpExecArray | null
   while ((m = re.exec(linea)) !== null) {
-    salida.push({ acorde: m[0], columna: m.index })
+    if (SE_IGNORA.test(m[0])) continue
+    const limpio = m[0].replace(/^\(+/, '').replace(/\)+$/, '')
+    if (SE_IGNORA.test(limpio)) continue
+    salida.push({ acorde: limpio, columna: m.index })
   }
   return salida
+}
+
+/** ¿La línea trae anotaciones o barras? Sus columnas ya no son las del verso. */
+function tieneIgnorados(linea: string): boolean {
+  return linea
+    .trim()
+    .split(/\s+/)
+    .some((t) => SE_IGNORA.test(t) || SE_IGNORA.test(t.replace(/^\(+/, '').replace(/\)+$/, '')))
 }
 
 /** Mete los acordes en la letra, en la columna que les toca. */
@@ -71,32 +100,49 @@ export function aChordPro(texto: string): string {
 
   const lineas = texto.split('\n')
   const salida: string[] = []
+  /** La línea anterior fue una línea de acordes sola: una intro no se funde. */
+  let anteriorSoloAcordes = false
 
   for (let i = 0; i < lineas.length; i++) {
     const linea = lineas[i]
 
     if (linea.trim() === '') {
       salida.push('')
+      anteriorSoloAcordes = false
       continue
     }
 
     if (!esLineaDeAcordes(linea)) {
       salida.push(linea)
+      anteriorSoloAcordes = false
       continue
     }
 
     const acordes = acordesConColumna(linea)
     const siguiente = lineas[i + 1]
+    const siguienteEsAcordes =
+      siguiente !== undefined && siguiente.trim() !== '' && esLineaDeAcordes(siguiente)
 
     // Una línea de acordes sin letra debajo es un intro o un interludio: queda
     // como una línea de corchetes sueltos, que es como la escribe la semilla.
-    if (siguiente === undefined || siguiente.trim() === '' || esLineaDeAcordes(siguiente)) {
+    // Si trae anotaciones («1)»), sus columnas no son las del verso y tampoco
+    // se funde. Y la continuación de una intro no se funde nunca: el bloque de
+    // acordes se lee entero y la letra arranca después.
+    if (
+      anteriorSoloAcordes ||
+      tieneIgnorados(linea) ||
+      siguiente === undefined ||
+      siguiente.trim() === '' ||
+      siguienteEsAcordes
+    ) {
       salida.push(acordes.map((a) => `[${a.acorde}]`).join(' '))
+      anteriorSoloAcordes = true
       continue
     }
 
     salida.push(fundir(acordes, siguiente))
     i++ // la línea de letra ya se consumió
+    anteriorSoloAcordes = false
   }
 
   return salida.join('\n')

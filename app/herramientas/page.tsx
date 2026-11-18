@@ -32,7 +32,7 @@ export default async function HerramientasPage() {
     <>
       <Cabecera sesion={sesion} buscador={false} />
       <main className="mx-auto w-full max-w-2xl px-4 pt-6 pb-10">
-        <h1 className="titulo-libro text-[1.75rem] leading-tight">Herramientas</h1>
+        <h1 className="titulo-pantalla leading-tight">Herramientas</h1>
         <p className="mt-1 max-w-prose text-sm text-texto-tenue">
           Se prenden y se apagan para ti; lo que ven los demás no cambia.
         </p>

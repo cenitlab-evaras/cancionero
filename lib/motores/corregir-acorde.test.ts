@@ -300,3 +300,55 @@ describe('la composición con la transposición (lo que hace la action)', () => 
     expect(ubicarAcordes(transponer(r.cifrado, n))[3].acorde).toBe('G#7')
   })
 })
+
+describe('aplicarCorreccion · mover por columna (el arrastre de la lectura)', () => {
+  const CIFRADO = '[C]Hola [G]mundo querido\n[D]Otra línea'
+
+  test('deja el acorde en la columna pedida, por carácter', () => {
+    // «Hola mundo querido»: el 5 es el inicio de «mundo», donde ya está el G.
+    const r = aplicarCorreccion(CIFRADO, { tipo: 'mover', indice: 0, columna: 5 })
+    if (!r.ok) throw new Error(r.error)
+    expect(r.lineaDespues).toBe('Hola [C][G]mundo querido')
+  })
+
+  test('el ordinal que devuelve es el del acorde movido, con su columna nueva', () => {
+    const r = aplicarCorreccion(CIFRADO, { tipo: 'mover', indice: 0, columna: 5 })
+    if (!r.ok || r.indice === null) throw new Error(r.ok ? 'sin índice' : r.error)
+    expect(ubicarAcordes(r.cifrado)[r.indice]).toEqual({
+      indice: r.indice,
+      acorde: 'C',
+      linea: 0,
+      columna: 5,
+    })
+  })
+
+  test('no toca el nombre del acorde', () => {
+    const r = aplicarCorreccion(CIFRADO, { tipo: 'mover', indice: 1, columna: 2 })
+    if (!r.ok) throw new Error(r.error)
+    expect(r.lineaDespues).toBe('[C]Ho[G]la mundo querido')
+  })
+
+  test('se limita al largo de la letra y no admite columnas negativas', () => {
+    const r = aplicarCorreccion(CIFRADO, { tipo: 'mover', indice: 0, columna: 999 })
+    if (!r.ok) throw new Error(r.error)
+    expect(r.lineaDespues).toBe('Hola [G]mundo querido[C]')
+
+    const r2 = aplicarCorreccion(CIFRADO, { tipo: 'mover', indice: 1, columna: -4 })
+    if (!r2.ok) throw new Error(r2.error)
+    expect(r2.lineaDespues).toBe('[C][G]Hola mundo querido')
+  })
+
+  test('sin cambio de columna no hay nada que guardar', () => {
+    expect(aplicarCorreccion(CIFRADO, { tipo: 'mover', indice: 0, columna: 0 }).ok).toBe(false)
+  })
+
+  test('el resto del cifrado queda idéntico, byte por byte', () => {
+    const r = aplicarCorreccion(CIFRADO, { tipo: 'mover', indice: 0, columna: 6 })
+    if (!r.ok) throw new Error(r.error)
+    expect(r.cifrado.split('\n')[1]).toBe('[D]Otra línea')
+  })
+
+  test('un ordinal que no existe es un error, no una corrección en otro lado', () => {
+    expect(aplicarCorreccion(CIFRADO, { tipo: 'mover', indice: 9, columna: 3 }).ok).toBe(false)
+  })
+})

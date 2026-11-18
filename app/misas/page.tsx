@@ -26,7 +26,7 @@ export default async function MisasPage() {
       <>
         <Cabecera sesion={sesion} />
         <main className="mx-auto w-full max-w-2xl px-4 pt-6 pb-10">
-          <h1 className="titulo-libro text-[1.75rem] leading-tight">Misas</h1>
+          <h1 className="titulo-pantalla leading-tight">Misas</h1>
           <p className="mt-2 text-sm text-texto-tenue">
             Todavía no perteneces a ningún coro. Pídele a tu director que te agregue.
           </p>
@@ -45,7 +45,7 @@ export default async function MisasPage() {
 
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 pt-6 pb-10">
         <div className="flex items-center justify-between gap-3">
-          <h1 className="titulo-libro text-[1.75rem] leading-tight">Misas</h1>
+          <h1 className="titulo-pantalla leading-tight">Misas</h1>
           {puedeEditar && (
             <EnlaceIcono
               href="/misas/nueva"
@@ -77,7 +77,7 @@ export default async function MisasPage() {
               <Seccion titulo="Lo que viene" misas={grupos.proximas} hoy={hoy} />
             )}
             {grupos.pasadas.length > 0 && (
-              <Seccion titulo="Ya cantadas" misas={grupos.pasadas} />
+              <Seccion titulo="Ya celebradas" misas={grupos.pasadas} />
             )}
             {grupos.sinFecha.length > 0 && (
               <Seccion titulo="Sin fecha" misas={grupos.sinFecha} />
@@ -145,6 +145,11 @@ function Seccion({
                     <span className="mt-1 flex items-center justify-end gap-2">
                       <Anotados quienes={c.quienes} />
                       <span aria-hidden>{c.anotados}</span>
+                      {/* El número visible no dice qué cuenta. Para lector de
+                          pantalla va la unidad; para el ojo, los avatares. */}
+                      <span className="sr-only">
+                        {c.anotados === 1 ? '1 anotado' : `${c.anotados} anotados`}
+                      </span>
                     </span>
                   )}
                 </span>

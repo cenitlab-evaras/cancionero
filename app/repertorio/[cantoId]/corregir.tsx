@@ -162,7 +162,7 @@ function Panel({
   return (
     <section
       aria-label="Corregir el acorde"
-      className="space-y-3 border-t border-borde px-4 pt-2 pb-3"
+      className="flex flex-col gap-3 border-t border-borde px-4 pt-2 pb-3"
     >
       <div className="flex items-center justify-between">
         <h2 className="font-semibold">
@@ -237,7 +237,7 @@ function Panel({
         </div>
       )}
 
-      <div className="space-y-1 rounded-lg bg-fondo px-3 py-2">
+      <div className="flex flex-col gap-1 rounded-lg bg-fondo px-3 py-2">
         <LineaPrevia
           etiqueta="Antes"
           linea={resultado.ok ? resultado.lineaAntes : lineaCruda(cifrado, ref.linea)}

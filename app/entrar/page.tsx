@@ -23,9 +23,9 @@ export default async function EntrarPage() {
 
       <FormularioEntrar />
 
-      <div className="mt-10 space-y-2 text-sm leading-relaxed text-texto-tenue">
+      <div className="mt-10 flex flex-col gap-2 text-sm leading-relaxed text-texto-tenue">
         <p className="font-semibold text-texto">¿No tienes cuenta?</p>
-        <p>
+        <p className="prosa-equilibrada">
           Pídesela al director de tu coro. Después, un administrador la habilita y tu director te
           agrega al coro.
         </p>

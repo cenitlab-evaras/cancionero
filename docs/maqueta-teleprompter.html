@@ -1,0 +1,248 @@
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Maqueta teleprompter</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<style>
+  /* ── El lienzo (la página que muestra las maquetas) ─────────────── */
+  :root {
+    --bg: #08090B;
+    --fg: #F2EFE9;
+    --muted: #A9A49B;
+    --surface: #101215;
+    --border: #23262B;
+    --accent: #F0A64A;
+    --phone-edge: #2E323A;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'Atkinson Hyperlegible', system-ui, -apple-system, sans-serif;
+    line-height: 1.55;
+  }
+  .lienzo {
+    padding-left: max(20px, env(safe-area-inset-left, 0px));
+    padding-right: max(20px, env(safe-area-inset-right, 0px));
+    padding-block: 32px 56px;
+    max-width: 1160px;
+    margin: 0 auto;
+  }
+  header.encabezado { max-width: 36em; }
+  header.encabezado h1 {
+    font-size: clamp(2rem, 4vw, 2.8rem);
+    font-weight: 700; letter-spacing: -0.02em;
+    line-height: 1.05; margin: 0; text-wrap: balance;
+  }
+  header.encabezado p { color: var(--muted); margin: 12px 0 0; max-width: 34em; }
+  .legenda { margin-top: 18px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .legenda span { font-size: .8rem; color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 4px 10px; }
+  .legenda b { color: var(--fg); font-weight: 700; }
+
+  h2 { font-size: 1.1rem; margin: 0 0 4px; letter-spacing: -0.01em; }
+  section.bloque { margin-top: 44px; border-top: 1px solid var(--border); padding-top: 22px; }
+  section.bloque > p { color: var(--muted); margin: 4px 0 0; max-width: 42em; }
+
+  .telefonos { display: flex; gap: 22px; flex-wrap: wrap; margin-top: 20px; }
+  .tel { margin: 0; }
+  .tel .pie { font-size: .78rem; color: var(--muted); margin-top: 10px; text-align: center; }
+
+  /* ── El marco ───────────────────────────────────────────────────── */
+  .phone {
+    width: 340px; height: 680px;
+    border: 1px solid var(--phone-edge);
+    border-radius: 34px;
+    overflow: hidden;
+    background: #050607;
+    position: relative;
+    box-shadow: 0 14px 44px rgba(0,0,0,.5);
+  }
+  .pantalla { position: absolute; inset: 0; display: flex; flex-direction: column; }
+
+  /* El mundo: negro de escenario, Atkinson grande, ámbar solo en el acorde. */
+  .stage { background: #050607; color: #F2EFE9; font-family: 'Atkinson Hyperlegible', sans-serif; flex: 1; display: flex; flex-direction: column; position: relative; }
+
+  /* El progreso: una hebra de 2 px, y nada más. */
+  .hebra { height: 2px; background: #1A1C20; flex: 0 0 auto; }
+  .hebra span { display: block; height: 100%; background: var(--accent); }
+
+  .cuerpo { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 0 26px; min-height: 0; }
+
+  /* La cabecera mínima: aparece al entrar y se va sola. */
+  .cinta { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px 0; font-size: .78rem; color: #8E8A82; flex: 0 0 auto; }
+  .cinta .punto { color: #F2EFE9; font-weight: 700; letter-spacing: .02em; }
+
+  /* La letra: la dueña de la pantalla. */
+  .verso { font-size: 1.55rem; font-weight: 700; line-height: 1.32; letter-spacing: -0.005em; margin: 0 0 1.05rem; }
+  .verso .apagado { color: #BDB8AE; }
+
+  /* La línea de acordes: mono, ámbar, chica comparada con la letra. */
+  .acordes { font-family: 'JetBrains Mono', monospace; color: var(--accent); font-weight: 600; font-size: .82rem; white-space: pre; margin: 0 0 .15rem; }
+
+  /* El «toca el borde»: una pista que no es cromo, aparece una vez. */
+  .pista { margin-top: 18px; font-size: .78rem; color: #8E8A82; text-align: center; }
+  .pista b { color: #D8D3C9; font-weight: 700; }
+
+  .zona-borde { position: absolute; top: 0; bottom: 0; width: 26px; }
+  .zona-izq { left: 0; } .zona-der { right: 0; }
+  .zona-borde::after { content: ''; position: absolute; top: 50%; transform: translateY(-50%); width: 3px; height: 46px; border-radius: 2px; background: #26282E; }
+  .zona-izq::after { left: 6px; } .zona-der::after { right: 6px; }
+
+  /* Los controles: solo cuando se piden, y grandes. */
+  .controles {
+    border-top: 1px solid #1E2126;
+    background: #0B0C0F;
+    padding: 14px 16px 22px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .bt { flex: 0 0 auto; min-width: 52px; height: 52px; border: 1px solid #3A3E46; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: 700; color: #F2EFE9; }
+  .bt.tono { flex: 1; flex-direction: column; line-height: 1.05; }
+  .bt.tono .n { font-family: 'JetBrains Mono', monospace; color: var(--accent); font-size: 1.15rem; }
+  .bt.tono .s { font-size: .75rem; color: #8E8A82; font-weight: 400; }
+
+  /* Inicio: una sola decisión. */
+  .inicio { padding: 0 26px; display: flex; flex-direction: column; justify-content: center; flex: 1; }
+  .inicio .fecha { font-size: .95rem; font-weight: 700; color: var(--accent); }
+  .inicio h3 { font-size: 2.5rem; line-height: 1.02; letter-spacing: -0.02em; margin: 8px 0 0; }
+  .inicio .meta { color: #BDB8AE; font-size: 1rem; margin-top: 10px; }
+  .inicio .meter { height: 6px; border-radius: 99px; background: #17191D; margin-top: 22px; overflow: hidden; display: flex; }
+  .inicio .meter i { display: block; height: 100%; }
+  .inicio .empezar { margin-top: 26px; display: inline-flex; align-items: center; gap: 10px; background: var(--accent); color: #120D06; font-weight: 700; font-size: 1.05rem; border-radius: 14px; padding: 16px 22px; align-self: flex-start; }
+  .inicio .abajo { margin-top: 26px; color: #8E8A82; font-size: .85rem; }
+  .inicio .abajo b { color: #D8D3C9; }
+
+  /* Ejecución: siguiente canto, chico y al pie. */
+  .siguiente { display: flex; align-items: baseline; gap: 8px; padding: 12px 18px 18px; font-size: .85rem; color: #8E8A82; flex: 0 0 auto; }
+  .siguiente b { color: #F2EFE9; font-weight: 700; }
+  .siguiente .pos { margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: .75rem; }
+
+  /* Notas de la maqueta */
+  .cambia { margin-top: 26px; display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); max-width: 900px; }
+  .cambia div { border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; background: var(--surface); }
+  .cambia h3 { margin: 0 0 6px; font-size: .95rem; }
+  .cambia p { margin: 0; color: var(--muted); font-size: .9rem; }
+  .nota { margin-top: 22px; color: var(--muted); font-size: .9rem; max-width: 46em; }
+  .nota b { color: var(--fg); }
+</style>
+
+<div class="lienzo">
+  <header class="encabezado">
+    <h1>Teleprompter</h1>
+    <p>El mundo de la pantalla de escenario: negro de fondo, la letra como única dueña del
+      espacio, acordes encima y nada más. Sin cabecera, sin barra, sin tarjetas — los controles
+      se piden tocando el borde. Es el mismo dato de siempre; lo que cambia es quién manda en la
+      pantalla.</p>
+    <div class="legenda">
+      <span><b>Coro San José</b> · Director</span>
+      <span>Cantaré por siempre / Abre tu jardín</span>
+      <span>Atkinson grande · JetBrains Mono en el acorde</span>
+    </div>
+  </header>
+
+  <section class="bloque">
+    <h2>Inicio — una sola decisión</h2>
+    <p>El tablero no se pierde: se comprime. La misa, su fecha y «Empezar»; el resto, en una
+      línea. Entra cuando la pantalla se usa para otra cosa que tocar.</p>
+    <div class="telefonos">
+      <figure class="tel">
+        <div class="phone"><div class="pantalla"><div class="stage">
+          <div class="hebra"><span style="width:0%"></span></div>
+          <div class="cinta"><span class="punto">CORO SAN JOSÉ</span><span>director</span></div>
+          <div class="inicio">
+            <div class="fecha">en 6 días · sábado 22</div>
+            <h3>Misa del domingo</h3>
+            <div class="meta">Lista en un 72 % · 11 de 20 van</div>
+            <div class="meter"><i style="width:45%;background:#C2457A"></i><i style="width:27%;background:#B3202F"></i><i style="width:18%;background:#3F7FB5"></i><i style="width:10%;background:#2F6FAE"></i></div>
+            <div class="empezar">▶ Empezar la misa</div>
+            <div class="abajo"><b>2</b> no han dicho si van · <b>3</b> para repasar · <b>8</b> cantos</div>
+          </div>
+        </div></div></div>
+        <figcaption class="pie">Inicio · la misa y «Empezar»</figcaption>
+      </figure>
+
+      <figure class="tel">
+        <div class="phone"><div class="pantalla"><div class="stage">
+          <div class="hebra"><span style="width:36%"></span></div>
+          <div class="cinta"><span class="punto">ABRE TU JARDÍN</span><span>entrada · 0:32</span></div>
+          <div class="cuerpo">
+            <div class="acordes">Mi            Fa#m</div>
+            <p class="verso">Abre tu jardín,<br>traigo una nueva noticia;</p>
+            <div class="acordes">Sol#m     Fa#m      Si</div>
+            <p class="verso">novedad sin fin,<br><span class="apagado">corramos a recibirla.</span></p>
+            <div class="pista">Toca un <b>borde</b> para los controles</div>
+          </div>
+          <div class="zona-borde zona-izq"></div>
+          <div class="zona-borde zona-der"></div>
+        </div></div></div>
+        <figcaption class="pie">Lectura · la letra manda</figcaption>
+      </figure>
+
+      <figure class="tel">
+        <div class="phone"><div class="pantalla"><div class="stage">
+          <div class="hebra"><span style="width:36%"></span></div>
+          <div class="cinta"><span class="punto">ABRE TU JARDÍN</span><span>entrada · 0:32</span></div>
+          <div class="cuerpo">
+            <div class="acordes">Mi            Fa#m</div>
+            <p class="verso">Abre tu jardín,<br>traigo una nueva noticia;</p>
+            <div class="acordes">Sol#m     Fa#m      Si</div>
+            <p class="verso">novedad sin fin,<br><span class="apagado">corramos a recibirla.</span></p>
+          </div>
+          <div class="zona-borde zona-izq"></div>
+          <div class="zona-borde zona-der"></div>
+          <div class="controles">
+            <span class="bt">❚❚</span>
+            <span class="bt">−</span>
+            <span class="bt tono"><span class="n">Mi</span><span class="s">original</span></span>
+            <span class="bt">+</span>
+            <span class="bt">Aa</span>
+          </div>
+        </div></div></div>
+        <figcaption class="pie">Lectura · controles pedidos</figcaption>
+      </figure>
+
+      <figure class="tel">
+        <div class="phone"><div class="pantalla"><div class="stage">
+          <div class="hebra"><span style="width:62%"></span></div>
+          <div class="cinta"><span class="punto">GLORIA PALAZÓN</span><span>2 · de 8</span></div>
+          <div class="cuerpo">
+            <div class="acordes">La            Mi</div>
+            <p class="verso">Gloria a Dios<br>en lo alto del cielo,</p>
+            <div class="acordes">Fa#m           Re</div>
+            <p class="verso">y en la tierra<br><span class="apagado">paz a los hombres.</span></p>
+          </div>
+          <div class="siguiente">Siguiente <b>Santo Gen Rosso</b><span class="pos">3 de 8</span></div>
+        </div></div></div>
+        <figcaption class="pie">Ejecución de la misa · el siguiente, al pie</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="bloque">
+    <h2>Qué cambia de verdad</h2>
+    <div class="cambia">
+      <div>
+        <h3>La pantalla es de la letra</h3>
+        <p>Sin cabecera, sin barra de navegación, sin tarjetas. Solo quedan dos hebras: el
+          progreso (2 px arriba) y el nombre del canto al entrar, que se va solo.</p>
+      </div>
+      <div>
+        <h3>Los controles se piden</h3>
+        <p>Tocar un borde abre una barra de 52 px: pausa, tono, tamaño. Se cierra al tocar
+          afuera o sola. En la misa no hay navegación global en ninguna pantalla de lectura.</p>
+      </div>
+      <div>
+        <h3>Tipografía de escenario</h3>
+        <p>Fuera la serif de libro: Atkinson grande (diseñada para baja visión) y JetBrains
+          Mono para el acorde. El ámbar sigue siendo solo del acorde; el resto es marfil.</p>
+      </div>
+      <div>
+        <h3>El flujo es el gesto</h3>
+        <p>La letra avanza sola por defecto; el pulgar solo corrige. El «siguiente canto»
+          aparece chico al pie cuando la misa se acerca al cambio.</p>
+      </div>
+    </div>
+    <p class="nota"><b>Lo que no se toca:</b> los datos, los permisos, el reparto de acordes y
+      el camino accesible (tocar un acorde abre diagramas; «Corregir» sigue en el pie). Cambiar
+      el mundo es cambiar la cáscara: la maqueta propone la cáscara.</p>
+  </section>
+</div>

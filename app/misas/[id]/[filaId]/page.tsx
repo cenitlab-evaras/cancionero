@@ -22,6 +22,7 @@ import { EnlaceIcono, clasesBotonIcono } from '@/app/componentes/boton-icono'
 import ConmutadorTema from '@/app/componentes/conmutador-tema'
 import { IconoListo, IconoSeguir, IconoVolver } from '@/app/componentes/iconos'
 import Controles from '@/app/repertorio/[cantoId]/controles'
+import PanelLectura from '@/app/repertorio/[cantoId]/panel-lectura'
 import {
   CascaronCarta,
   HojaDiagramas,
@@ -45,9 +46,9 @@ export const metadata = { title: 'Misa · Cantoral' }
  *     y quien canta sin instrumento volvía a ver los acordes en la misa.
  *   · El tamaño de letra es el de la persona, así que no se pierde de un canto
  *     al siguiente.
- *   · «Siguiente» va abajo, al alcance del pulgar, y DICE cuál viene. Antes
- *     estaba al final del contenido: en un canto largo había que bajar hasta el
- *     fondo para encontrarlo.
+ *   · «Siguiente» va abajo, al alcance del pulgar, y DICE cuál viene (la
+ *     crítica 2026-11-17: había vuelto a chevrones sin texto arriba; ahora la
+ *     fila de abajo es la principal y los chevrones quedan como atajo).
  *   · Sin el halo: en la lectura y en la ejecución lo único cálido es el acorde.
  */
 export default async function EjecucionPage({
@@ -123,39 +124,17 @@ export default async function EjecucionPage({
       <PantallaEncendida />
       <ProveedorDiagramas acordes={acordes}>
         <main className="mx-auto w-full max-w-2xl flex-1 pb-8">
-          {/* La cinta de la misa: volver, en qué misa y en qué punto. */}
-          <div className="sticky top-0 z-(--z-cabecera) flex items-center gap-1 border-b border-borde bg-fondo py-1 pr-4 pl-1">
+          {/* La cinta de la misa (maqueta «Teleprompter», 2026-11-18): volver,
+              en qué misa y en qué punto. Los chevrones y el tema pasaron al
+              panel que se pide; el paso al siguiente vive en la fila del pie. */}
+          <div className="sticky top-0 z-(--z-cabecera) flex items-center gap-1 border-b border-borde bg-fondo py-1 pr-14 pl-1">
             <EnlaceIcono href={`/misas/${misa.id}`} etiqueta="Volver a la misa">
               <IconoVolver />
             </EnlaceIcono>
             <span className="min-w-0 flex-1 truncate text-sm text-texto-tenue">{misa.nombre}</span>
-            {/* Pasar de canto SIN volver al listado: es el hito entero (H6). Va
-                acá arriba y en chico (el dueño, 2026-10-17: abajo era una barra
-                que no tenía por qué estar ni ser tan grande). El título del que
-                sigue va en el nombre accesible. */}
-            {paso.anterior ? (
-              <EnlaceIcono href={`/misas/${misa.id}/${paso.anterior}`} etiqueta="Canto anterior">
-                <IconoVolver tamano={18} />
-              </EnlaceIcono>
-            ) : (
-              <span className={clasesBotonIcono('plano', 'opacity-30')} aria-hidden>
-                <IconoVolver tamano={18} />
-              </span>
-            )}
             <span className="shrink-0 text-sm font-bold tabular-nums">
               {paso.posicion} <span className="font-normal text-texto-tenue">de {paso.total}</span>
             </span>
-            {siguiente ? (
-              <EnlaceIcono href={`/misas/${misa.id}/${siguiente.id}`} etiqueta={`Siguiente: ${siguiente.titulo}`}>
-                <IconoSeguir tamano={18} />
-              </EnlaceIcono>
-            ) : (
-              // Fin de la misa: no se esconde, se dice que se terminó.
-              <EnlaceIcono href={`/misas/${misa.id}`} etiqueta="Terminar la misa">
-                <IconoListo tamano={18} />
-              </EnlaceIcono>
-            )}
-            <ConmutadorTema className="-mr-2" />
           </div>
 
           <div className="px-4 pt-4">
@@ -178,7 +157,7 @@ export default async function EjecucionPage({
             {partitura && (
               <Link
                 href={`/repertorio/${canto.id}/ensayar?misa=${id}&fila=${filaId}`}
-                className="tactil mt-1 inline-flex items-center text-sm text-acento underline underline-offset-2"
+                className="tactil mt-1 inline-flex items-center text-sm text-texto-tenue underline underline-offset-2 hover:text-texto"
               >
                 Ensayar este canto
               </Link>
@@ -201,7 +180,33 @@ export default async function EjecucionPage({
           )}
         </main>
 
-        <div className="relative sticky bottom-0 z-(--z-barra)">
+        <div className="relative sticky bottom-0 z-(--z-cabecera)">
+          {/* «Siguiente: título» abajo, al alcance del pulgar (2026-11-17). La
+              fila vive EN la pila fija: no hay que llegar al final del canto
+              para pasar al que viene, ni siquiera con la hoja de acordes
+              abierta. */}
+          {siguiente ? (
+            <Link
+              href={`/misas/${misa.id}/${siguiente.id}`}
+              className="tactil flex min-h-11 items-center gap-2 border-t border-borde bg-fondo px-4 hover:bg-superficie"
+            >
+              <span className="shrink-0 text-sm text-texto-tenue">Siguiente</span>
+              <span className="min-w-0 flex-1 truncate font-semibold">{siguiente.titulo}</span>
+              <span className="shrink-0 text-sm font-bold tabular-nums">
+                {paso.posicion + 1}{' '}
+                <span className="font-normal text-texto-tenue">de {paso.total}</span>
+              </span>
+              <IconoSeguir tamano={18} className="shrink-0 text-texto-tenue" />
+            </Link>
+          ) : (
+            <Link
+              href={`/misas/${misa.id}`}
+              className="tactil flex min-h-11 items-center gap-2 border-t border-borde bg-fondo px-4 hover:bg-superficie"
+            >
+              <span className="flex-1 font-semibold">Terminar la misa</span>
+              <IconoListo tamano={18} className="shrink-0 text-texto-tenue" />
+            </Link>
+          )}
           {acordes.length > 0 && (
             <HojaDiagramas>
               {diagramas.map((d, i) => (
@@ -213,20 +218,37 @@ export default async function EjecucionPage({
           )}
 
 
-          <Controles
-            cantoId={canto.id}
-            coroId={sesion.coroActivo!.id}
-            transposicion={transposicion}
-            tamanoLetra={tamanoLetra}
-            tonalidadActual={tonalidadActual && nombrar(tonalidadActual)}
-            mostrarAcordes={mostrarAcordes}
-            misa={{
-              misaId: misa.id,
-              filaId: fila.id,
-              fijado: tono.fijado,
-              puedeFijar: puede(sesion.sujeto, 'asignar_cantos_misa'),
-            }}
-          />
+          <PanelLectura>
+            {/* Lo que dejó la cinta: el canto anterior y el tema, junto a la
+                barra de lectura (maqueta «Teleprompter»). El siguiente sigue en
+                la fila del pie, que se ve siempre. */}
+            <div className="flex items-center gap-1 px-2 pt-1">
+              {paso.anterior ? (
+                <EnlaceIcono href={`/misas/${misa.id}/${paso.anterior}`} etiqueta="Canto anterior">
+                  <IconoVolver />
+                </EnlaceIcono>
+              ) : (
+                <span className={clasesBotonIcono('plano', 'opacity-30')} aria-hidden>
+                  <IconoVolver />
+                </span>
+              )}
+              <ConmutadorTema />
+            </div>
+            <Controles
+              cantoId={canto.id}
+              coroId={sesion.coroActivo!.id}
+              transposicion={transposicion}
+              tamanoLetra={tamanoLetra}
+              tonalidadActual={tonalidadActual && nombrar(tonalidadActual)}
+              mostrarAcordes={mostrarAcordes}
+              misa={{
+                misaId: misa.id,
+                filaId: fila.id,
+                fijado: tono.fijado,
+                puedeFijar: puede(sesion.sujeto, 'asignar_cantos_misa'),
+              }}
+            />
+          </PanelLectura>
         </div>
       </ProveedorDiagramas>
     </>

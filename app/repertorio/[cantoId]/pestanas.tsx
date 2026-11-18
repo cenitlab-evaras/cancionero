@@ -34,10 +34,12 @@ export default function PestanasCanto({
             key={p.clave}
             href={p.href}
             aria-current={actual ? 'page' : undefined}
-            // El lugar activo con la raya del halo, como la barra de abajo.
+            // El lugar activo con una raya marfil: en la lectura no entra el
+            // halo (DESIGN.md), y el estado no puede ser solo color de todos
+            // modos.
             className={`tactil -mb-px flex items-center border-b-2 px-3 text-sm transition-colors ${
               actual
-                ? 'border-acento font-semibold text-texto'
+                ? 'border-texto font-semibold text-texto'
                 : 'border-transparent text-texto-tenue hover:text-texto'
             }`}
           >

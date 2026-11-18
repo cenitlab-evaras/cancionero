@@ -8,6 +8,7 @@ import { EnlaceIcono } from '@/app/componentes/boton-icono'
 import { IconoVolver } from '@/app/componentes/iconos'
 import Armador from './armador'
 import { sugerenciasDeMisa, sugerenciasGenerales } from '@/lib/datos/sugerencias'
+import { catalogosParaEditar } from '@/lib/datos/repertorio'
 import { rankear } from '@/lib/motores/sugerencia'
 import { hoyISO } from '@/lib/datos/historial'
 
@@ -30,7 +31,7 @@ export default async function EditarMisaPage({
       <>
         <Cabecera sesion={sesion} />
         <main className="mx-auto w-full max-w-2xl px-4 pt-6 pb-10">
-          <h1 className="titulo-libro text-[1.75rem] leading-tight text-peligro">
+          <h1 className="titulo-pantalla leading-tight text-peligro">
             No tienes acceso a esta misa
           </h1>
           <Link
@@ -51,7 +52,7 @@ export default async function EditarMisaPage({
       <>
         <Cabecera sesion={sesion} />
         <main className="mx-auto w-full max-w-2xl px-4 pt-6 pb-10">
-          <h1 className="titulo-libro text-[1.75rem] leading-tight text-peligro">
+          <h1 className="titulo-pantalla leading-tight text-peligro">
             No tienes permiso para armar esta misa
           </h1>
           <p className="mt-2 max-w-prose text-sm text-texto-tenue">
@@ -73,6 +74,10 @@ export default async function EditarMisaPage({
     sugerenciasGenerales(misa.coroId),
   ])
 
+  // El mapa de segmentos en orden litúrgico: la pantalla muestra cómo se va
+  // llenando cada uno y cuáles siguen vacíos (2026-11-18).
+  const { momentos } = await catalogosParaEditar()
+
   const disponibles = await cantosDisponibles(
     misa.coroId,
     misa.cantos.map((c) => c.cantoId)
@@ -88,11 +93,12 @@ export default async function EditarMisaPage({
             <IconoVolver />
           </EnlaceIcono>
         </div>
-        <h1 className="titulo-libro mt-1 text-[1.75rem] leading-tight text-balance">
+        <h1 className="titulo-pantalla mt-1 leading-tight text-balance">
           {misa.nombre}
         </h1>
         <p className="mt-1 max-w-prose text-sm text-texto-tenue">
-          Los cantos se acomodan solos según su momento. Puedes moverlos si prefieres otro orden.
+          La misa se ordena por segmento: Entrada, Gloria, Comunión… Cada canto cae en el suyo y
+          puedes moverlo dentro del segmento.
         </p>
 
         <Armador
@@ -102,6 +108,7 @@ export default async function EditarMisaPage({
           hoy={hoyISO()}
           sugerenciasDeEstaMisa={rankear(deEstaMisa)}
           sugerenciasGenerales={rankear(generales)}
+          momentos={momentos.map((m) => ({ nombre: m.nombre, orden: m.orden }))}
         />
       </main>
     </>

@@ -20,7 +20,7 @@ export default function BarraNav({ sesion }: { sesion: SesionCantoral }) {
 
   if (sesion.coroActivo && puede(sesion.sujeto, 'ver_repertorio')) {
     destinos.push({ href: '/', texto: 'Inicio', icono: <IconoInicio />, exacto: true })
-    destinos.push({ href: '/repertorio', texto: 'Repertorio', icono: <IconoRepertorio /> })
+    destinos.push({ href: '/repertorio', texto: 'Canciones', icono: <IconoRepertorio /> })
     destinos.push({ href: '/misas', texto: 'Misas', icono: <IconoMisas /> })
   }
   destinos.push({

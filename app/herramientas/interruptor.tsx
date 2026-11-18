@@ -42,16 +42,19 @@ export default function Interruptor({
           <span className="block text-base">{nombre}</span>
           <span className="block text-sm text-texto-tenue">{detalle}</span>
         </span>
-        {/* El interruptor: la pastilla en el halo cuando está prendido. */}
+        {/* El interruptor: encendido es superficie alta y perilla de texto, la
+            semántica que DESIGN.md da a `activo`. El halo queda para la marca y
+            la acción principal; con cuatro encendidos a la vez dejaba de ser la
+            firma del coro. La posición y el color de la perilla dicen el estado. */}
         <span
           aria-hidden
           className={`relative h-7 w-12 shrink-0 rounded-full border transition-colors ${
-            optimista ? 'border-acento bg-acento' : 'border-borde-fuerte bg-superficie-alta'
+            optimista ? 'border-borde-fuerte bg-superficie-alta' : 'border-borde-fuerte bg-superficie'
           }`}
         >
           <span
-            className={`absolute top-0.5 size-[1.375rem] rounded-full bg-fondo shadow transition-transform motion-reduce:transition-none ${
-              optimista ? 'translate-x-[1.375rem]' : 'translate-x-0.5'
+            className={`absolute top-0.5 size-[1.375rem] rounded-full shadow transition-transform motion-reduce:transition-none ${
+              optimista ? 'translate-x-[1.375rem] bg-texto' : 'translate-x-0.5 bg-texto-tenue'
             }`}
           />
         </span>

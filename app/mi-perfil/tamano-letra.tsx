@@ -24,9 +24,18 @@ import { BotonIcono } from '@/app/componentes/boton-icono'
  *
  * La vista previa es un verso real del cancionero (PRD §9), con su acorde en
  * ámbar encima: lo que se elige acá es cómo se va a ver el canto, así que se
- * muestra un canto, no un «Aa».
+ * muestra un canto, no un «Aa». Y respeta la notación de la persona
+ * (2026-11-17): quien lee en Do-Re-Mi ve «Mi», no «E» — antes la vista previa
+ * mentía sobre lo que iba a ver.
  */
-export default function TamanoLetra({ tamanoLetra }: { tamanoLetra: number }) {
+export default function TamanoLetra({
+  tamanoLetra,
+  latina = false,
+}: {
+  tamanoLetra: number
+  /** «Acordes en Do-Re-Mi»: la vista previa usa la notación latina. */
+  latina?: boolean
+}) {
   const router = useRouter()
   const [, iniciarTransicion] = useTransition()
   const [optimista, aplicarOptimista] = useOptimistic(tamanoLetra)
@@ -80,7 +89,7 @@ export default function TamanoLetra({ tamanoLetra }: { tamanoLetra: number }) {
         style={{ fontSize: `${optimista}px` }}
         aria-hidden
       >
-        <div className="font-semibold text-acorde">E</div>
+        <div className="font-semibold text-acorde">{latina ? 'Mi' : 'E'}</div>
         <div className="text-texto">Abre tu jardín,</div>
       </div>
 

@@ -28,7 +28,7 @@ export default async function HistorialPage() {
       <>
         <Cabecera sesion={sesion} />
         <main className="mx-auto w-full max-w-2xl px-4 pt-6 pb-10">
-          <h1 className="titulo-libro text-[1.75rem] leading-tight">Historial</h1>
+          <h1 className="titulo-pantalla leading-tight">Historial</h1>
           <p className="mt-2 max-w-prose text-base">Todavía no perteneces a ningún coro.</p>
           <p className="mt-2 max-w-prose text-sm text-texto-tenue">
             El historial se arma con las misas de un coro. Cuando pertenezcas a uno, vas a verlo acá.
@@ -48,11 +48,11 @@ export default async function HistorialPage() {
 
       {/* Destino de primer nivel (se llega desde «Más»): sin flecha de volver. */}
       <main className="mx-auto w-full max-w-2xl px-4 pt-6 pb-16">
-        <h1 className="titulo-libro text-[1.75rem] leading-tight">Historial</h1>
+        <h1 className="titulo-pantalla leading-tight">Historial</h1>
         <p className="mt-1 max-w-prose text-sm text-texto-tenue">Cuentan las misas que ya pasaron.</p>
 
         {cantados.length === 0 && nunca.length === 0 && (
-          <p className="py-10 text-sm text-texto-tenue">Este coro todavía no tiene repertorio.</p>
+          <p className="py-10 text-sm text-texto-tenue">Este coro todavía no tiene canciones.</p>
         )}
 
         {cantados.length === 0 && nunca.length > 0 && (

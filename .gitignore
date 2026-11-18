@@ -43,6 +43,9 @@ next-env.d.ts
 # artefactos de playwright-cli (snapshots de verificación)
 .playwright-cli/
 
+# maquetas del companion de brainstorming (locales, no se versionan)
+.superpowers/
+
 # Copias que crea la sincronización del Escritorio («archivo 2.ts»).
 # No son versiones ni respaldos: son duplicados con fecha vieja del mismo
 # archivo. Ya se colaron dos veces al repositorio —`sembrar 2.ts` apuntaba a un
