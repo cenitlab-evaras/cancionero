@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { obtenerSesion } from '@/lib/sesion'
 import { puede, type Capacidad } from '@/lib/permisos'
-import { puedeVincularse } from '@/lib/motores/gobierno'
+import { puedeCambiarRol, puedeVincularse } from '@/lib/motores/gobierno'
 
 /**
  * Gobierno del coro y de la instalación (H7).
@@ -188,5 +188,44 @@ export async function crearCoro(raw: unknown): Promise<Resultado> {
 
   revalidatePath('/admin/perfiles')
   revalidatePath('/coros')
+  return { ok: true }
+}
+
+// `CambiarRol` ya está tomado por la acción del rol LOCAL (arriba): este es el
+// rol GLOBAL de la cuenta, y los dos esquemas se llaman distinto para no
+// pisarse.
+const CambiarRolGlobal = z.object({
+  perfilId: z.string().uuid(),
+  rol: z.enum(['admin', 'usuario']),
+})
+
+/**
+ * Cambia el rol GLOBAL de una cuenta (admin ↔ usuario).
+ *
+ * No se puede cambiar el propio: dejaría la instalación sin administrador.
+ * La RLS (`perfiles_write = es_admin()`) vuelve a decidir; esto es el mensaje.
+ */
+export async function cambiarRolPerfil(raw: unknown): Promise<Resultado> {
+  const datos = CambiarRolGlobal.safeParse(raw)
+  if (!datos.success) return { ok: false, error: 'Revisa los datos.' }
+
+  const sesion = await obtenerSesion()
+  if (!sesion) return { ok: false, error: 'Tu sesión expiró. Vuelve a entrar.' }
+  if (!puede(sesion.sujeto, 'aprobar_perfil')) {
+    return { ok: false, error: 'Cambiar el rol de una cuenta es trabajo de un administrador.' }
+  }
+
+  const veredicto = puedeCambiarRol(sesion.usuarioId, datos.data.perfilId)
+  if (!veredicto.ok) return { ok: false, error: veredicto.motivo }
+
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('perfiles')
+    .update({ rol: datos.data.rol, updated_at: new Date().toISOString() })
+    .eq('id', datos.data.perfilId)
+
+  if (error) return { ok: false, error: 'No pudimos cambiar el rol.' }
+
+  revalidatePath('/admin/perfiles')
   return { ok: true }
 }
