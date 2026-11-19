@@ -11,8 +11,19 @@ import TituloConLupa from '@/app/componentes/titulo-con-lupa'
  *
  * Desde el 2026-10-17 es solo una lupa al lado del título (el dueño): el campo
  * aparece al tocarla. «Nuevo» se mudó a Herramientas.
+ *
+ * Con la unificación (2026-11-19) es el buscador COMPARTIDO de las dos vistas:
+ * en «Por momento» escribe `/repertorio?q=…`; en «Todas» mantiene
+ * `vista=todas`, y su título pasa a ser el h1 de esa vista («Todas las
+ * canciones»), para que cada vista tenga exactamente un h1.
  */
-export default function Buscador({ valorInicial }: { valorInicial: string }) {
+export default function Buscador({
+  valorInicial,
+  vista,
+}: {
+  valorInicial: string
+  vista?: 'todas'
+}) {
   const router = useRouter()
   const [valor, setValor] = useState(valorInicial)
   const [pendiente, iniciarTransicion] = useTransition()
@@ -20,14 +31,18 @@ export default function Buscador({ valorInicial }: { valorInicial: string }) {
   function buscar(termino: string) {
     setValor(termino)
     iniciarTransicion(() => {
-      router.replace(termino ? `/repertorio?q=${encodeURIComponent(termino)}` : '/repertorio')
+      const p = new URLSearchParams()
+      if (vista === 'todas') p.set('vista', 'todas')
+      if (termino) p.set('q', termino)
+      const qs = p.toString()
+      router.replace(qs ? `/repertorio?${qs}` : '/repertorio')
     })
   }
 
   return (
     <>
       <TituloConLupa
-        titulo="Canciones"
+        titulo={vista === 'todas' ? 'Todas las canciones' : 'Canciones'}
         valor={valor}
         alCambiar={buscar}
         etiqueta="Buscar en las canciones por título o autor"

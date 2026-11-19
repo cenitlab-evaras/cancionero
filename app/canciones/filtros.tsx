@@ -1,13 +1,19 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useRef, useState, useTransition } from 'react'
-import { IconoBuscar, IconoListo } from '@/app/componentes/iconos'
+import { useTransition } from 'react'
+import { IconoListo } from '@/app/componentes/iconos'
 
 /**
- * Los filtros de «Canciones». Solo llevan lo elegido a la URL; filtra el motor
- * `catalogo` en el servidor. En la URL, una vista filtrada se puede compartir
- * («mira las repetidas») y sobrevive a volver atrás.
+ * Los filtros de «Todas» (la vista unificada de Canciones). Solo llevan lo
+ * elegido a la URL; filtra el motor `catalogo` en el servidor. En la URL, una
+ * vista filtrada se puede compartir («mira las repetidas») y sobrevive a volver
+ * atrás.
+ *
+ * Desde el 2026-11-19 escriben `/repertorio?vista=todas` y NO tienen campo de
+ * búsqueda propio: el término `q` lo lleva el buscador compartido del bloque
+ * pegajoso. Dos campos sobre el mismo `q` se pisaban (el de acá guardaba su
+ * propio estado y, al tocar un filtro, reescribía el término con uno viejo).
  */
 export type ValoresDeFiltro = {
   q: string
@@ -29,13 +35,12 @@ export default function Filtros({
   momentos: { codigo: string; nombre: string }[]
 }) {
   const router = useRouter()
-  const [texto, setTexto] = useState(valores.q)
   const [, iniciarTransicion] = useTransition()
-  const espera = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   function ir(cambio: Partial<ValoresDeFiltro>) {
-    const v = { ...valores, q: texto, ...cambio }
+    const v = { ...valores, ...cambio }
     const p = new URLSearchParams()
+    p.set('vista', 'todas')
     if (v.q.trim()) p.set('q', v.q.trim())
     if (v.momento) p.set('momento', v.momento)
     if (v.estado) p.set('estado', v.estado)
@@ -43,31 +48,11 @@ export default function Filtros({
     if (v.repetidas) p.set('repetidas', '1')
     if (v.solistas) p.set('solistas', '1')
     const qs = p.toString()
-    iniciarTransicion(() => router.replace(qs ? `/canciones?${qs}` : '/canciones', { scroll: false }))
+    iniciarTransicion(() => router.replace(`/repertorio?${qs}`, { scroll: false }))
   }
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="relative">
-        <IconoBuscar
-          tamano={18}
-          className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-texto-tenue"
-        />
-        {/* text-base: con menos de 16 px Safari de iPhone agranda la página al enfocar. */}
-        <input
-          type="search"
-          value={texto}
-          onChange={(e) => {
-            setTexto(e.target.value)
-            if (espera.current) clearTimeout(espera.current)
-            const q = e.target.value
-            espera.current = setTimeout(() => ir({ q }), 250)
-          }}
-          placeholder="Título o autor"
-          aria-label="Buscar por título o autor"
-          className="tactil w-full rounded-lg border border-borde-fuerte bg-superficie pr-3 pl-9 text-base text-texto placeholder:text-texto-tenue"
-        />
-      </div>
       <div className="flex flex-wrap items-center gap-2">
         <select
           aria-label="Momento"

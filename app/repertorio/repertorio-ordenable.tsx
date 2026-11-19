@@ -297,11 +297,13 @@ export default function RepertorioOrdenable({
   )
 }
 
-/** Una sección (un momento) que también recibe cantos de otras. */
+/** Una sección (un momento) que también recibe cantos de otras.
+ *  El `id` y el `scroll-mt` son el destino de los chips: el título aterriza
+ *  bajo el bloque pegajoso, no escondido detrás. */
 function Seccion({ codigo, nombre, children }: { codigo: string; nombre: string; children: React.ReactNode }) {
   const { setNodeRef } = useDroppable({ id: codigo })
   return (
-    <section ref={setNodeRef} className="pt-6">
+    <section ref={setNodeRef} id={`momento-${codigo}`} className="scroll-mt-64 pt-6">
       <TituloSeccion>{nombre}</TituloSeccion>
       {children}
     </section>

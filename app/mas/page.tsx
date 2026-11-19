@@ -13,7 +13,6 @@ import {
   IconoPerfil,
   IconoSugerencias,
   IconoUsuarios,
-  IconoRepertorio,
 } from '@/app/componentes/iconos'
 
 export const metadata = { title: 'Más · Cantoral' }
@@ -65,14 +64,6 @@ export default async function MasPage() {
   })
 
   const coro: Fila[] = []
-  if (hayCoro) {
-    coro.push({
-      href: '/canciones',
-      texto: 'Todas las canciones',
-      detalle: 'Una vez cada una: la cuenta, las repetidas y los filtros por momento',
-      icono: <IconoRepertorio />,
-    })
-  }
   if (hayCoro && puede(s, 'ver_ficha_del_coro')) {
     coro.push({ href: '/coro/miembros', texto: 'Miembros', icono: <IconoMiembros /> })
   }
@@ -111,7 +102,7 @@ export default async function MasPage() {
             { titulo: 'Planificar', filas: planificar },
             { titulo: 'El coro', filas: coro },
             { titulo: 'Tu cuenta', filas: cuenta },
-          ]}
+          ].filter((g) => g.filas.length > 0)}
           grupoDeSalir="Tu cuenta"
           salir={<BotonSalir />}
           arriba={<p className="mt-1 text-sm text-texto-tenue">{sesion.email}</p>}
