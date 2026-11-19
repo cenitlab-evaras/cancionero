@@ -57,7 +57,7 @@ const SONIDOS: Record<Sonido, string> = {
 const ALTO_CABECERA = 56
 
 /** El margen de deriva entre pistas antes de corregirla (§18-24). */
-const DERIVA_S = 0.06
+const DERIVA_S = 0.25
 
 const ELEGIDO = '!border-texto !bg-superficie-alta font-semibold'
 const chip = (elegido: boolean) =>
@@ -161,6 +161,9 @@ export default function Reproductor({
 
   // --- El audio -------------------------------------------------------------
   const audios = useRef<Record<Cuerda, HTMLAudioElement>>({})
+  // Las URLs `blob:` de las pistas cargadas; se revocan al cambiar de sonido
+  // o al desmontar, para no retener siete MP3 por sonido.
+  const urlsPistas = useRef<string[]>([])
   const seccionHoja = useRef<HTMLElement>(null)
   // La barra de abajo: contiene el panel «Mezcla» y marca dónde termina lo visible.
   const barraAbajo = useRef<HTMLDivElement>(null)
@@ -170,6 +173,15 @@ export default function Reproductor({
   const [bpm, setBpm] = useState(tempo)
   const tasa = tasaDeTempo(bpm, tempo)
   const [sonando, setSonando] = useState(false)
+  // Las siete pistas se bajan enteras antes de dejar tocar: con el teléfono en
+  // la mano, el streaming de siete MP3 a la vez se corta (ver H28). La clave es
+  // la URL firmada: si el material se renueva, vuelve a «preparando».
+  const clavePistas = material.pistas[material.sonidos[0]]?.[pentagramas[0]] ?? ''
+  const [cargadas, setCargadas] = useState<{ clave: string; listo: boolean }>({
+    clave: '',
+    listo: false,
+  })
+  const pistasListas = cargadas.listo && cargadas.clave === clavePistas
   const [repetir, setRepetir] = useState(true)
   const [tiempo, setTiempo] = useState(0)
   const [duracion, setDuracion] = useState(material.duracionMs / 1000)
@@ -195,6 +207,11 @@ export default function Reproductor({
   const router = useRouter()
   useEffect(() => {
     const creados: Record<Cuerda, HTMLAudioElement> = {}
+    const urls: string[] = []
+    urlsPistas.current = urls
+    let cancelado = false
+    let listos = 0
+    const total = new Set(pentagramas).size
     const { sonido: s, tasa: x, efectivos: v } = elegido.current
     let renovando = false
     const alFallar = () => {
@@ -212,24 +229,46 @@ export default function Reproductor({
       // Antes de la URL: sin CORS, Web Audio recibe silencio (H28). Storage
       // responde con `Access-Control-Allow-Origin: *`.
       a.crossOrigin = 'anonymous'
-      a.src = material.pistas[s]?.[c] ?? material.pistas[material.sonidos[0]][c]
       a.preload = 'auto'
       a.preservesPitch = true // más lento, misma afinación
       a.playbackRate = a.defaultPlaybackRate = x
       a.volume = v[c] ?? 0
       a.addEventListener('error', alFallar)
       creados[c] = a
+      // La pista entera, a memoria: siete MP3 en streaming se cortan en el
+      // teléfono. Se toca recién cuando están las siete.
+      const url = material.pistas[s]?.[c] ?? material.pistas[material.sonidos[0]][c]
+      fetch(url, { cache: 'no-store' })
+        .then((r) => {
+          if (!r.ok) throw new Error(`audio ${r.status}`)
+          return r.blob()
+        })
+        .then((blob) => {
+          if (cancelado) return
+          const u = URL.createObjectURL(blob)
+          urls.push(u)
+          a.src = u
+          a.load()
+          listos += 1
+          if (listos === total) setCargadas({ clave: clavePistas, listo: true })
+        })
+        .catch(() => {
+          if (!cancelado) alFallar()
+        })
     }
     audios.current = creados
     return () => {
+      cancelado = true
       for (const a of Object.values(creados)) {
         a.removeEventListener('error', alFallar)
         a.pause()
         a.removeAttribute('src')
         a.load()
       }
+      for (const u of urls) URL.revokeObjectURL(u)
+      if (urlsPistas.current === urls) urlsPistas.current = []
     }
-  }, [material, pentagramas, router])
+  }, [material, pentagramas, router, clavePistas])
 
   // --- El tono (H28) y el grafo de Web Audio ---------------------------------
   // Semitonos sobre el cifrado; la partitura y las pistas se corren lo que haga
@@ -361,9 +400,13 @@ export default function Reproductor({
     setSonando(false)
   }, [])
 
-  const tocar = useCallback(async (desde?: number) => {
+  const tocar = useCallback(async (desde?: number, listo = pistasListas) => {
     const r = audios.current[pentagramas[0]]
     if (!r) return
+    if (!listo) {
+      setAviso('Preparando el audio…')
+      return
+    }
     let t = desde ?? r.currentTime
     if (r.ended || t >= (r.duration || Infinity) - 0.05) t = 0 // terminó: parte de nuevo
     const lista = Object.values(audios.current)
@@ -381,7 +424,7 @@ export default function Reproductor({
       setSonando(false)
       setAviso('El teléfono no dejó empezar el audio. Toca «Tocar» otra vez.')
     }
-  }, [pentagramas, asegurarGrafo])
+  }, [pentagramas, asegurarGrafo, pistasListas])
 
   // Reloj de la pantalla y corrección de deriva, cada 200 ms.
   useEffect(() => {
@@ -443,20 +486,37 @@ export default function Reproductor({
     // Se registra antes de cargar: si la carga falla porque vencieron las URLs,
     // las pistas que se crean al renovarlas ya salen con este sonido.
     setSonido(s)
-    for (const [c, a] of Object.entries(audios.current)) a.src = material.pistas[s][c]
-    await Promise.all(
-      todos().map(
-        (a) =>
-          new Promise<void>((listo) =>
+    setCargadas({ clave: '', listo: false })
+    for (const u of urlsPistas.current) URL.revokeObjectURL(u)
+    const nuevas: string[] = []
+    urlsPistas.current = nuevas
+    try {
+      await Promise.all(
+        Object.entries(audios.current).map(async ([c, a]) => {
+          const res = await fetch(material.pistas[s][c], { cache: 'no-store' })
+          if (!res.ok) throw new Error(`audio ${res.status}`)
+          const blob = await res.blob()
+          const u = URL.createObjectURL(blob)
+          nuevas.push(u)
+          a.src = u
+          a.load()
+          await new Promise<void>((listo) =>
             a.readyState >= 1 ? listo() : a.addEventListener('loadedmetadata', () => listo(), { once: true })
           )
+        })
       )
-    )
-    for (const a of todos()) {
-      a.currentTime = t
-      a.playbackRate = a.defaultPlaybackRate
+      for (const a of todos()) {
+        a.currentTime = t
+        a.playbackRate = a.defaultPlaybackRate
+      }
+      setCargadas({ clave: clavePistas, listo: true })
+      if (sonaba) await tocar(t, true)
+    } catch {
+      for (const u of nuevas) URL.revokeObjectURL(u)
+      urlsPistas.current = []
+      setAviso('Se renovó el acceso a las pistas. Toca «Tocar» otra vez.')
+      router.refresh()
     }
-    if (sonaba) await tocar(t)
   }
 
   function irA(segundos: number) {
@@ -889,6 +949,11 @@ export default function Reproductor({
             {aviso}
           </p>
         )}
+        {!pistasListas && (
+          <p role="status" className="px-4 pt-2 text-sm text-texto-tenue">
+            Preparando el audio…
+          </p>
+        )}
 
         {/* En el teléfono, dos líneas: la posición entera arriba y los botones
             abajo; en una pantalla ancha, una sola. */}
@@ -903,9 +968,10 @@ export default function Reproductor({
             className="tactil order-first w-full min-w-0 accent-[var(--color-acento)] sm:order-none sm:w-auto sm:flex-1"
           />
           <BotonIcono
-            etiqueta={sonando ? 'Pausa' : 'Tocar'}
+            etiqueta={!pistasListas ? 'Preparando audio' : sonando ? 'Pausa' : 'Tocar'}
             apariencia="lleno"
             onClick={() => (sonando ? pausar() : void tocar())}
+            disabled={!pistasListas}
             className="sm:-order-1"
           >
             {sonando ? <IconoPausa /> : <IconoReproducir />}
