@@ -22,6 +22,8 @@ export type CantoDeLista = {
   tonalidadOriginal: string | null
   /** Número en el cancionero impreso: es como el coro los busca de memoria. */
   fuenteNumero: number | null
+  /** Página del cancionero impreso: es lo que muestra la lista. */
+  fuentePagina: number | null
   /** H10. Se normaliza al leer: la pantalla nunca ve un valor crudo de la base. */
   estado: EstadoCanto
 }
@@ -38,6 +40,7 @@ type FilaCanto = {
   titulo: string
   tonalidad_original: string | null
   fuente_numero: number | null
+  fuente_pagina: number | null
   estado: string
   autores: { nombre: string } | null
   canto_momentos: {
@@ -68,7 +71,7 @@ export async function repertorioPorMomento(
   const { data, error } = await supabase
     .from('cantos')
     .select(
-      'id, titulo, tonalidad_original, fuente_numero, estado, autores(nombre), canto_momentos(orden, momentos_liturgicos(codigo, nombre, orden))'
+      'id, titulo, tonalidad_original, fuente_numero, fuente_pagina, estado, autores(nombre), canto_momentos(orden, momentos_liturgicos(codigo, nombre, orden))'
     )
     .eq('coro_id', coroId)
     .neq('estado', 'archivado')
@@ -88,6 +91,7 @@ export async function repertorioPorMomento(
       autor,
       tonalidadOriginal: fila.tonalidad_original,
       fuenteNumero: fila.fuente_numero,
+      fuentePagina: fila.fuente_pagina,
       estado: normalizarEstado(fila.estado),
     }
 
@@ -119,6 +123,7 @@ export async function repertorioPorMomento(
           autor: c.autor,
           tonalidadOriginal: c.tonalidadOriginal,
           fuenteNumero: c.fuenteNumero,
+          fuentePagina: c.fuentePagina,
           estado: c.estado,
         })
       ),
@@ -322,7 +327,7 @@ export async function cantosArchivados(coroId: string): Promise<CantoDeLista[]> 
 
   const { data, error } = await supabase
     .from('cantos')
-    .select('id, titulo, tonalidad_original, fuente_numero, estado, autores(nombre)')
+    .select('id, titulo, tonalidad_original, fuente_numero, fuente_pagina, estado, autores(nombre)')
     .eq('coro_id', coroId)
     .eq('estado', 'archivado')
     .order('updated_at', { ascending: false })
@@ -337,6 +342,7 @@ export async function cantosArchivados(coroId: string): Promise<CantoDeLista[]> 
       autor: autor?.nombre ?? null,
       tonalidadOriginal: fila.tonalidad_original,
       fuenteNumero: fila.fuente_numero,
+      fuentePagina: fila.fuente_pagina,
       estado: normalizarEstado(fila.estado),
     }
   })
@@ -456,7 +462,7 @@ export async function catalogoDelCoro(
   const { data, error } = await supabase
     .from('cantos')
     .select(
-      'id, titulo, tonalidad_original, fuente_numero, estado, autores(nombre), canto_momentos(momentos_liturgicos(codigo, nombre, orden))'
+      'id, titulo, tonalidad_original, fuente_numero, fuente_pagina, estado, autores(nombre), canto_momentos(momentos_liturgicos(codigo, nombre, orden))'
     )
     .eq('coro_id', coroId)
     .neq('estado', 'archivado')
@@ -475,6 +481,8 @@ export async function catalogoDelCoro(
       titulo: fila.titulo,
       autor: fila.autores?.nombre ?? null,
       tonalidadOriginal: fila.tonalidad_original,
+      fuenteNumero: fila.fuente_numero,
+      fuentePagina: fila.fuente_pagina,
       estado: normalizarEstado(fila.estado),
       momentos: suyos.map((m) => m.codigo),
       conPartitura: conPartitura.has(fila.id),

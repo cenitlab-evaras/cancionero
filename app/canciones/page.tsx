@@ -166,6 +166,13 @@ export default async function CancionesPage({
                         {c.conSolistas && <MarcaSolistas className="text-texto-tenue" />}
                         {n && <MarcaRepetida veces={n} className="text-peligro" />}
                       </span>
+                      {/* La página del cancionero va bajo el título: es la
+                          referencia que el coro usa para encontrarlo. */}
+                      {c.fuentePagina !== null && (
+                        <span className="mt-1 block text-sm text-texto-tenue tabular-nums">
+                          pág. {c.fuentePagina}
+                        </span>
+                      )}
                       {/* En el teléfono los momentos van acá: no caben columnas. */}
                       {susMomentos && (
                         <span className="mt-1 block text-sm text-texto-tenue sm:hidden">{susMomentos}</span>

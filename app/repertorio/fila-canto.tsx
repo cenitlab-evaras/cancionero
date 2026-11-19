@@ -22,8 +22,8 @@ export type DatosFila = {
   /** H23 · si tiene partitura para ensayar, y si trae estrofas de solista. */
   partitura: { solistas: boolean } | null
   tonalidad: string | null
-  /** El número del cancionero impreso: es como el coro los busca de memoria. */
-  numero: number | null
+  /** La página del cancionero impreso: es la referencia que usa el coro. */
+  pagina: number | null
   autor: string | null
 }
 
@@ -57,11 +57,11 @@ export default function FilaCanto({
           href={`/repertorio/${canto.id}`}
           className="tactil group -mx-2 flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-2.5 hover:bg-superficie"
         >
-          {/* La estructura es la del cancionero (DESIGN.md): el número a la
-              izquierda, el autor debajo del título. Sin número la columna queda
-              vacía — no se inventa uno. */}
-          <span className={`numero-libro w-7 shrink-0 text-right text-base ${canto.numero !== null ? 'text-texto-tenue' : ''}`}>
-            {canto.numero ?? ''}
+          {/* La estructura es la del cancionero (DESIGN.md): la página a la
+              izquierda, el autor debajo del título. Sin página la columna queda
+              vacía — no se inventa una. */}
+          <span className={`numero-libro w-7 shrink-0 text-right text-base ${canto.pagina !== null ? 'text-texto-tenue' : ''}`}>
+            {canto.pagina ?? ''}
           </span>
           <span className="min-w-0 flex-1">
             <span className="block truncate">{canto.titulo}</span>

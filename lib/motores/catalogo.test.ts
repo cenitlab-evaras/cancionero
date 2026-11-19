@@ -10,6 +10,8 @@ import { claveDeTitulo, filtrarCatalogo, repetidas, type CancionDeCatalogo } fro
 const cancion = (c: Partial<CancionDeCatalogo> & { id: string; titulo: string }): CancionDeCatalogo => ({
   autor: null,
   tonalidadOriginal: null,
+  fuenteNumero: null,
+  fuentePagina: null,
   estado: 'listo',
   momentos: [],
   conPartitura: false,
@@ -76,5 +78,18 @@ describe('filtrarCatalogo', () => {
 
   test('los filtros se combinan', () => {
     expect(filtrarCatalogo(todas, { soloRepetidas: true, momento: 'salida' }, r).map((c) => c.id)).toEqual(['2'])
+  })
+
+  test('por el número del cancionero, exacto, aunque la lista muestre la página', () => {
+    const numeradas = [
+      cancion({ id: '1', titulo: 'Abre tu jardín', fuenteNumero: 67, fuentePagina: 65 }),
+      cancion({ id: '2', titulo: 'Escojo la vida', fuenteNumero: 1, fuentePagina: 9 }),
+    ]
+    expect(filtrarCatalogo(numeradas, { texto: '67' }, repetidas(numeradas)).map((c) => c.id)).toEqual([
+      '1',
+    ])
+    expect(filtrarCatalogo(numeradas, { texto: '1' }, repetidas(numeradas)).map((c) => c.id)).toEqual([
+      '2',
+    ])
   })
 })

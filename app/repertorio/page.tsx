@@ -90,7 +90,7 @@ export default async function RepertorioPage({
         repetida: veces.get(c.id) ?? null,
         partitura: conPartitura.get(c.id) ?? null,
         tonalidad: c.tonalidadOriginal,
-        numero: c.fuenteNumero,
+        pagina: c.fuentePagina,
         autor: c.autor,
       },
     ])

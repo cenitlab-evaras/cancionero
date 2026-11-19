@@ -16,6 +16,10 @@ export type CancionDeCatalogo = {
   titulo: string
   autor: string | null
   tonalidadOriginal: string | null
+  /** Número en el cancionero impreso: sigue siendo buscable aunque no se muestre. */
+  fuenteNumero: number | null
+  /** Página del cancionero impreso: es la que se muestra en la tabla. */
+  fuentePagina: number | null
   estado: EstadoCanto
   /** Los códigos de sus momentos litúrgicos. */
   momentos: string[]
@@ -63,7 +67,7 @@ export function filtrarCatalogo(
 ): CancionDeCatalogo[] {
   return canciones.filter(
     (c) =>
-      coincideBusqueda({ titulo: c.titulo, autor: c.autor }, f.texto ?? '') &&
+      coincideBusqueda({ titulo: c.titulo, autor: c.autor, numero: c.fuenteNumero }, f.texto ?? '') &&
       (!f.momento || c.momentos.includes(f.momento)) &&
       (!f.estado || c.estado === f.estado) &&
       (!f.partitura || c.conPartitura === (f.partitura === 'con')) &&
