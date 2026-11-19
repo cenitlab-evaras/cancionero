@@ -17,10 +17,9 @@ import { DIGITACIONES } from '@/lib/motores/digitaciones'
 import { etiquetaEstado } from '@/lib/motores/estado-canto'
 import Cabecera from '@/app/componentes/cabecera'
 import PantallaEncendida from '@/app/componentes/pantalla-encendida'
-import TituloSeccion from '@/app/componentes/titulo-seccion'
 import { EnlaceIcono, clasesBotonIcono } from '@/app/componentes/boton-icono'
 import ConmutadorTema from '@/app/componentes/conmutador-tema'
-import { IconoEditar, IconoVolver } from '@/app/componentes/iconos'
+import { IconoDesplegar, IconoEditar, IconoVolver } from '@/app/componentes/iconos'
 import Cifrado from '@/app/componentes/cifrado'
 import DarTono from '@/app/componentes/dar-tono'
 import { herramientasDelCanto } from '@/lib/datos/herramientas'
@@ -141,6 +140,23 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
     latina: herramientas.latina,
   }).quienCanta.some(Boolean)
 
+  // La fila plegada (2026-11-19) resume, sin abrirse, lo que hay adentro: las
+  // correcciones y si el canto ya se estrenó. `versiones` ya viene en 0 cuando
+  // esta persona no puede verlas, y quien no puede leer el canto no llega acá.
+  const correcciones =
+    versiones === 0
+      ? 'sin correcciones'
+      : versiones === 1
+        ? '1 corrección'
+        : `${versiones} correcciones`
+  const estreno =
+    historial.veces === 0
+      ? 'sin estrenar'
+      : historial.veces === 1
+        ? 'cantado 1 vez'
+        : `cantado ${historial.veces} veces`
+  const resumenSobreElCanto = `${correcciones} · ${estreno}`
+
   return (
     <>
       {/* SIN cabecera global, a propósito (§DESIGN: «no hay a dónde navegar
@@ -218,30 +234,41 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
           <p className="mt-6 px-4 text-sm text-texto-tenue">Este canto no tiene acordes escritos.</p>
         )}
 
-        {canto.fuenteTitulo && (
-          <p className="mt-10 max-w-prose px-4 text-sm leading-relaxed text-texto-tenue prosa-equilibrada">
-            {canto.fuenteTitulo}
-            {canto.fuenteNumero ? `, canto n.º ${canto.fuenteNumero}` : ''}
-            {canto.fuentePagina ? `, pág. ${canto.fuentePagina}` : ''}.
-            {/* La atribución va siempre (§18-1); la salvedad sobre la posición
-                de los acordes, solo cuando hay acordes en pantalla (H11). */}
-            {mostrarAcordes && (
-              <>
-                {' '}
-                Los acordes son de la fuente; dónde cae cada uno sobre la letra es una estimación y
-                se puede corregir a oído.
-              </>
-            )}
-          </p>
-        )}
+        {/* Lo que se decide planificando, plegado (2026-11-19): el canto
+            termina en el canto. Historial, fuente, tesitura, quién canta,
+            correcciones y proponer quedan a un toque. Es un `<details>` nativo:
+            abre sin JavaScript, con teclado y con lector de pantalla. */}
+        <details className="group mt-8 border-t border-borde px-4 pt-6">
+          <summary className="tactil flex cursor-pointer list-none items-center gap-3 [&::-webkit-details-marker]:hidden">
+            <h2
+              id="sobre-el-canto"
+              className="flex min-w-0 flex-1 flex-col text-[0.9375rem] font-bold text-texto"
+            >
+              Sobre este canto
+              <span className="text-sm font-normal text-texto-tenue">{resumenSobreElCanto}</span>
+            </h2>
+            <IconoDesplegar className="shrink-0 text-texto-tenue transition-transform duration-150 group-open:rotate-180 motion-reduce:transition-none" />
+          </summary>
 
-        {/* Lo que se decide planificando, DESPUÉS del canto y no antes
-            (rediseño 2026-10-17): el historial, proponerlo y sus correcciones.
-            Antes iba entre el título y el cifrado, y el primer acorde quedaba a
-            224 px. */}
-        <section aria-labelledby="sobre-el-canto" className="mt-8 border-t border-borde px-4 pt-6">
-          <TituloSeccion id="sobre-el-canto">Sobre este canto</TituloSeccion>
           <div className="mt-3 flex flex-col gap-4">
+            {/* La atribución de la fuente va adentro, arriba del contenido, y
+                con ella la salvedad sobre la posición de los acordes: solo
+                cuando hay acordes en pantalla (H11). */}
+            {canto.fuenteTitulo && (
+              <p className="max-w-prose text-sm leading-relaxed text-texto-tenue prosa-equilibrada">
+                {canto.fuenteTitulo}
+                {canto.fuenteNumero ? `, canto n.º ${canto.fuenteNumero}` : ''}
+                {canto.fuentePagina ? `, pág. ${canto.fuentePagina}` : ''}.
+                {mostrarAcordes && (
+                  <>
+                    {' '}
+                    Los acordes son de la fuente; dónde cae cada uno sobre la letra es una
+                    estimación y se puede corregir a oído.
+                  </>
+                )}
+              </p>
+            )}
+
             {/* H13 · cuánto hace que se cantó y cada cuánto vuelve. */}
             <HistorialDelCanto historial={historial} anioActual={hoyISO().slice(0, 4)} />
 
@@ -288,7 +315,7 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
               />
             )}
           </div>
-        </section>
+        </details>
       </main>
 
       {/* La pila inferior: la hoja de diagramas se apila ENCIMA de los
