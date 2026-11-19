@@ -170,7 +170,7 @@ export default async function RepertorioPage({
             un canto se hace desde Herramientas (el dueño, 2026-10-17).
             Desde el 2026-11-19 el bloque suma el conmutador y los chips. */}
         <div className="sticky top-14 z-(--z-barra) -mx-4 -mt-3 bg-fondo px-4 py-3">
-          <Buscador valorInicial={q} vista={vista} />
+          <Buscador valorInicial={q} vista={vista} filtros={sp} />
           <ConmutadorVista vista={vista} q={q} />
           {vista !== 'todas' && <Atajos momentos={momentos} />}
         </div>

@@ -102,7 +102,7 @@ export default async function MasPage() {
             { titulo: 'Planificar', filas: planificar },
             { titulo: 'El coro', filas: coro },
             { titulo: 'Tu cuenta', filas: cuenta },
-          ].filter((g) => g.filas.length > 0)}
+          ]}
           grupoDeSalir="Tu cuenta"
           salir={<BotonSalir />}
           arriba={<p className="mt-1 text-sm text-texto-tenue">{sesion.email}</p>}
