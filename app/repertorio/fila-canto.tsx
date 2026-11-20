@@ -22,8 +22,10 @@ export type DatosFila = {
   /** H23 · si tiene partitura para ensayar, y si trae estrofas de solista. */
   partitura: { solistas: boolean } | null
   tonalidad: string | null
-  /** La página del cancionero impreso: es la referencia que usa el coro. */
-  pagina: number | null
+  /** Cuántas veces se cantó en misas pasadas: la regleta del dueño (2026-11-20). */
+  veces: number
+  /** 0–100: `veces` contra la canción más cantada del coro. */
+  intensidad: number
   autor: string | null
 }
 
@@ -57,15 +59,28 @@ export default function FilaCanto({
           href={`/repertorio/${canto.id}`}
           className="tactil group -mx-2 flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-2.5 hover:bg-superficie"
         >
-          {/* La estructura es la del cancionero (DESIGN.md): la página a la
-              izquierda, el autor debajo del título. Sin página la columna queda
-              vacía — no se inventa una. */}
-          <span className={`numero-libro w-7 shrink-0 text-right text-base ${canto.pagina !== null ? 'text-texto-tenue' : ''}`}>
-            {canto.pagina ?? ''}
-          </span>
           <span className="min-w-0 flex-1">
             <span className="block truncate">{canto.titulo}</span>
             {canto.autor && <span className="block truncate text-sm text-texto-tenue">{canto.autor}</span>}
+            {/* La regleta: cuánto se cantó, contra la más cantada del coro.
+                Solo en las que tienen historia: una vía vacía en cada fila
+                sería una raya más, no un dato. */}
+            {canto.veces > 0 && (
+              <span className="mt-1 flex items-center gap-2 text-sm text-texto-tenue">
+                <span className="h-1 min-w-0 flex-1 overflow-hidden rounded-full bg-superficie-alta" aria-hidden>
+                  <span
+                    className="block h-full rounded-full bg-acento"
+                    style={{ width: `${canto.intensidad}%` }}
+                  />
+                </span>
+                <span className="shrink-0 tabular-nums">
+                  {canto.veces}×
+                  <span className="sr-only">
+                    {canto.veces === 1 ? ' cantada una vez' : ` cantada ${canto.veces} veces`}
+                  </span>
+                </span>
+              </span>
+            )}
           </span>
           {canto.enEnsayo && <span className="sr-only">, en ensayo</span>}
           {canto.repetida && <MarcaRepetida veces={canto.repetida} className="text-peligro" />}

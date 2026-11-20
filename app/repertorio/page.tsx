@@ -4,16 +4,15 @@ import { obtenerSesion } from '@/lib/sesion'
 import { puede } from '@/lib/permisos'
 import { repertorioPorMomento } from '@/lib/datos/repertorio'
 import { cantosConPartitura } from '@/lib/datos/partitura'
+import { repertorioConHistorial } from '@/lib/datos/historial'
 import { contarEnEnsayo, etiquetaEstado } from '@/lib/motores/estado-canto'
 import Cabecera from '@/app/componentes/cabecera'
 import TituloSeccion from '@/app/componentes/titulo-seccion'
 import { clasesBotonIcono } from '@/app/componentes/boton-icono'
-import { repetidas } from '@/lib/motores/catalogo'
+import { claveDeTitulo, repetidas } from '@/lib/motores/catalogo'
 import Buscador from './buscador'
-import AvisoDeslizar from './aviso-deslizar'
 import Atajos from './atajos'
 import FilaCanto, { type DatosFila } from './fila-canto'
-import RepertorioOrdenable from './repertorio-ordenable'
 import VistaTodas from './vista-todas'
 
 export const metadata = { title: 'Canciones · Cantoral' }
@@ -112,21 +111,28 @@ export default async function RepertorioPage({
   const vista = sp.vista === 'todas' ? 'todas' : undefined
 
   const puedeEditar = puede(sesion.sujeto, 'editar_canto')
-  // El director ordena arrastrando (2026-10-17). Con una búsqueda escrita no:
-  // se moverían cantos respecto de otros que no se ven. Y solo en «Por momento»:
-  // «Todas» es de solo lectura.
-  const ordenable = vista !== 'todas' && puedeEditar && !q
   let grupos: Awaited<ReturnType<typeof repertorioPorMomento>> = []
   let conPartitura: Map<string, { solistas: boolean }> = new Map()
+  let conHistorial: Awaited<ReturnType<typeof repertorioConHistorial>> = []
   if (vista !== 'todas') {
-    ;[grupos, conPartitura] = await Promise.all([
+    ;[grupos, conPartitura, conHistorial] = await Promise.all([
       repertorioPorMomento(sesion.coroActivo.id, q),
       // H23 · qué cantos se pueden ensayar: sin esto, «Ensayar» solo se
       // descubría entrando canto por canto.
       puede(sesion.sujeto, 'ensayar_canto')
         ? cantosConPartitura()
         : Promise.resolve(new Map<string, { solistas: boolean }>()),
+      // La regleta del dueño (2026-11-20): cuántas veces se cantó cada uno.
+      repertorioConHistorial(sesion.coroActivo.id),
     ])
+    // Alfabético, sin arrastre (el dueño, 2026-11-20): el orden que dejó el
+    // director deja de mandar en la lista. Se compara sin tildes ni mayúsculas.
+    grupos = grupos.map((g) => ({
+      ...g,
+      cantos: [...g.cantos].sort((a, b) =>
+        claveDeTitulo(a.titulo).localeCompare(claveDeTitulo(b.titulo))
+      ),
+    }))
   }
   // Cantos distintos, no filas: una canción en tres momentos sale tres
   // veces en la lista y antes se contaba tres veces (2026-10-17).
@@ -137,24 +143,31 @@ export default async function RepertorioPage({
   // Se calcula al leer, nunca se guarda (innegociable 4). El motor cuenta por
   // id: un canto asignado a tres momentos aparece tres veces en `grupos`.
   const enEnsayo = contarEnEnsayo(grupos.flatMap((g) => g.cantos))
-  // Lo que dibuja cada fila, una vez por canción: la misma la usan la lista
-  // quieta del miembro y la que arrastra el director.
+  // La intensidad se mide contra la más cantada del coro, no del momento: la
+  // regleta responde «cuánto suena esto respecto de todo lo demás».
+  const cantadas = new Map(conHistorial.map((c) => [c.id, c.historial.veces]))
+  const maxCantadas = Math.max(1, ...cantadas.values())
+  // Lo que dibuja cada fila, una vez por canción.
   const filas: Record<string, DatosFila> = Object.fromEntries(
-    distintos.map((c) => [
-      c.id,
-      {
-        id: c.id,
-        titulo: c.titulo,
-        // H10 · La marca solo aparece cuando dice algo: `listo` es el caso
-        // normal y etiquetar cada fila no informaría nada.
-        enEnsayo: Boolean(etiquetaEstado(c.estado)),
-        repetida: veces.get(c.id) ?? null,
-        partitura: conPartitura.get(c.id) ?? null,
-        tonalidad: c.tonalidadOriginal,
-        pagina: c.fuentePagina,
-        autor: c.autor,
-      },
-    ])
+    distintos.map((c) => {
+      const cantada = cantadas.get(c.id) ?? 0
+      return [
+        c.id,
+        {
+          id: c.id,
+          titulo: c.titulo,
+          // H10 · La marca solo aparece cuando dice algo: `listo` es el caso
+          // normal y etiquetar cada fila no informaría nada.
+          enEnsayo: Boolean(etiquetaEstado(c.estado)),
+          repetida: veces.get(c.id) ?? null,
+          partitura: conPartitura.get(c.id) ?? null,
+          tonalidad: c.tonalidadOriginal,
+          veces: cantada,
+          intensidad: Math.round((100 * cantada) / maxCantadas),
+          autor: c.autor,
+        },
+      ] as const
+    })
   )
   const momentos = grupos.map((g) => ({ codigo: g.codigo, nombre: g.nombre, cantos: g.cantos.map((c) => c.id) }))
 
@@ -180,12 +193,6 @@ export default async function RepertorioPage({
           <VistaTodas sesion={sesion} parametros={sp} />
         ) : (
           <>
-            {/* El gesto de archivar es un atajo sin pista: se dice una vez, solo a
-                quien puede usarlo y solo cuando el swipe existe (sin búsqueda). El
-                camino con teclado y lector de pantalla sigue siendo «Editar»
-                (DESIGN.md · afueras del gesto). */}
-            {ordenable && puede(sesion.sujeto, 'archivar_canto') && <AvisoDeslizar />}
-
             {total === 0 && q !== '' && (
               <div className="py-10">
                 <p className="text-texto-tenue">Ningún canto coincide con «{q}».</p>
@@ -213,33 +220,30 @@ export default async function RepertorioPage({
             )}
 
             {/* La estructura es la del cancionero: momentos litúrgicos y cantos
-                numerados. No hay tarjetas — las filas continuas dejan que el ojo
-                recorra la lista sin tropezar con un marco por canto.
+                en orden alfabético (2026-11-20: se fue el arrastre). Sin
+                tarjetas — las filas continuas dejan que el ojo recorra la lista
+                sin tropezar con un marco por canto.
                 El `id` y el `scroll-mt` son el destino de los chips: el título
                 aterriza bajo el bloque pegajoso (cabecera 56 px + buscador +
                 conmutador + chips), no escondido detrás. */}
-            {ordenable ? (
-              <RepertorioOrdenable momentos={momentos} filas={filas} />
-            ) : (
-              momentos.map((m) => (
-                <section
-                  key={m.codigo}
-                  id={`momento-${m.codigo}`}
-                  className="scroll-mt-64 pt-6"
-                >
-                  {/* El título de sección único de la app (sin mayúsculas
-                      espaciadas, que a 13 px y en tenue se leían lento). Sin
-                      contador: al lado de los números de canto se lee como uno más,
-                      y la cuenta total ya está al pie. */}
-                  <TituloSeccion>{m.nombre}</TituloSeccion>
-                  <ul className="mt-1">
-                    {m.cantos.map((id) => (
-                      <FilaCanto key={id} canto={filas[id]} />
-                    ))}
-                  </ul>
-                </section>
-              ))
-            )}
+            {momentos.map((m) => (
+              <section
+                key={m.codigo}
+                id={`momento-${m.codigo}`}
+                className="scroll-mt-64 pt-6"
+              >
+                {/* El título de sección único de la app (sin mayúsculas
+                    espaciadas, que a 13 px y en tenue se leían lento). Sin
+                    contador: al lado de los números de canto se lee como uno más,
+                    y la cuenta total ya está al pie. */}
+                <TituloSeccion>{m.nombre}</TituloSeccion>
+                <ul className="mt-1">
+                  {m.cantos.map((id) => (
+                    <FilaCanto key={id} canto={filas[id]} />
+                  ))}
+                </ul>
+              </section>
+            ))}
 
             {/* Solo la cuenta. Los enlaces a historial, sugerencias y archivados
                 que vivían en este pie se mudaron a «Más» (2026-10-17): al final de
