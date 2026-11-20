@@ -102,10 +102,12 @@ const MATRIZ: Record<Rol, Record<Capacidad, Celda>> = {
     leer_canto: true,
     guardar_preferencia_propia: true,
     ver_preferencia_ajena: false, // nadie, tampoco el admin
-    // H14: el admin no dirige coros y §8.2 no le da motivo para leer la
-    // edad de nadie. Su propia ficha sí, como cualquiera.
+    // H14 · La ficha la lee el director del coro. Un admin SUELTO no tiene por
+    // qué leer la edad de nadie; pero si además dirige el coro activo, la
+    // capacidad le corresponde por el vínculo, no por el rol global
+    // (2026-11-20: el dueño usa una sola cuenta, admin y director a la vez).
     editar_ficha_propia: 'solo_vinculado',
-    ver_ficha_del_coro: false,
+    ver_ficha_del_coro: 'solo_director',
     // H15: inscribirse es declarar algo sobre uno mismo en un coro. Sin
     // vínculo no hay nada que declarar.
     inscribirse_a_misa: 'solo_vinculado',

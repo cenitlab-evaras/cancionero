@@ -32,6 +32,22 @@ describe('el portón `aprobado`', () => {
   })
 })
 
+describe('ver_ficha_del_coro — H14 y el admin que también dirige', () => {
+  test('un admin suelto no lee las fichas del coro', () => {
+    expect(puede(admin, 'ver_ficha_del_coro')).toBe(false)
+  })
+
+  test('un admin que dirige el coro activo SÍ las lee: manda el vínculo', () => {
+    const adminDirector: Sujeto = { rol: 'admin', aprobado: true, rolLocal: 'director' }
+    expect(puede(adminDirector, 'ver_ficha_del_coro')).toBe(true)
+  })
+
+  test('el director las lee y el miembro no', () => {
+    expect(puede(director, 'ver_ficha_del_coro')).toBe(true)
+    expect(puede(miembro, 'ver_ficha_del_coro')).toBe(false)
+  })
+})
+
 describe('editar_canto — la celda que define el hito de edición', () => {
   test('un miembro NO puede editar un canto, en ningún caso', () => {
     expect(puede(miembro, 'editar_canto')).toBe(false)
