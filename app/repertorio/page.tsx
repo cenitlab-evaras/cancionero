@@ -39,19 +39,16 @@ function hrefDeVista(vista: 'todas' | null, q: string) {
   return qs ? `/repertorio?${qs}` : '/repertorio'
 }
 
-/** «Por momento / Todas»: dos enlaces, 44 px, que conservan `q`. */
+/** «Por momento / Todas»: dos pestañas de texto, 44 px, que conservan `q`. */
 function ConmutadorVista({ vista, q }: { vista: 'todas' | undefined; q: string }) {
-  const activo = 'bg-superficie-alta font-bold text-texto'
-  const inactivo = 'text-texto-tenue hover:text-texto'
+  const activo = 'border-acento font-bold text-texto'
+  const inactivo = 'border-transparent text-texto-tenue hover:text-texto'
   return (
-    <nav
-      aria-label="Cómo ver las canciones"
-      className="mt-2 flex overflow-hidden rounded-xl border border-borde-fuerte bg-superficie"
-    >
+    <nav aria-label="Cómo ver las canciones" className="flex items-center gap-4">
       <Link
         href={hrefDeVista(null, q)}
         aria-current={vista !== 'todas' ? 'page' : undefined}
-        className={`tactil flex min-h-11 flex-1 items-center justify-center px-3 text-sm transition-colors ${
+        className={`tactil inline-flex min-h-11 items-center border-b-2 text-sm transition-colors ${
           vista !== 'todas' ? activo : inactivo
         }`}
       >
@@ -60,7 +57,7 @@ function ConmutadorVista({ vista, q }: { vista: 'todas' | undefined; q: string }
       <Link
         href={hrefDeVista('todas', q)}
         aria-current={vista === 'todas' ? 'page' : undefined}
-        className={`tactil flex min-h-11 flex-1 items-center justify-center px-3 text-sm transition-colors ${
+        className={`tactil inline-flex min-h-11 items-center border-b-2 text-sm transition-colors ${
           vista === 'todas' ? activo : inactivo
         }`}
       >
@@ -210,26 +207,22 @@ export default async function RepertorioPage({
         {/* La `key` remonta el proveedor al entrar o salir del modo: la
             selección no sobrevive a un cambio de modo ni de vista. */}
         <ProveedorSeleccion key={modoSeleccion ? 'seleccion' : 'normal'} habilitado={modoSeleccion}>
-        <div className="sticky top-14 z-(--z-barra) -mx-4 -mt-3 bg-fondo px-4 py-3">
+        <div className="sticky top-14 z-(--z-barra) -mx-4 -mt-3 bg-fondo px-4 py-2">
           <Buscador valorInicial={q} vista={vista} filtros={sp} />
-          <ConmutadorVista vista={vista} q={q} />
-          {vista !== 'todas' && (
-            <div className="mt-2 flex items-center gap-2">
-              <Atajos momentos={momentos} className="min-w-0 flex-1" />
-              {puedeEditar && (
-                <Link
-                  href={hrefConSeleccion(!modoSeleccion)}
-                  className={`tactil flex min-h-11 shrink-0 items-center rounded-lg border px-3 text-sm font-semibold transition-colors ${
-                    modoSeleccion
-                      ? 'border-acento bg-acento text-sobre-acento'
-                      : 'border-borde-fuerte bg-superficie text-texto-tenue hover:text-texto'
-                  }`}
-                >
-                  {modoSeleccion ? 'Cancelar' : 'Seleccionar'}
-                </Link>
-              )}
-            </div>
-          )}
+          <div className="mt-1 flex items-center gap-4">
+            <ConmutadorVista vista={vista} q={q} />
+            {vista !== 'todas' && puedeEditar && (
+              <Link
+                href={hrefConSeleccion(!modoSeleccion)}
+                className={`tactil ml-auto inline-flex min-h-11 items-center text-sm underline underline-offset-2 ${
+                  modoSeleccion ? 'font-bold text-acento' : 'text-texto-tenue hover:text-texto'
+                }`}
+              >
+                {modoSeleccion ? 'Cancelar' : 'Seleccionar'}
+              </Link>
+            )}
+          </div>
+          {vista !== 'todas' && <Atajos momentos={momentos} className="mt-1 min-w-0" />}
         </div>
 
         {vista === 'todas' ? (

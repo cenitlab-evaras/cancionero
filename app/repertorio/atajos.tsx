@@ -20,13 +20,13 @@ export default function Atajos({
   return (
     <nav
       aria-label="Ir a un momento"
-      className={`flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${className}`}
+      className={`-ml-2 flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${className}`}
     >
       {momentos.map((m) => (
         <a
           key={m.codigo}
           href={`#momento-${m.codigo}`}
-          className="tactil flex min-h-11 shrink-0 items-center rounded-full border border-borde-fuerte bg-superficie px-4 text-sm text-texto-tenue transition-colors hover:text-texto"
+          className="tactil flex min-h-11 shrink-0 items-center px-2 text-sm text-texto-tenue transition-colors hover:text-texto"
         >
           {m.nombre}
         </a>

@@ -50,13 +50,21 @@ export default function Cabecera({
           {coro ? (
             <Link
               href="/"
-              className="-ml-1 flex min-w-0 items-center gap-2.5 rounded-lg py-1 pr-2 pl-1"
+              className="-ml-1 flex min-w-0 items-center gap-2 rounded-lg py-1 pr-2 pl-1"
             >
               <EscudoCoro coroId={coro.id} nombre={coro.nombre} />
-              <span className="titulo-libro truncate text-[1.0625rem]">{coro.nombre}</span>
+              {/* Una línea, siempre: la cabecera es identidad, no un párrafo.
+                  `text-wrap` va inline porque `.titulo-libro` trae balance y
+                  ganaría por orden de cascada sobre `truncate`. */}
+              <span
+                className="titulo-libro min-w-0 truncate text-base"
+                style={{ textWrap: 'nowrap' }}
+              >
+                {coro.nombre}
+              </span>
             </Link>
           ) : (
-            <span className="titulo-libro text-[1.0625rem]">Cantoral</span>
+            <span className="titulo-libro text-base">Cantoral</span>
           )}
 
           <ConmutadorTema className="ml-auto" />
@@ -64,7 +72,7 @@ export default function Cabecera({
             href="/mas"
             title={`Entraste como ${sesion.email}`}
             aria-label={`Entraste como ${rol}, ${sesion.email}. Ver tu cuenta`}
-            className="tactil flex shrink-0 items-center rounded-lg border border-borde-fuerte px-2.5 text-sm text-texto-tenue transition-colors hover:text-texto"
+            className="tactil inline-flex min-h-11 shrink-0 items-center px-1 text-sm text-texto-tenue transition-colors hover:text-texto"
           >
             {rol}
           </Link>
