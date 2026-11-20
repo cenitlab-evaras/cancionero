@@ -33,8 +33,11 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  // Refresca el token si hace falta. No se usa el resultado para autorizar.
-  await supabase.auth.getUser()
+  // Refresca el token SOLO si está vencido (getSession lee las cookies y solo
+  // va a la red cuando hace falta). Antes esto era getUser() en cada request:
+  // un viaje a GoTrue por navegación que costaba 150-250 ms en producción
+  // (2026-11-20). Acá no se autoriza nada: eso lo deciden la RLS y cada ruta.
+  await supabase.auth.getSession()
 
   return response
 }

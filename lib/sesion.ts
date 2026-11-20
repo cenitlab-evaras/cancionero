@@ -38,14 +38,25 @@ export type SesionCantoral = {
 export async function obtenerSesion(): Promise<SesionCantoral | null> {
   const supabase = await createClient()
 
+  // getSession LEE las cookies y solo va a la red si el token venció. Antes
+  // era getUser(): un viaje a GoTrue en cada pantalla. La seguridad no cambia:
+  // cada consulta sale con este mismo JWT y la RLS lo valida en PostgREST; acá
+  // el sujeto solo decide qué se pinta y qué se ofrece (PRD §8.3).
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    data: { session },
+  } = await supabase.auth.getSession()
+  const user = session?.user
   if (!user) return null
 
+  // Perfil y coros en UNA consulta (2026-11-20): antes eran dos viajes en
+  // serie. La RLS de `coro_acceso` deja al admin ver los vínculos de todos, por
+  // eso el embebido se filtra por el perfil propio: «mis vínculos» no es «los
+  // que puedo ver».
   const { data: perfil } = await supabase
     .from('perfiles')
-    .select('id, email, nombre, rol, aprobado')
+    .select(
+      'id, email, nombre, rol, aprobado, coro_acceso(rol_local, created_at, coros(id, nombre, parroquia))'
+    )
     .eq('id', user.id)
     .maybeSingle()
 
@@ -61,32 +72,27 @@ export async function obtenerSesion(): Promise<SesionCantoral | null> {
   const rol = rolReconocido ? (perfil!.rol as Rol) : 'externo'
   const aprobado = perfil?.aprobado ?? false
 
-  // Los coros salen de coro_acceso, filtrando SIEMPRE por el perfil propio.
-  //
-  // No alcanza con confiar en la RLS acá: la política de `coro_acceso` deja al
-  // admin ver los vínculos de todos —los necesita para gobernar el coro en H7—,
-  // así que sin este `eq` un admin heredaría el `rol_local` de otra persona y
-  // `permisos.ts` le daría capacidades por un vínculo ajeno.
-  //
-  // La política está bien; lo que hay que precisar es la pregunta: "mis
-  // vínculos" no es lo mismo que "los vínculos que puedo ver".
-  const { data: accesos } = await supabase
-    .from('coro_acceso')
-    .select('rol_local, coros(id, nombre, parroquia)')
-    .eq('perfil_id', user.id)
-    .order('created_at', { ascending: true })
-
-  const coros: CoroDelUsuario[] = (accesos ?? [])
+  const accesos = (
+    (perfil as unknown as {
+      coro_acceso?: {
+        rol_local: string
+        created_at: string | null
+        coros: { id: string; nombre: string; parroquia: string | null } | null
+      }[]
+    })?.coro_acceso ?? []
+  )
     .filter((a) => a.coros !== null)
-    .map((a) => {
-      const coro = a.coros as unknown as { id: string; nombre: string; parroquia: string | null }
-      return {
-        id: coro.id,
-        nombre: coro.nombre,
-        parroquia: coro.parroquia,
-        rolLocal: a.rol_local as RolLocal,
-      }
-    })
+    .sort((a, b) => String(a.created_at ?? '').localeCompare(String(b.created_at ?? '')))
+
+  const coros: CoroDelUsuario[] = accesos.map((a) => {
+    const coro = a.coros as { id: string; nombre: string; parroquia: string | null }
+    return {
+      id: coro.id,
+      nombre: coro.nombre,
+      parroquia: coro.parroquia,
+      rolLocal: a.rol_local as RolLocal,
+    }
+  })
 
   const cookieStore = await cookies()
   const preferido = cookieStore.get(COOKIE_CORO)?.value
