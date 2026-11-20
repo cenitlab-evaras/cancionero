@@ -80,6 +80,7 @@ export default async function RepertorioPage({
     partitura?: string
     repetidas?: string
     solistas?: string
+    pagina?: string
   }>
 }) {
   const sesion = await obtenerSesion()

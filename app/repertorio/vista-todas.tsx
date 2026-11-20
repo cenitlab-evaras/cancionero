@@ -21,7 +21,12 @@ export type ParametrosDeVista = {
   partitura?: string
   repetidas?: string
   solistas?: string
+  pagina?: string
 }
+
+/** Filas por página del catálogo (P2-3): 529 filas de una vez eran ~7 600
+ *  nodos. La lista completa sigue viva en «Por momento», donde se ordena. */
+const POR_PAGINA = 50
 
 /**
  * «Todas» (pedido del dueño, 2026-10-17; unificada con el repertorio el
@@ -34,6 +39,8 @@ export type ParametrosDeVista = {
  * Cabecera ni `<main>`: el h1 («Todas las canciones») y el buscador compartido
  * viven en el bloque pegajoso de la página, y acá el contenido arranca con la
  * cuenta. Es de solo lectura: el arrastre y el archivar quedan en «Por momento».
+ * Se pagina de a 50 (`?pagina=N`): 529 filas en un tirón eran ~7 600 nodos, y
+ * esta vista se recorre buscando, no de punta a punta.
  */
 export default async function VistaTodas({
   sesion,
@@ -75,6 +82,26 @@ export default async function VistaTodas({
   const cuantasRepetidas = new Set(
     canciones.filter((c) => veces.has(c.id)).map((c) => claveDeTitulo(c.titulo))
   ).size
+
+  // P2-3 · La página se valida contra lo que quedó después de filtrar: un
+  // enlace viejo (?pagina=9) con un filtro nuevo cae en la última que existe.
+  const totalPaginas = Math.max(1, Math.ceil(visibles.length / POR_PAGINA))
+  const pedida = Number.parseInt(sp.pagina ?? '', 10)
+  const pagina = Number.isFinite(pedida) ? Math.min(Math.max(pedida, 1), totalPaginas) : 1
+  const enPagina = visibles.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA)
+
+  /** El enlace de una página, con los filtros que están puestos. */
+  function enlaceDePagina(n: number) {
+    const p = new URLSearchParams({ vista: 'todas' })
+    if (valores.q.trim()) p.set('q', valores.q.trim())
+    if (valores.momento) p.set('momento', valores.momento)
+    if (valores.estado) p.set('estado', valores.estado)
+    if (valores.partitura) p.set('partitura', valores.partitura)
+    if (valores.repetidas) p.set('repetidas', '1')
+    if (valores.solistas) p.set('solistas', '1')
+    if (n > 1) p.set('pagina', String(n))
+    return `/repertorio?${p.toString()}`
+  }
 
   return (
     <>
@@ -145,7 +172,7 @@ export default async function VistaTodas({
             </tr>
           </thead>
           <tbody>
-            {visibles.map((c) => {
+            {enPagina.map((c) => {
               const n = veces.get(c.id)
               const susMomentos = c.momentos.map((m) => nombreMomento.get(m) ?? m).join(', ')
               return (
@@ -196,6 +223,43 @@ export default async function VistaTodas({
             })}
           </tbody>
         </table>
+      )}
+
+      {/* El paginador. Anterior/Siguiente conservan filtros y búsqueda; el
+          «1» se omite de la URL para que la primera página sea la limpia. */}
+      {totalPaginas > 1 && (
+        <nav
+          aria-label="Páginas de las canciones"
+          className="mt-4 flex items-center justify-between gap-3 border-t border-borde pt-2"
+        >
+          {pagina > 1 ? (
+            <Link
+              href={enlaceDePagina(pagina - 1)}
+              className="tactil inline-flex min-h-11 items-center rounded-lg px-2 text-sm text-acento underline underline-offset-2"
+            >
+              Anterior
+            </Link>
+          ) : (
+            <span aria-hidden className="px-2 text-sm text-texto-tenue opacity-40">
+              Anterior
+            </span>
+          )}
+          <span className="text-sm text-texto-tenue tabular-nums">
+            Página {pagina} de {totalPaginas}
+          </span>
+          {pagina < totalPaginas ? (
+            <Link
+              href={enlaceDePagina(pagina + 1)}
+              className="tactil inline-flex min-h-11 items-center rounded-lg px-2 text-sm text-acento underline underline-offset-2"
+            >
+              Siguiente
+            </Link>
+          ) : (
+            <span aria-hidden className="px-2 text-sm text-texto-tenue opacity-40">
+              Siguiente
+            </span>
+          )}
+        </nav>
       )}
     </>
   )
