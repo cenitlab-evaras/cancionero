@@ -112,3 +112,29 @@ deuda conocida del `CMD` (`next start` vs `server.js`) no afecta la latencia act
 
 Con autorización para el camino interno, la misma pantalla que hoy tarda ~0,8–1,2 s en datos
 pasa a ~30–60 ms. Es el cambio de mayor impacto de toda la auditoría.
+
+## Resultado aplicado (misma fecha)
+
+Con la autorización del dueño, el 2026-11-20 se agregó al servicio de producción
+(`proyectos-test-cancionero-8wrxc5`, VPS 2.24.83.80) la entrada
+`supabase.cenitlab.cl → 172.16.1.1`. Verificado dentro del contenedor:
+
+- `rest/v1/cantos`: **5–6 ms** en régimen (87 ms el primero, por el TLS).
+- `auth/v1/health`: **5 ms**.
+- El navegador sigue usando el DNS público (la entrada es solo del contenedor).
+
+Medido desde el teléfono emulado (Playwright, 360 px), mismo día y red, antes → después:
+
+| Pantalla | DCL antes | DCL después |
+|---|---|---|
+| Inicio | ~1,2 s | **0,44–0,47 s** |
+| Canciones · Por momento | ~1,8–2,0 s | **0,93–1,08 s** |
+| Canciones · Todas | ~0,95–1,13 s | **0,46–0,62 s** |
+
+El TTFB restante (~250–450 ms) es casi todo la RTT de la red de origen, no el servidor: desde el
+propio host la app responde `/entrar` en 1–13 ms.
+
+**Ojo con los redeploys**: la entrada se agregó con `docker service update --host-add`. Si un
+deploy de Dokploy recrea el servicio con su especificación, la entrada puede perderse. Después
+de cada deploy hay que comprobar `getent hosts supabase.cenitlab.cl` dentro del contenedor y, si
+falta, volver a aplicarla (o pasar a una solución persistente en la imagen).
