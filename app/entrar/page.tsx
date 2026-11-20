@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { redirect } from 'next/navigation'
 import { obtenerSesion } from '@/lib/sesion'
 import { rutaInicial } from '@/lib/permisos'
@@ -5,31 +6,48 @@ import FormularioEntrar from './formulario'
 
 export const metadata = { title: 'Entrar · Cantoral' }
 
+/**
+ * La entrada, sin discurso (el dueño, 2026-11-20: «no quiero el texto de
+ * arriba ni el de abajo; solo abajo powered by CenitLab con su logo»).
+ * Queda el formulario y, al pie, la firma de la casa.
+ */
 export default async function EntrarPage() {
   const sesion = await obtenerSesion()
   if (sesion) redirect(rutaInicial(sesion.sujeto))
 
   return (
-    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-6 py-12">
-      {/* La identidad sigue siendo tipográfica, no un logo —el logo es del coro,
-          y acá todavía no se sabe de cuál—, pero desde el rediseño del
-          2026-10-17 es la serif del libro, no la monoespaciada del cifrado:
-          Cantoral es un cancionero antes que un instrumento. */}
-      <h1 className="titulo-libro text-[2.25rem] leading-tight">Cantoral</h1>
-      <p className="mt-2 text-base text-texto-tenue">
-        El cancionero de tu coro en el teléfono: los cantos con sus acordes, en el tono que
-        necesitas, y la misa del domingo armada.
-      </p>
-
-      <FormularioEntrar />
-
-      <div className="mt-10 flex flex-col gap-2 text-sm leading-relaxed text-texto-tenue">
-        <p className="font-semibold text-texto">¿No tienes cuenta?</p>
-        <p className="prosa-equilibrada">
-          Pídesela al director de tu coro. Después, un administrador la habilita y tu director te
-          agrega al coro.
-        </p>
+    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col px-6 py-12">
+      <div className="flex flex-1 flex-col justify-center">
+        <FormularioEntrar />
       </div>
+
+      <footer className="flex items-center justify-center gap-2 pt-10 text-sm text-texto-tenue">
+        <span>powered by</span>
+        <a
+          href="https://cenitlab.cl"
+          target="_blank"
+          rel="noreferrer"
+          aria-label="Cenit Lab"
+          className="inline-flex items-center rounded transition-opacity hover:opacity-80"
+        >
+          {/* Dos versiones del logo oficial: la clara para el tema oscuro y la
+              oscura para el claro. Se muestra una sola según `data-tema`. */}
+          <Image
+            src="/cenitlab/logo-horizontal-rev-1120.png"
+            alt=""
+            width={1120}
+            height={340}
+            className="h-7 w-auto claro:hidden"
+          />
+          <Image
+            src="/cenitlab/logo-horizontal-1120.png"
+            alt=""
+            width={1120}
+            height={340}
+            className="hidden h-7 w-auto claro:block"
+          />
+        </a>
+      </footer>
     </main>
   )
 }
