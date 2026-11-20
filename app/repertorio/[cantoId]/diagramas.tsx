@@ -247,10 +247,38 @@ export function ZonaAcordes({
       }}
       onClick={(e) => {
         if (Date.now() - arrastroReciente.current < 500) return
-        const boton = (e.target as HTMLElement).closest<HTMLElement>('[data-acorde]')
-        if (!boton?.dataset.acorde) return
-        const indice = Number(boton.dataset.indice)
-        abrirEn(boton.dataset.acorde, Number.isInteger(indice) ? indice : undefined)
+        const objetivo = e.target as HTMLElement
+        const boton = objetivo.closest<HTMLElement>('[data-acorde]')
+        if (boton?.dataset.acorde) {
+          const indice = Number(boton.dataset.indice)
+          abrirEn(boton.dataset.acorde, Number.isInteger(indice) ? indice : undefined)
+          return
+        }
+        // Un control que no es un acorde (quién canta, «Corregir») no abre nada.
+        if (objetivo.closest('button, a, input, select, textarea')) return
+        // 2026-11-20 · El dueño: «las notas están muy difíciles de agarrar».
+        // Toda la fila de acordes abre el acorde MÁS CERCANO al dedo: no hay
+        // que acertarle a la letra del acorde, alcanza con tocar esa línea.
+        const fila = objetivo.closest<HTMLElement>('[data-linea-acordes]')
+        if (!fila) return
+        let mejor: HTMLElement | null = null
+        let distancia = Number.POSITIVE_INFINITY
+        for (const candidato of fila.querySelectorAll<HTMLElement>('[data-acorde]')) {
+          const caja = candidato.getBoundingClientRect()
+          const d =
+            e.clientX < caja.left
+              ? caja.left - e.clientX
+              : e.clientX > caja.right
+                ? e.clientX - caja.right
+                : 0
+          if (d < distancia) {
+            distancia = d
+            mejor = candidato
+          }
+        }
+        if (!mejor?.dataset.acorde) return
+        const indice = Number(mejor.dataset.indice)
+        abrirEn(mejor.dataset.acorde, Number.isInteger(indice) ? indice : undefined)
       }}
     >
       {error && (

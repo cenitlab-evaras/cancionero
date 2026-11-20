@@ -143,7 +143,7 @@ export default function Cifrado({
       // (ZonaAcordes): el acorde arrastrado sabe su columna y sus vecinos.
       <div key={i} data-linea-cifrado>
         {linea.acordes.length > 0 && (
-          <div className="whitespace-pre font-semibold text-acorde">
+          <div data-linea-acordes className="whitespace-pre font-semibold text-acorde">
             {linea.acordes.map((a, j) => {
               const relleno = ' '.repeat(Math.max(0, a.columnaPintada - cursor))
               cursor = a.columnaPintada + a.acorde.length

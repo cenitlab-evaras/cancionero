@@ -27,6 +27,7 @@ import { americanaALatina } from '@/lib/motores/notacion-latina'
 import CartaAcorde from '@/app/componentes/carta-acorde'
 import Controles from './controles'
 import SoloLetra from './solo-letra'
+import Notacion from './notacion'
 import PanelLectura, { HerramientaDelPanel } from './panel-lectura'
 import HistorialDelCanto from './historial-canto'
 import Sugerir from './sugerir'
@@ -361,6 +362,7 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
               mundo; «Editar», solo el director. */}
           <div className="flex items-center gap-1 px-2 pt-1">
             <SoloLetra mostrarAcordes={mostrarAcordes} />
+            <Notacion latina={herramientas.latina} />
             <ConmutadorTema />
             {puede(sesion.sujeto, 'editar_canto') && (
               <HerramientaDelPanel href={`/repertorio/${canto.id}/editar`} etiqueta="Editar el canto">

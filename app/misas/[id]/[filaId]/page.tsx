@@ -22,6 +22,7 @@ import { EnlaceIcono, clasesBotonIcono } from '@/app/componentes/boton-icono'
 import ConmutadorTema from '@/app/componentes/conmutador-tema'
 import { IconoListo, IconoSeguir, IconoVolver } from '@/app/componentes/iconos'
 import Controles from '@/app/repertorio/[cantoId]/controles'
+import Notacion from '@/app/repertorio/[cantoId]/notacion'
 import PanelLectura from '@/app/repertorio/[cantoId]/panel-lectura'
 import {
   CascaronCarta,
@@ -135,6 +136,25 @@ export default async function EjecucionPage({
             <span className="shrink-0 text-sm font-bold tabular-nums">
               {paso.posicion} <span className="font-normal text-texto-tenue">de {paso.total}</span>
             </span>
+            {/* La flecha de la cinta (el dueño, 2026-11-20): se avanza sin
+                llegar al pie. El «Siguiente: título» de abajo sigue estando. */}
+            {siguiente ? (
+              <Link
+                href={`/misas/${misa.id}/${siguiente.id}`}
+                aria-label={`Siguiente canto: ${siguiente.titulo}`}
+                className="tactil inline-flex size-11 shrink-0 items-center justify-center rounded-lg text-texto-tenue hover:text-texto"
+              >
+                <IconoSeguir tamano={20} />
+              </Link>
+            ) : (
+              <Link
+                href={`/misas/${misa.id}`}
+                aria-label="Terminar la misa"
+                className="tactil inline-flex size-11 shrink-0 items-center justify-center rounded-lg text-texto-tenue hover:text-texto"
+              >
+                <IconoListo tamano={20} />
+              </Link>
+            )}
           </div>
 
           <div className="px-4 pt-4">
@@ -236,6 +256,7 @@ export default async function EjecucionPage({
                   <IconoVolver />
                 </span>
               )}
+              <Notacion latina={herramientas.latina} />
               <ConmutadorTema />
             </div>
             <Controles
