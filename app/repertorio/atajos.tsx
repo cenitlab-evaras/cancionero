@@ -10,15 +10,17 @@
  */
 export default function Atajos({
   momentos,
+  className = '',
 }: {
   momentos: { codigo: string; nombre: string }[]
+  className?: string
 }) {
   if (momentos.length === 0) return null
 
   return (
     <nav
       aria-label="Ir a un momento"
-      className="mt-2 -mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className={`flex gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${className}`}
     >
       {momentos.map((m) => (
         <a

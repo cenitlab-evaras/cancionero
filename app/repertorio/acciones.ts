@@ -303,8 +303,7 @@ export async function enviarAProximaMisa(cantoId: string): Promise<ResultadoGest
 }
 
 /** Marca el canto «en ensayo», el estado que ya usa el repertorio. */
-export async function marcarParaEnsayar(cantoId: string): Promise<ResultadoGesto> {
-  const sesion = await obtenerSesion()
+export async function marcarParaEnsayar(cantoId: string): Promise<ResultadoGesto> {  const sesion = await obtenerSesion()
   if (!sesion?.coroActivo) return { ok: false, error: SIN_CORO }
   if (!puede(sesion.sujeto, 'editar_canto')) return { ok: false, error: NO_PUEDE }
 
@@ -451,4 +450,125 @@ export async function soltarEnElRepertorio(raw: unknown): Promise<ResultadoSolta
   // La ficha del canto lista sus momentos: si cambió de momento, también.
   if (datos.de !== datos.a) revalidatePath(`/repertorio/${datos.cantoId}`)
   return { ok: true }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Operaciones en lote (el dueño, 2026-11-20): seleccionar varias canciones y   */
+/* archivarlas, mandarlas a ensayo o a la próxima misa de una vez.              */
+/* -------------------------------------------------------------------------- */
+
+export type ResultadoLote = { ok: true; mensaje: string } | { ok: false; error: string }
+
+const EnLote = z.object({
+  accion: z.enum(['archivar', 'ensayo', 'proxima']),
+  // 200 es el techo de una pantalla de repertorio; más que eso es un error de
+  // cliente, no un caso de uso.
+  cantoIds: z.array(z.string().uuid()).min(1).max(200),
+})
+
+export async function accionEnLote(raw: unknown): Promise<ResultadoLote> {
+  const datos = EnLote.safeParse(raw)
+  if (!datos.success) return { ok: false, error: 'No entendimos la selección.' }
+
+  const sesion = await obtenerSesion()
+  if (!sesion?.coroActivo) return { ok: false, error: SIN_CORO }
+  const coroId = sesion.coroActivo.id
+  const supabase = await createClient()
+  const ids = [...new Set(datos.data.cantoIds)]
+
+  if (datos.data.accion === 'archivar') {
+    if (!puede(sesion.sujeto, 'archivar_canto')) {
+      return { ok: false, error: 'No tienes permiso para archivar cantos.' }
+    }
+    const { data: filas, error } = await supabase
+      .from('cantos')
+      .update({ estado: 'archivado' })
+      .in('id', ids)
+      .eq('coro_id', coroId)
+      .select('id')
+    if (error) return { ok: false, error: 'No pudimos archivar la selección.' }
+    revalidatePath('/repertorio')
+    revalidatePath('/repertorio/archivados')
+    revalidatePath('/')
+    return {
+      ok: true,
+      mensaje:
+        filas?.length === 1 ? '1 canción archivada' : `${filas?.length ?? 0} canciones archivadas`,
+    }
+  }
+
+  if (datos.data.accion === 'ensayo') {
+    if (!puede(sesion.sujeto, 'editar_canto')) return { ok: false, error: NO_PUEDE }
+    // Las archivadas no se reviven de rebote con una acción masiva.
+    const { data: filas, error } = await supabase
+      .from('cantos')
+      .update({ estado: 'en_ensayo' })
+      .in('id', ids)
+      .eq('coro_id', coroId)
+      .neq('estado', 'archivado')
+      .select('id')
+    if (error) return { ok: false, error: 'No pudimos marcar la selección en ensayo.' }
+    revalidatePath('/repertorio')
+    revalidatePath('/')
+    return {
+      ok: true,
+      mensaje:
+        filas?.length === 1 ? '1 canción en ensayo' : `${filas?.length ?? 0} canciones en ensayo`,
+    }
+  }
+
+  // próxima misa
+  if (!puede(sesion.sujeto, 'asignar_cantos_misa')) {
+    return { ok: false, error: 'Solo el director arma las misas.' }
+  }
+  const { data: misa } = await supabase
+    .from('misas')
+    .select('id, nombre')
+    .eq('coro_id', coroId)
+    .gte('fecha', hoyISO())
+    .order('fecha', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+  if (!misa) return { ok: false, error: 'No hay una próxima misa agendada.' }
+
+  // El primer momento de cada canto, en una sola consulta.
+  const { data: vinculos } = await supabase
+    .from('canto_momentos')
+    .select('canto_id, momento_id, momentos_liturgicos(orden)')
+    .in('canto_id', ids)
+    .eq('coro_id', coroId)
+
+  const primero = new Map<string, { momentoId: string; orden: number }>()
+  for (const v of (vinculos ?? []) as unknown as {
+    canto_id: string
+    momento_id: string | null
+    momentos_liturgicos: { orden: number } | null
+  }[]) {
+    if (!v.momento_id) continue
+    const orden = v.momentos_liturgicos?.orden ?? 0
+    const actual = primero.get(v.canto_id)
+    if (!actual || orden < actual.orden) primero.set(v.canto_id, { momentoId: v.momento_id, orden })
+  }
+
+  let enviadas = 0
+  let saltadas = 0
+  for (const cantoId of ids) {
+    const momento = primero.get(cantoId)
+    if (!momento) {
+      saltadas++
+      continue
+    }
+    const r = await agregarCanto({ misaId: misa.id, cantoId, momentoId: momento.momentoId })
+    if (r.ok) enviadas++
+    else saltadas++
+  }
+
+  revalidatePath('/')
+  revalidatePath(`/misas/${misa.id}`)
+  revalidatePath(`/misas/${misa.id}/editar`)
+  const base = enviadas === 1 ? '1 enviada' : `${enviadas} enviadas`
+  return {
+    ok: true,
+    mensaje: `${base} a ${misa.nombre}${saltadas > 0 ? ` · ${saltadas} sin cambios` : ''}`,
+  }
 }

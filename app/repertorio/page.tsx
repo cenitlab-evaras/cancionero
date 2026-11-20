@@ -13,6 +13,7 @@ import { claveDeTitulo, repetidas } from '@/lib/motores/catalogo'
 import Buscador from './buscador'
 import Atajos from './atajos'
 import FilaCanto, { type DatosFila } from './fila-canto'
+import { ProveedorSeleccion } from './seleccion'
 import VistaTodas from './vista-todas'
 
 export const metadata = { title: 'Canciones · Cantoral' }
@@ -80,6 +81,7 @@ export default async function RepertorioPage({
     repetidas?: string
     solistas?: string
     pagina?: string
+    seleccion?: string
   }>
 }) {
   const sesion = await obtenerSesion()
@@ -111,6 +113,18 @@ export default async function RepertorioPage({
   const vista = sp.vista === 'todas' ? 'todas' : undefined
 
   const puedeEditar = puede(sesion.sujeto, 'editar_canto')
+  // El modo de selección múltiple vive en la URL: así las casillas —y su isla
+  // de cliente por fila— solo existen cuando se piden (2026-11-20).
+  const modoSeleccion = vista !== 'todas' && puedeEditar && sp.seleccion === '1'
+  function hrefConSeleccion(activa: boolean) {
+    const p = new URLSearchParams()
+    for (const [k, v] of Object.entries(sp)) {
+      if (v && k !== 'seleccion') p.set(k, v)
+    }
+    if (activa) p.set('seleccion', '1')
+    const qs = p.toString()
+    return qs ? `/repertorio?${qs}` : '/repertorio'
+  }
   // Los gestos de la fila (2026-11-20): solo el director. Cada acción vuelve a
   // comprobar su capacidad en el servidor y la RLS decide al escribir.
   const gestosDeFila = puedeEditar
@@ -192,10 +206,29 @@ export default async function RepertorioPage({
             veían pasar en fantasma por detrás. «Nuevo» ya no va acá: cargar
             un canto se hace desde Herramientas (el dueño, 2026-10-17).
             Desde el 2026-11-19 el bloque suma el conmutador y los chips. */}
+        {/* La `key` remonta el proveedor al entrar o salir del modo: la
+            selección no sobrevive a un cambio de modo ni de vista. */}
+        <ProveedorSeleccion key={modoSeleccion ? 'seleccion' : 'normal'} habilitado={modoSeleccion}>
         <div className="sticky top-14 z-(--z-barra) -mx-4 -mt-3 bg-fondo px-4 py-3">
           <Buscador valorInicial={q} vista={vista} filtros={sp} />
           <ConmutadorVista vista={vista} q={q} />
-          {vista !== 'todas' && <Atajos momentos={momentos} />}
+          {vista !== 'todas' && (
+            <div className="mt-2 flex items-center gap-2">
+              <Atajos momentos={momentos} className="min-w-0 flex-1" />
+              {puedeEditar && (
+                <Link
+                  href={hrefConSeleccion(!modoSeleccion)}
+                  className={`tactil flex min-h-11 shrink-0 items-center rounded-lg border px-3 text-sm font-semibold transition-colors ${
+                    modoSeleccion
+                      ? 'border-acento bg-acento text-sobre-acento'
+                      : 'border-borde-fuerte bg-superficie text-texto-tenue hover:text-texto'
+                  }`}
+                >
+                  {modoSeleccion ? 'Cancelar' : 'Seleccionar'}
+                </Link>
+              )}
+            </div>
+          )}
         </div>
 
         {vista === 'todas' ? (
@@ -248,7 +281,12 @@ export default async function RepertorioPage({
                 <TituloSeccion>{m.nombre}</TituloSeccion>
                 <ul className="mt-1">
                   {m.cantos.map((id) => (
-                    <FilaCanto key={id} canto={filas[id]} gestos={gestosDeFila} />
+                    <FilaCanto
+                      key={id}
+                      canto={filas[id]}
+                      gestos={gestosDeFila}
+                      seleccionable={modoSeleccion}
+                    />
                   ))}
                 </ul>
               </section>
@@ -269,6 +307,7 @@ export default async function RepertorioPage({
             )}
           </>
         )}
+        </ProveedorSeleccion>
       </main>
     </>
   )

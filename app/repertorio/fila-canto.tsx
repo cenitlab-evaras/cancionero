@@ -3,6 +3,7 @@ import type { CSSProperties, ReactNode, Ref } from 'react'
 import { MarcaPartitura, MarcaRepetida, MarcaSolistas } from '@/app/componentes/marcas'
 import Deslizable, { type ResultadoAccion } from '@/app/componentes/deslizable'
 import DeslizableAcciones from './deslizable-acciones'
+import { CasillaSeleccion } from './seleccion'
 import { archivarCanto, enviarAProximaMisa, marcarParaEnsayar } from './acciones'
 
 /**
@@ -40,6 +41,7 @@ export default function FilaCanto({
   como = 'li',
   deslizar,
   gestos,
+  seleccionable,
 }: {
   canto: DatosFila
   /** El asa de arrastre del director, a la derecha. */
@@ -60,10 +62,13 @@ export default function FilaCanto({
    * siempre (miembros, o una pantalla sin acciones).
    */
   gestos?: { proximaMisa: boolean; ensayo: boolean; archivar: boolean }
+  /** Modo «Seleccionar»: la casilla aparece cuando el modo está encendido. */
+  seleccionable?: boolean
 }) {
   const Elemento = como
   const contenido = (
     <>
+        {seleccionable && <CasillaSeleccion id={canto.id} etiqueta={canto.titulo} />}
         <Link
           href={`/repertorio/${canto.id}`}
           className="tactil group -mx-2 flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-2.5 hover:bg-superficie"
