@@ -14,22 +14,28 @@ texto que se lee en la misma celebración, sin meter una segunda app.
 
 ## Decisiones tomadas con el dueño
 
-1. **Se guardan por misa**, no se traen de una API en el momento. El director las carga una vez y
-   quedan en la base: es la única forma de garantizar la lectura en una iglesia sin señal.
+1. **Se traen de Iglesia.cl y se guardan por misa.** La fuente es la página pública
+   **«Evangelio del día» de iglesia.cl**, que embebe *Eucaristía Diaria* del Arzobispado de
+   Santiago: `https://www.eucaristiadiaria.cl/dia_cal.php?fecha=AAAA-MM-DD` (verificado: trae la
+   Liturgia de la Palabra completa, con referencias). Se piden **una vez por misa**, desde el
+   servidor, y quedan en la base: así se leen sin señal y no se depende del sitio en plena
+   celebración.
 2. **Se leen en una capa a pantalla completa sobre la misma página**, no en una ruta aparte:
    abrirla no pide red si la misa ya está cargada.
 3. **Dos puertas a la misma capa**: una desde la misa (para preparar) y otra desde la ejecución
    (para leer durante la celebración).
-4. **Un solo pegado con separadores**: el director copia el bloque de la fuente oficial y la app
-   reparte «Primera lectura», «Salmo responsorial», «Segunda lectura» y «Evangelio»; después cada
-   parte se corrige a mano.
+4. **Traer desde Iglesia.cl con un toque**, por la fecha de la misa; la app reparte «Primera
+   lectura», «Salmo responsorial», «Segunda lectura» y «Evangelio», y después cada parte se puede
+   corregir a mano. Si el sitio no responde o el texto viene distinto, queda el pegado manual como
+   respaldo.
 5. **Al sugerir se ven las lecturas de esa misa** y se puede dejar un **«por qué» opcional**; el
    director lo ve junto al pedido.
 
 ## Objetivos
 
 - Guardar por misa hasta cuatro partes: primera lectura, salmo responsorial, segunda (opcional) y
-  evangelio, cada una con referencia y texto.
+  evangelio, cada una con referencia y texto, **traídas de Iglesia.cl** por la fecha de la misa con
+  un toque y corregibles.
 - Leerlas a pantalla completa, con el texto grande, cambio de parte y pantalla encendida, sin red
   al abrirlas mientras la página está cargada.
 - Mostrar las lecturas en el formulario de sugerencia y guardar una nota breve del que propone.
@@ -39,7 +45,8 @@ texto que se lee en la misma celebración, sin meter una segunda app.
 
 - Traer automáticamente las lecturas por fecha o calendario litúrgico (ciclos A/B/C, solemnidades).
 - Usar IA para buscar, resumir o generar lecturas (PRD §16).
-- Descargar de una API de terceros en tiempo de ejecución.
+- Depender de una API de terceros o raspar el sitio en cada visita: se pide una vez por misa y se
+  guarda. No hay scraping de fondo ni de fechas que no se usan.
 - Garantizar lectura con la app **cerrada y reabierta sin señal** (haría falta el service worker,
   que sigue pendiente).
 - Editar lecturas desde «Armar la misa»: el armador sigue siendo solo cantos y tono.
@@ -58,7 +65,9 @@ texto que se lee en la misma celebración, sin meter una segunda app.
 - Motores puros en `lib/motores/` con tests: el reparto del texto pegado es lógica pura.
 - Cero valores derivados persistidos: el orden de las partes y los avisos se calculan al leer.
 - La UI, los comentarios y los mensajes en español; los 44 px táctiles y los tokens de DESIGN.md.
-- El texto lo aporta el director desde la fuente oficial; la app no lo descarga.
+- La fuente es la página pública de Iglesia.cl (Eucaristía Diaria, Arzobispado de Santiago); la
+  app la consulta **desde el servidor**, una vez por misa, y cita la fuente. Si el sitio no
+  responde o cambia, el director puede pegar o corregir el texto a mano.
 
 ## Diseño
 
@@ -74,6 +83,9 @@ texto que se lee en la misma celebración, sin meter una segunda app.
 | `tipo` | text | `primera` · `salmo` · `segunda` · `evangelio` |
 | `referencia` | text | «Is 63,16b-17.19b; 64,2-7»; puede quedar vacía |
 | `texto` | text | el cuerpo, con saltos de línea |
+| `fuente` | text | `iglesia.cl` o `manual` |
+| `fuente_url` | text | la URL exacta de la que se trajo, para citarla y reintentar |
+| `traido_en` | timestamptz | cuándo se importó por última vez |
 | `created_at` / `updated_at` | timestamptz | |
 
 - `unique (misa_id, tipo)` y `unique (id, coro_id)`.
@@ -85,9 +97,24 @@ texto que se lee en la misma celebración, sin meter una segunda app.
 `check (char_length(nota) <= 280)`. La RLS de `sugerencia` no cambia: la nota la escribe quien
 propone y la ve el coro.
 
+### Fuente · importador de Iglesia.cl
+
+`lib/datos/lecturas-iglesia.ts` (servidor):
+
+- `traerLecturasDeIglesia(fecha): Promise<ParteDeLectura[]>` — `fetch` a
+  `https://www.eucaristiadiaria.cl/dia_cal.php?fecha=AAAA-MM-DD`, con timeout, `User-Agent`
+  identificable y sin reintentos en cadena. Verifica que el título de la página corresponda a la
+  fecha pedida; si no, falla con un mensaje claro.
+- El parseo vive en un motor puro `extraerLecturasDeIglesia(html)` (con fixtures guardados de dos
+  domingos: uno con segunda lectura y otro sin ella), para que un cambio del sitio se detecte en un
+  test y no en la iglesia.
+- Si el sitio falla, la app no inventa: muestra «No pudimos traerlas; pegá o editá el texto» y
+  conserva lo que ya estuviera guardado.
+- Atribución visible en el lector: «Fuente: Iglesia.cl · Eucaristía Diaria».
+
 ### Motor puro · `lib/motores/lecturas.ts`
 
-`repartirLecturas(texto: string): ParteDeLectura[]`
+`repartirLecturas(texto: string): ParteDeLectura[]` — **respaldo** para el pegado manual.
 
 - Reconoce encabezados habituales, sin distinguir mayúsculas ni tildes: «Primera lectura», «Salmo
   responsorial», «Segunda lectura», «Evangelio», «Lectura del santo evangelio…», «Aclamación».
@@ -104,6 +131,9 @@ Constantes: `PARTES = ['primera','salmo','segunda','evangelio']` y sus nombres v
 ### Datos y acciones
 
 - `lecturasDeMisa(misaId): Promise<ParteDeLectura[]>` — lectura para la misa y la ejecución.
+- `traerLecturasDeIglesia(misaId)` — server action del director: lee la fecha de la misa, llama al
+  importador, upsert por parte con `fuente = 'iglesia.cl'` y `fuente_url`; revalida. Una misa sin
+  fecha no puede traerlas (mensaje claro y el pegado sigue disponible).
 - `lecturasDeVariasMis(ids): Promise<Map<misaId, ParteDeLectura[]>>` — para el formulario de
   sugerencia (solo las próximas misas que se muestran).
 - `guardarLecturas({ misaId, partes })` — server action; exige `es_director_de` / `editar_misa`;
@@ -118,9 +148,10 @@ Constantes: `PARTES = ['primera','salmo','segunda','evangelio']` y sus nombres v
 
 - Si hay lecturas, un bloque «Lecturas» con las referencias y un botón **«Leer»** que abre la capa.
 - El director ve además **«Agregar lecturas» / «Editar lecturas»**.
-- El editor es una hoja dentro de la misa (no el armador): un textarea «Pegá las lecturas», botón
-  «Repartir», y las cuatro partes con referencia y texto editables; la segunda puede quedar vacía.
-  Aviso de fuente: «Pegá el texto de la fuente oficial; la app no lo descarga».
+- El editor es una hoja dentro de la misa (no el armador): botón **«Traer de Iglesia.cl»** por la
+  fecha de la misa, y las cuatro partes con referencia y texto editables; la segunda puede quedar
+  vacía. Debajo, «Pegar a mano» abre el textarea de respaldo («Pegá las lecturas» + «Repartir»).
+  Aviso de fuente: la app las trae de Iglesia.cl; si el sitio no responde, se pegan o editan.
 
 **Lector** (capa a pantalla completa, misma en las dos puertas)
 
@@ -151,9 +182,9 @@ worker pendiente). Esto se dice en el diseño y no se promete en la UI.
 
 | Decisión | Alternativas | Por qué la elegida |
 |---|---|---|
-| Origen de las lecturas | API por fecha; solo referencias | Guardar por misa es la única que lee sin señal y no depende de un tercero |
+| Origen de las lecturas | API por fecha; solo referencias | Traer de la página pública de Iglesia.cl y **guardar por misa**: se lee sin señal y no se depende del sitio durante la celebración |
 | Lector | Ruta propia; tarjeta en la misa | La capa evita la petición de red al abrir y comparte código entre las dos puertas |
-| Carga | Campos separados; importar URL | Un pegado con reparto es el menor trabajo por misa; los campos quedan para corregir |
+| Carga | Solo pegado; importar al vuelo cada visita | «Traer de Iglesia.cl» una vez por misa con el pegado como respaldo: menos trabajo y el sitio no se raspa en cada visita |
 | Sugerencias | Solo mostrar; tablero por lectura | La nota convierte la propuesta en argumento con una columna y un campo; el tablero es otro hito |
 
 ## Lo que queda al builder
@@ -166,8 +197,12 @@ worker pendiente). Esto se dice en el diseño y no se promete en la UI.
 
 ## Riesgos
 
-- **Formatos de pegado**: si la fuente cambia, el reparto puede fallar; por eso el editor siempre
-  muestra las cuatro partes y nunca descarta texto.
+- **El sitio cambia o no responde**: el parseo tiene fixtures y el editor siempre muestra las
+  cuatro partes; si la traída falla, se pega o corrige a mano y nunca se descarta texto.
+- **Fecha equivocada**: el importador verifica que la página corresponda a la fecha pedida antes de
+  guardar; una misa sin fecha no trae nada.
+- **Cortesía con el sitio**: una petición por misa, sin scraping de fondo ni de fechas que no se
+  usan; se cita la fuente.
 - **Texto largo**: el lector debe paginar/scroll con comodidad; se prueba a 360 px con el tamaño
   máximo de letra.
 - **Derechos**: el texto se guarda para el coro, no se publica; la UI cita la fuente.
