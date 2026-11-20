@@ -31,9 +31,12 @@ export default function PanelAdmin({
     })
   }
 
-  // Los que esperan van primero: es lo que el admin entra a resolver.
-  const esperando = perfiles.filter((p) => !p.aprobado)
-  const habilitados = perfiles.filter((p) => p.aprobado)
+  // Los que esperan van primero: es lo que el admin entra a resolver. Una sola
+  // lista, como en el CRM (el dueño, 2026-11-20): la cuenta pendiente se marca
+  // con su etiqueta en la misma fila donde después se le cambia el rol.
+  const ordenados = [...perfiles].sort(
+    (a, b) => Number(a.aprobado) - Number(b.aprobado) || a.email.localeCompare(b.email)
+  )
   const nombreDe = (p: PerfilConVinculo) => p.nombre || p.email.split('@')[0]
 
   return (
@@ -46,87 +49,73 @@ export default function PanelAdmin({
 
       <TituloSeccion
         className="mt-6"
-        detalle={esperando.length > 0 ? String(esperando.length) : undefined}
-        detalleHablado={esperando.length === 1 ? '1 cuenta' : `${esperando.length} cuentas`}
+        detalle={String(perfiles.length)}
+        detalleHablado={perfiles.length === 1 ? '1 cuenta' : `${perfiles.length} cuentas`}
       >
-        Esperando aprobación
-      </TituloSeccion>
-
-      {esperando.length === 0 ? (
-        <p className="mt-2 text-sm text-texto-tenue">
-          Ninguna cuenta está esperando. Cuando alguien se registre, aparece acá.
-        </p>
-      ) : (
-        <ul className="mt-2 divide-y divide-borde border-t border-borde">
-          {esperando.map((p) => (
-            <li key={p.id} className="flex min-h-14 items-center gap-3 py-2">
-              <span className="min-w-0 flex-1">
-                <span className="block truncate">{nombreDe(p)}</span>
-                <span className="block truncate text-sm text-texto-tenue">{p.email}</span>
-              </span>
-              <button
-                type="button"
-                onClick={() => correr(() => aprobarPerfil({ perfilId: p.id, aprobado: true }))}
-                disabled={pendiente}
-                className={clasesBotonIcono('lleno', 'px-4 text-sm')}
-              >
-                Aprobar
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <TituloSeccion
-        className="mt-10"
-        detalle={String(habilitados.length)}
-        detalleHablado={habilitados.length === 1 ? '1 cuenta' : `${habilitados.length} cuentas`}
-      >
-        Cuentas habilitadas
+        Cuentas
       </TituloSeccion>
 
       <ul className="mt-2 divide-y divide-borde border-t border-borde">
-        {habilitados.map((p) => (
-          <li key={p.id} className="flex min-h-14 items-center gap-3 py-2">
+        {ordenados.map((p) => (
+          <li key={p.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:gap-3">
             <span className="min-w-0 flex-1">
-              <span className="block truncate">
-                {nombreDe(p)}
-                {p.id === yoId && <span className="text-sm text-texto-tenue"> (tú)</span>}
+              <span className="flex items-center gap-2">
+                <span className="truncate">
+                  {nombreDe(p)}
+                  {p.id === yoId && <span className="text-sm text-texto-tenue"> (tú)</span>}
+                </span>
+                {!p.aprobado && (
+                  <span className="shrink-0 rounded border border-acento px-1.5 text-sm font-bold text-acento">
+                    Pendiente
+                  </span>
+                )}
               </span>
               <span className="block truncate text-sm text-texto-tenue">{p.email}</span>
-              {p.id === yoId || p.rol === 'externo' ? (
+              {(p.id === yoId || p.rol === 'externo') && (
                 <span className="block text-sm text-texto-tenue capitalize">{p.rol}</span>
-              ) : null}
+              )}
             </span>
-            {p.id !== yoId && p.rol !== 'externo' && (
-              <select
-                value={p.rol}
-                onChange={(e) =>
-                  correr(() =>
-                    cambiarRolPerfil({
-                      perfilId: p.id,
-                      rol: e.target.value as 'admin' | 'usuario',
-                    })
-                  )
-                }
-                disabled={pendiente}
-                aria-label={`Rol de ${nombreDe(p)}`}
-                className="tactil shrink-0 cursor-pointer rounded-lg border border-borde-fuerte bg-superficie px-2 text-sm text-texto disabled:cursor-default disabled:opacity-40"
-              >
-                <option value="usuario">Usuario</option>
-                <option value="admin">Admin</option>
-              </select>
-            )}
-            {p.id !== yoId && (
-              <button
-                type="button"
-                onClick={() => correr(() => aprobarPerfil({ perfilId: p.id, aprobado: false }))}
-                disabled={pendiente}
-                className={clasesBotonIcono('borde', 'px-4 text-sm')}
-              >
-                Suspender
-              </button>
-            )}
+            <span className="flex flex-wrap items-center gap-2">
+              {p.id !== yoId && p.rol !== 'externo' && (
+                <select
+                  value={p.rol}
+                  onChange={(e) =>
+                    correr(() =>
+                      cambiarRolPerfil({
+                        perfilId: p.id,
+                        rol: e.target.value as 'admin' | 'usuario',
+                      })
+                    )
+                  }
+                  disabled={pendiente}
+                  aria-label={`Rol de ${nombreDe(p)}`}
+                  className="tactil shrink-0 cursor-pointer rounded-lg border border-borde-fuerte bg-superficie px-2 text-sm text-texto disabled:cursor-default disabled:opacity-40"
+                >
+                  <option value="usuario">Usuario</option>
+                  <option value="admin">Admin</option>
+                </select>
+              )}
+              {p.id !== yoId &&
+                (p.aprobado ? (
+                  <button
+                    type="button"
+                    onClick={() => correr(() => aprobarPerfil({ perfilId: p.id, aprobado: false }))}
+                    disabled={pendiente}
+                    className={clasesBotonIcono('borde', 'px-4 text-sm')}
+                  >
+                    Suspender
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => correr(() => aprobarPerfil({ perfilId: p.id, aprobado: true }))}
+                    disabled={pendiente}
+                    className={clasesBotonIcono('lleno', 'px-4 text-sm')}
+                  >
+                    Aprobar
+                  </button>
+                ))}
+            </span>
           </li>
         ))}
       </ul>
