@@ -95,7 +95,14 @@ export async function repertorioConHistorial(coroId: string): Promise<CantoConHi
   const supabase = await createClient()
 
   const [{ data: cantos, error }, ejecuciones] = await Promise.all([
-    supabase.from('cantos').select('id, titulo, fuente_numero, autores(nombre)').eq('coro_id', coroId),
+    // Archivado = fuera de la app, pero la fila queda en la base como respaldo
+    // (el dueño, 2026-11-20). Por eso el historial y el ranking tampoco lo
+    // cuentan.
+    supabase
+      .from('cantos')
+      .select('id, titulo, fuente_numero, autores(nombre)')
+      .eq('coro_id', coroId)
+      .neq('estado', 'archivado'),
     ejecucionesDelCoro(coroId),
   ])
 
