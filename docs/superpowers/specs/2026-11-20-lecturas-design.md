@@ -207,3 +207,36 @@ worker pendiente). Esto se dice en el diseño y no se promete en la UI.
   máximo de letra.
 - **Derechos**: el texto se guarda para el coro, no se publica; la UI cita la fuente.
 - **RLS**: el caso «miembro intenta escribir» debe devolver error, no un ok silencioso.
+
+## Notas del revisor independiente
+
+Verificado desde el propio VPS de producción (2026-11-20): `dia_cal.php?fecha=` responde 200 con
+31–60 KB y las lecturas para fechas de 2026; para 2027 devuelve un marcador de 9,5 KB **sin
+lecturas**. El servidor de producción puede llegar al sitio, así que el importador es viable.
+
+### Decisiones que no cambian el alcance (tomadas acá)
+
+- **Aclamación**: va al comienzo de la parte `evangelio`; no suma una quinta pestaña.
+- **Pegado con texto no reconocido**: se conserva en la parte más cercana y se avisa; nunca se
+  descarta texto.
+- **Reimportar**: «Traer de Iglesia.cl» muestra las partes y **pide confirmación** antes de
+  reemplazar. Si el parseo es parcial o falla, no escribe nada. La escritura va por una función
+  `guardar_lecturas` (una transacción) para que no queden partes mezcladas.
+- **Fuente por parte**: cada parte guarda `fuente` y `fuente_url`; editar una parte la marca
+  `manual`. El lector cita la fuente de la parte visible y avisa si fue editada.
+- **Ventana de fechas**: si la página no trae la fecha pedida o no tiene lecturas (p. ej. 2027),
+  el botón dice «Iglesia.cl todavía no publicó las lecturas de ese día; pegalas a mano». La hoja
+  del editor tiene un campo de fecha (por defecto la de la misa) solo para la importación; editar
+  la fecha de la misa queda fuera de alcance.
+- **Nota de la sugerencia**: solo cuando la propuesta es para una misa; la base lo exige
+  (`nota is null or misa_id is not null`). Si la persona ya propuso, puede agregar o cambiar su
+  nota en la misma fila; las propuestas generales no llevan nota.
+
+### Pendiente de decisión del dueño
+
+1. **Días complejos**: Navidad tiene tres formularios en la misma página, la Vigilia pascual
+   siete lecturas, hay secuencias y misas vespertinas anticipadas. ¿La importación se acota al día
+   ordinario (y esos días se pegan a mano), o se soportan formularios y lecturas extra?
+2. **Uso del texto y fixtures**: confirmar el uso privado y la atribución («Iglesia.cl ·
+   Eucaristía Diaria, Arzobispado de Santiago»), y que los fixtures del repo público sean
+   sintéticos —misma estructura, sin texto real— para no publicar el leccionario.
