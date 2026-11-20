@@ -274,9 +274,6 @@ export default async function Inicio() {
                   </li>
                 ))}
               </ul>
-              {enEnsayo.length > 3 && (
-                <p className="mt-2 text-sm text-texto-tenue">y {enEnsayo.length - 3} más en ensayo.</p>
-              )}
             </>
           ) : (
             <p className="mt-2 text-sm text-texto-tenue">No hay cantos en ensayo.</p>

@@ -6,6 +6,7 @@ import { describirAntiguedad, estaOlvidado, ordenarPorUso } from '@/lib/motores/
 import { MarcaOlvido } from '@/app/componentes/marcas'
 import Cabecera from '@/app/componentes/cabecera'
 import TituloSeccion from '@/app/componentes/titulo-seccion'
+import { IconoDesplegar } from '@/app/componentes/iconos'
 
 export const metadata = { title: 'Historial · Cantoral' }
 
@@ -121,26 +122,36 @@ export default async function HistorialPage() {
               Están en el repertorio pero no han sonado en ninguna misa.
             </p>
 
-            <ul className="mt-2 border-t border-borde">
-              {nunca.map((canto) => (
-                <li key={canto.id} className="border-b border-borde/70 last:border-b-0">
-                  <Link
-                    href={`/repertorio/${canto.id}`}
-                    className="tactil -mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5 hover:bg-superficie"
-                  >
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate">{canto.titulo}</span>
-                      {/* Un canto agendado no está olvidado: está por sonar. */}
-                      {canto.historial.agendadas.length > 0 && (
-                        <span className="block truncate text-sm text-texto-tenue">
-                          Agendado en {canto.historial.agendadas[0].misaNombre}
-                        </span>
-                      )}
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            {/* 516 títulos planos eran un muro (2026-11-20): el hallazgo es el
+                número, y la lista queda a un toque. `<details>` nativo: abre
+                sin JavaScript, con teclado y con lector de pantalla. */}
+            <details className="group mt-3">
+              <summary className="tactil flex min-h-11 cursor-pointer list-none items-center gap-2 border-t border-borde [&::-webkit-details-marker]:hidden">
+                <span className="text-sm text-texto-tenue">Los {nunca.length} títulos</span>
+                <IconoDesplegar className="ml-auto shrink-0 text-texto-tenue transition-transform duration-150 group-open:rotate-180 motion-reduce:transition-none" />
+              </summary>
+
+              <ul className="border-t border-borde">
+                {nunca.map((canto) => (
+                  <li key={canto.id} className="border-b border-borde/70 last:border-b-0">
+                    <Link
+                      href={`/repertorio/${canto.id}`}
+                      className="tactil -mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5 hover:bg-superficie"
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate">{canto.titulo}</span>
+                        {/* Un canto agendado no está olvidado: está por sonar. */}
+                        {canto.historial.agendadas.length > 0 && (
+                          <span className="block truncate text-sm text-texto-tenue">
+                            Agendado en {canto.historial.agendadas[0].misaNombre}
+                          </span>
+                        )}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </details>
           </section>
         )}
 
