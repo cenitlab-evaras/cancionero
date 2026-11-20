@@ -23,8 +23,8 @@ import { fechaLarga } from '@/lib/motores/fecha'
 import { tonalidadDeLaFila } from '@/lib/motores/tono-en-la-misa'
 import Cabecera from '@/app/componentes/cabecera'
 import TituloSeccion from '@/app/componentes/titulo-seccion'
-import { EnlaceIcono, clasesBotonIcono } from '@/app/componentes/boton-icono'
-import { IconoEditar, IconoReproducir, IconoVolver } from '@/app/componentes/iconos'
+import { EnlaceIcono } from '@/app/componentes/boton-icono'
+import { IconoEditar, IconoVolver } from '@/app/componentes/iconos'
 import Inscripcion from './inscripcion'
 
 export const metadata = { title: 'Misa · Cantoral' }
@@ -171,20 +171,15 @@ export default async function MisaPage({
               ))}
             </ol>
 
-            {yaPaso ? (
+            {/* Sin «Empezar la misa» (2026-11-20): se toca el canto que toca y
+                se avanza con la flecha de la lectura. El repaso de una misa que
+                ya pasó sí se ofrece: no hay una «primera vez» que empezar. */}
+            {yaPaso && (
               <Link
                 href={`/misas/${misa.id}/${misa.cantos[0].id}`}
                 className="tactil mt-4 inline-flex items-center text-sm text-acento underline underline-offset-2"
               >
                 Repasar los cantos
-              </Link>
-            ) : (
-              <Link
-                href={`/misas/${misa.id}/${misa.cantos[0].id}`}
-                className={clasesBotonIcono('lleno', 'mt-6 h-12 w-full gap-2 !rounded-full text-base')}
-              >
-                <IconoReproducir />
-                Empezar la misa
               </Link>
             )}
           </>

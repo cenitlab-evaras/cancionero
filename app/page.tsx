@@ -11,33 +11,29 @@ import { hoyISO, repertorioConHistorial } from '@/lib/datos/historial'
 import { misaDeInicio } from '@/lib/motores/agenda'
 import { cuantoFalta, fechaLarga } from '@/lib/motores/fecha'
 import { quienFalta, sePuedeInscribir } from '@/lib/motores/inscripcion'
-import { describirAntiguedad, ordenarPorUso } from '@/lib/motores/historial'
-import { iniciales } from '@/lib/motores/iniciales'
+import { ordenarPorUso } from '@/lib/motores/historial'
 import { avanceDeLaMisa } from '@/lib/motores/tablero'
 import Cabecera from '@/app/componentes/cabecera'
-import TituloSeccion from '@/app/componentes/titulo-seccion'
 import { clasesBotonIcono } from '@/app/componentes/boton-icono'
-import { IconoReproducir, IconoSeguir } from '@/app/componentes/iconos'
+import { IconoSeguir } from '@/app/componentes/iconos'
 import Inscripcion from '@/app/misas/[id]/inscripcion'
 
 export const metadata = { title: 'Inicio · Cantoral' }
 
 /**
- * Inicio como tablero (el dueño, 2026-11-19: «que parezca un dashboard»). La
- * portada deja de ser la misa con cuatro listas chicas:
+ * Inicio como tablero (el dueño, 2026-11-19: «que parezca un dashboard»; y el
+ * 2026-11-20: «solamente dashboard, no texto»). Sin listas de títulos ni
+ * párrafos: números, barras y las acciones justas.
  *
- *   · La próxima misa, en el hero: anillo (solo director), título,
- *     Empezar/Ver y el «¿Vas?» de siempre.
- *   · Las más cantadas: el top 3 del historial, con veces y antigüedad.
- *   · Miembros del coro (solo director): cuántos son, sus iniciales y la
- *     composición de roles y cuerdas.
- *   · En ensayo: cuántos cantos DISTINTOS están en ensayo, cuántos listos y
- *     los primeros títulos.
+ *   · La próxima misa, arriba: fecha, nombre y el anillo (solo director).
+ *     Se entra por «Ver la misa»; adentro se toca un canto y se avanza con la
+ *     flecha. El botón «Empezar la misa» se fue (2026-11-20).
+ *   · Indicadores: cuántos cantos están en ensayo y cuántos listos, con su
+ *     barra; cuántos miembros tiene el coro y cómo se componen (solo director).
+ *   · Las más cantadas: el ranking con su barra, para ver la intensidad de uso.
  *
- * Salieron de acá «Para que quede lista», «Voces que van», «Para repasar», «Se
- * está ensayando», «Después» y «También pendiente»: eso vive en la misa o en
- * Misas. La participación se queda en el hero. «Más cantadas» y «En ensayo»
- * los ven todos; «Miembros» y el «Revisar» son del director.
+ * La participación («¿Vas?») se queda en el hero: es una acción, no un dato.
+ * «Más cantadas» y «En ensayo» los ven todos; «Miembros» es del director.
  *
  * La raíz sigue repartiendo con `rutaInicial()` (PRD §8.3): quien no puede ver
  * un repertorio no ve Inicio, va adonde le corresponde.
@@ -54,7 +50,6 @@ export default async function Inicio() {
   const hoy = hoyISO()
   const puedeEditarMisa = puede(sesion.sujeto, 'editar_misa')
   const puedeVerFichas = puede(sesion.sujeto, 'ver_ficha_del_coro')
-  const puedeRevisar = puede(sesion.sujeto, 'editar_canto')
 
   const [misas, grupos, conHistorial, fichas] = await Promise.all([
     misasDelCoro(coro.id),
@@ -84,21 +79,12 @@ export default async function Inicio() {
     ? avanceDeLaMisa({ cantos: misa.cantos, tocan, coro: fichas.length, sinResponder })
     : null
 
-  const empezar =
-    misa && misa.cantos.length > 0 ? (
-      <Link
-        href={`/misas/${misa.id}/${misa.cantos[0].id}`}
-        className={clasesBotonIcono('lleno', 'px-5 text-base')}
-      >
-        <IconoReproducir tamano={16} />
-        Empezar la misa
-      </Link>
-    ) : null
-
-  // Las más cantadas: el top 3 de los que ya sonaron alguna vez (H13).
+  // Las más cantadas: el top 3 de los que ya sonaron alguna vez (H13). La
+  // barra compara cada uno con el primero: es la «regleta» que pidió el dueño.
   const masCantadas = ordenarPorUso(conHistorial)
     .filter((c) => c.historial.veces > 0)
     .slice(0, 3)
+  const masVeces = masCantadas[0]?.historial.veces ?? 1
 
   // En ensayo: cantos DISTINTOS —un canto sale una vez por cada momento que
   // tenga— y los listos, para la cuenta y la barra. Se calculan al leer
@@ -131,19 +117,14 @@ export default async function Inicio() {
                 <h1 id="proxima-misa" className="mt-1 text-[2.5rem] leading-[1.02] font-bold tracking-[-0.02em]">
                   {misa.nombre}
                 </h1>
-                {puedeEditarMisa && avance && (
-                  <p className="mt-1 text-sm text-texto-tenue">
-                    {avance.porcentaje === 100 ? 'Lista' : `Lista en un ${avance.porcentaje} %`}
-                  </p>
-                )}
               </div>
             </div>
 
-            {/* Empezar o ver la misa: todos. El director, si no hay cantos,
-                arma la misa en su lugar. */}
+            {/* Sin «Empezar la misa» (2026-11-20): se entra por «Ver la misa»
+                y, adentro, se toca un canto y se avanza con la flecha. El
+                director, si no hay cantos, arma la misa en su lugar. */}
             <div className="mt-5 flex flex-wrap items-center gap-2">
-              {empezar}
-              {puedeEditarMisa && !empezar && (
+              {puedeEditarMisa && misa.cantos.length === 0 && (
                 <Link href={`/misas/${misa.id}/editar`} className={clasesBotonIcono('lleno', 'px-5 text-base')}>
                   Armar esta misa
                 </Link>
@@ -184,101 +165,81 @@ export default async function Inicio() {
           </section>
         )}
 
-        {/* El tablero: los tres bloques, debajo del hero. */}
-        <Bloque id="mas-cantadas" titulo="Las más cantadas" enlace={{ href: '/historial', texto: 'Historial' }}>
+        {/* El tablero (2026-11-20): indicadores, no listas de títulos. */}
+        <section aria-label="Indicadores del coro" className="mt-6 grid grid-cols-2 gap-3">
+          <Tarjeta
+            href="/repertorio?vista=todas&estado=en_ensayo"
+            etiqueta="En ensayo"
+            valor={enEnsayo.length}
+            className={puedeVerFichas ? '' : 'col-span-2'}
+          >
+            <span className="mt-1 flex h-1.5 overflow-hidden rounded-full bg-superficie-alta" aria-hidden>
+              <span className="bg-acento" style={{ width: `${proporcionListos}%` }} />
+            </span>
+            <span className="text-sm text-texto-tenue">
+              <span className="font-semibold text-texto tabular-nums">{listos.length}</span> listos
+            </span>
+          </Tarjeta>
+
+          {puedeVerFichas && (
+            <Tarjeta href="/coro/miembros" etiqueta="Miembros" valor={fichas.length}>
+              <span className="text-sm text-texto-tenue">
+                {directores} {directores === 1 ? 'director' : 'directores'}
+              </span>
+              <span className="text-sm text-texto-tenue">
+                {miembros} {miembros === 1 ? 'miembro' : 'miembros'} · {conCuerda} con cuerda
+              </span>
+            </Tarjeta>
+          )}
+        </section>
+
+        <section
+          aria-labelledby="mas-cantadas"
+          className="mt-3 rounded-2xl border border-borde bg-superficie p-4"
+        >
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 id="mas-cantadas" className="text-[0.9375rem] font-bold text-texto">
+              Las más cantadas
+            </h2>
+            <Link
+              href="/historial"
+              className="tactil -my-2 inline-flex shrink-0 items-center gap-0.5 rounded-lg px-1 text-sm text-texto-tenue hover:text-texto"
+            >
+              Historial
+              <IconoSeguir tamano={14} className="shrink-0" />
+            </Link>
+          </div>
+
           {masCantadas.length > 0 ? (
-            <ol className="mt-1">
-              {masCantadas.map((c, i) => (
-                <li key={c.id} className="border-b border-borde last:border-b-0">
+            <ol className="mt-3 flex flex-col gap-3">
+              {masCantadas.map((c) => (
+                <li key={c.id}>
                   <Link
                     href={`/repertorio/${c.id}`}
-                    className="tactil -mx-2 flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-superficie"
+                    className="tactil -mx-1 flex flex-col gap-1.5 rounded-lg px-1 py-1 hover:bg-superficie-alta"
                   >
-                    <span className="w-4 shrink-0 text-sm text-texto-tenue tabular-nums">{i + 1}</span>
-                    <span className="min-w-0 flex-1 truncate">{c.titulo}</span>
-                    <span className="shrink-0 text-sm font-bold text-acento tabular-nums">
-                      {c.historial.veces}×
+                    <span className="flex items-baseline justify-between gap-3">
+                      <span className="min-w-0 truncate">{c.titulo}</span>
+                      <span className="shrink-0 text-sm font-bold text-acento tabular-nums">
+                        {c.historial.veces}×
+                      </span>
                     </span>
-                    <span className="shrink-0 text-sm text-texto-tenue">
-                      {describirAntiguedad(c.historial.diasDesdeUltima)}
+                    <span className="flex h-1.5 overflow-hidden rounded-full bg-fondo" aria-hidden>
+                      <span
+                        className="rounded-full bg-acento"
+                        style={{
+                          width: `${Math.max(8, Math.round((100 * c.historial.veces) / masVeces))}%`,
+                        }}
+                      />
                     </span>
                   </Link>
                 </li>
               ))}
             </ol>
           ) : (
-            <p className="mt-2 text-sm text-texto-tenue">
-              Todavía no hay historial: ninguna misa pasada registrada.
-            </p>
+            <p className="mt-2 text-sm text-texto-tenue">Todavía no hay historial.</p>
           )}
-        </Bloque>
-
-        {puedeVerFichas && (
-          <Bloque
-            id="miembros"
-            titulo="Miembros del coro"
-            detalle={String(fichas.length)}
-            detalleHablado={fichas.length === 1 ? '1 persona' : `${fichas.length} personas`}
-            enlace={{ href: '/coro/miembros', texto: 'Ver' }}
-          >
-            <div className="mt-2 flex items-center gap-2">
-              <span className="flex -space-x-1.5" aria-hidden>
-                {fichas.slice(0, 4).map((f) => (
-                  <span
-                    key={f.perfilId}
-                    className="inline-flex size-8 items-center justify-center rounded-full border border-borde-fuerte bg-superficie-alta text-sm font-bold text-texto"
-                  >
-                    {iniciales(f.nombre, f.email)}
-                  </span>
-                ))}
-              </span>
-              {fichas.length > 4 && <span className="text-sm text-texto-tenue">+{fichas.length - 4}</span>}
-            </div>
-            <p className="mt-2 text-sm text-texto-tenue">
-              {directores} {directores === 1 ? 'director' : 'directores'} · {miembros}{' '}
-              {miembros === 1 ? 'miembro' : 'miembros'} · {conCuerda} con cuerda
-            </p>
-          </Bloque>
-        )}
-
-        <Bloque
-          id="en-ensayo"
-          titulo="En ensayo"
-          enlace={
-            puedeRevisar
-              ? { href: '/repertorio?vista=todas&estado=en_ensayo', texto: 'Revisar' }
-              : { href: '/repertorio?vista=todas&estado=en_ensayo', texto: 'Ver en Canciones' }
-          }
-        >
-          {enEnsayo.length > 0 ? (
-            <>
-              <p className="mt-2 text-sm text-texto-tenue">
-                <span className="font-semibold text-texto tabular-nums">{enEnsayo.length}</span>{' '}
-                {enEnsayo.length === 1 ? 'canto' : 'cantos'} ·{' '}
-                <span className="font-semibold text-texto tabular-nums">{listos.length}</span>{' '}
-                {listos.length === 1 ? 'listo' : 'listos'}
-              </p>
-              <div className="mt-2 flex h-2 overflow-hidden rounded-full bg-superficie-alta" aria-hidden>
-                <span className="bg-acento" style={{ width: `${proporcionListos}%` }} />
-                <span className="flex-1 bg-borde-fuerte" />
-              </div>
-              <ul className="mt-1">
-                {enEnsayo.slice(0, 3).map((c) => (
-                  <li key={c.id} className="border-b border-borde last:border-b-0">
-                    <Link
-                      href={`/repertorio/${c.id}`}
-                      className="tactil -mx-2 flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-superficie"
-                    >
-                      <span className="min-w-0 flex-1 truncate">{c.titulo}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </>
-          ) : (
-            <p className="mt-2 text-sm text-texto-tenue">No hay cantos en ensayo.</p>
-          )}
-        </Bloque>
+        </section>
       </main>
     </>
   )
@@ -308,39 +269,28 @@ function Anillo({ porcentaje }: { porcentaje: number }) {
   )
 }
 
-/** Un bloque del tablero: título, enlace opcional a la derecha y su contenido. */
-function Bloque({
-  id,
-  titulo,
-  detalle,
-  detalleHablado,
-  enlace,
+/** Una tarjeta del tablero: un número grande y su lectura. Toda la tarjeta es el enlace. */
+function Tarjeta({
+  href,
+  etiqueta,
+  valor,
+  className = '',
   children,
 }: {
-  id: string
-  titulo: string
-  detalle?: string
-  detalleHablado?: string
-  enlace?: { href: string; texto: string }
-  children: ReactNode
+  href: string
+  etiqueta: string
+  valor: number
+  className?: string
+  children?: ReactNode
 }) {
   return (
-    <section aria-labelledby={id} className="mt-6 border-t border-borde pt-5">
-      <div className="flex items-baseline justify-between gap-3">
-        <TituloSeccion id={id} detalle={detalle} detalleHablado={detalleHablado}>
-          {titulo}
-        </TituloSeccion>
-        {enlace && (
-          <Link
-            href={enlace.href}
-            className="tactil -my-2 inline-flex shrink-0 items-center gap-0.5 rounded-lg px-1 text-sm text-texto-tenue hover:text-texto"
-          >
-            {enlace.texto}
-            <IconoSeguir tamano={14} className="shrink-0" />
-          </Link>
-        )}
-      </div>
+    <Link
+      href={href}
+      className={`tactil flex flex-col gap-1 rounded-2xl border border-borde bg-superficie p-4 transition-colors hover:border-borde-fuerte ${className}`}
+    >
+      <span className="text-sm text-texto-tenue">{etiqueta}</span>
+      <span className="text-[2.25rem] leading-none font-bold tabular-nums text-texto">{valor}</span>
       {children}
-    </section>
+    </Link>
   )
 }
