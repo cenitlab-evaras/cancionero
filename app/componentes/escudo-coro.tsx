@@ -62,7 +62,7 @@ export default function EscudoCoro({
     <span
       aria-hidden
       style={{ width: tamano, height: tamano }}
-      className="titulo-libro inline-flex shrink-0 items-center justify-center rounded-full bg-superficie-alta text-[0.8125rem] text-acento ring-1 ring-acento/40"
+      className="titulo-libro inline-flex shrink-0 items-center justify-center rounded-full bg-superficie-alta text-sm text-acento ring-1 ring-acento/40"
     >
       {monograma(nombre)}
     </span>

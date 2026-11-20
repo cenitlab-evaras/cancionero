@@ -48,7 +48,10 @@ export default function AvisoDeslizar() {
       <button
         type="button"
         onClick={cerrar}
-        className="underline underline-offset-2 hover:text-texto"
+        // El alto de la fila no cambia: el área de 44 px crece hacia afuera con
+        // los márgenes negativos (P3-2). Es una excepción inline de WCAG, pero
+        // al pulgar se erraba.
+        className="-my-3 inline-flex min-h-11 items-center px-1 underline underline-offset-2 hover:text-texto"
       >
         Entendido
       </button>

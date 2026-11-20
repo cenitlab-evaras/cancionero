@@ -90,8 +90,11 @@ export default function FilaCanto({
             <MarcaSolistas />
           </Link>
         )}
+        {/* Mínimo, no ancho fijo: un tono largo («Cmaj7» mide ~42 px a 14 px
+            mono) desbordaba los 24 px y estiraba el documento 2 px (P3-1).
+            Sigue alineado a la derecha, así la columna no baila. */}
         {canto.tonalidad && (
-          <span className="w-6 shrink-0 text-right font-cifrado text-sm text-acorde">{canto.tonalidad}</span>
+          <span className="min-w-6 shrink-0 text-right font-cifrado text-sm text-acorde">{canto.tonalidad}</span>
         )}
         {asa}
     </>

@@ -99,6 +99,8 @@ Tres familias, cada una con un trabajo, en ejes distintos (sans · serif · mono
 - **Títulos: Source Serif 4** (`.titulo-libro`), con eje óptico. La letra del cancionero impreso y
   del misal, en títulos de canto, de misa y de pantalla. Los números del cancionero van en sus
   números de estilo antiguo (`.numero-libro`), no en monoespaciada: son del libro, no un dato técnico.
+  La excepción es el **hero de Inicio** (2026-11-19): la próxima misa se anuncia en la sans del mundo
+  Teleprompter, 2.5rem y peso 700 — es la primera cosa que se lee al abrir, no un título de libro.
 - **Cifrado: JetBrains Mono.** Ancho de carácter estable en 0.6em, que es lo que sostiene la
   alineación de los acordes sobre la letra. `cifrado.tsx` calcula con ese ancho: no se cambia la
   fuente sin cambiar ese número.
@@ -109,7 +111,7 @@ Escala **fija en rem**, sin `clamp()`:
 
 | Rol | Tamaño | Familia · peso |
 | --- | --- | --- |
-| Próxima misa (Inicio) | 2rem | serif 600 |
+| Próxima misa (hero de Inicio) | 2.5rem | sans 700, tracking cerrado |
 | Título de pantalla | 1.75rem | serif 600 |
 | Título de canto | 1.375rem (1.5 en la misa) | serif 600 |
 | Título de sección (`TituloSeccion`) | 0.9375rem | sans 700, **sin mayúsculas** |

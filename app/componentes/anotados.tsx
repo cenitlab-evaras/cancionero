@@ -34,7 +34,7 @@ export default function Anotados({ quienes }: { quienes: MisaDeLista['quienes'] 
         <span
           key={q.perfilId}
           title={describir(q)}
-          className={`inline-flex size-7 items-center justify-center rounded-full border-2 text-[0.6875rem] font-bold text-texto ${
+          className={`inline-flex size-7 items-center justify-center rounded-full border-2 text-sm font-bold text-texto ${
             q.cuerda ? COLOR[q.cuerda] : 'border-borde-fuerte bg-superficie'
           }`}
         >
@@ -42,7 +42,7 @@ export default function Anotados({ quienes }: { quienes: MisaDeLista['quienes'] 
         </span>
       ))}
       {resto > 0 && (
-        <span className="inline-flex size-7 items-center justify-center rounded-full border-2 border-borde-fuerte bg-superficie text-[0.6875rem] font-bold text-texto-tenue">
+        <span className="inline-flex size-7 items-center justify-center rounded-full border-2 border-borde-fuerte bg-superficie text-sm font-bold text-texto-tenue">
           +{resto}
         </span>
       )}

@@ -248,7 +248,7 @@ export default async function RepertorioPage({
                 distintos, no de filas, porque el listado repite un canto en cada
                 momento. */}
             {total > 0 && (
-              <p className="pt-8 text-sm text-texto-tenue">
+              <p className="pt-8 text-sm text-texto-tenue text-balance">
                 {total} {total === 1 ? 'canto' : 'cantos'} en {sesion.coroActivo.nombre}
                 {enEnsayo > 0 && `, ${enEnsayo} en ensayo`}
               </p>

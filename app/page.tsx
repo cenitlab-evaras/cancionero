@@ -226,7 +226,7 @@ export default async function Inicio() {
                 {fichas.slice(0, 4).map((f) => (
                   <span
                     key={f.perfilId}
-                    className="inline-flex size-8 items-center justify-center rounded-full border border-borde-fuerte bg-superficie-alta text-[0.6875rem] font-bold text-texto"
+                    className="inline-flex size-8 items-center justify-center rounded-full border border-borde-fuerte bg-superficie-alta text-sm font-bold text-texto"
                   >
                     {iniciales(f.nombre, f.email)}
                   </span>
