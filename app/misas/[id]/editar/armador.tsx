@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { agregarCanto, cambiarTono, moverCanto, quitarCanto } from '../../acciones'
 import { cambiarTonoDeMisa, tonalidadDeLaFila } from '@/lib/motores/tono-en-la-misa'
 import type { CantoDeMisa } from '@/lib/datos/misas'
-import type { FilaDelRanking } from '@/lib/motores/sugerencia'
 
 import { recomendar, type Candidato } from '@/lib/motores/recomendacion'
 import { describirAntiguedad } from '@/lib/motores/historial'
@@ -26,8 +25,6 @@ export default function Armador({
   misaId,
   asignados,
   disponibles,
-  sugerenciasDeEstaMisa,
-  sugerenciasGenerales,
   hoy,
   momentos,
 }: {
@@ -36,12 +33,6 @@ export default function Armador({
   disponibles: Disponible[]
   /** El día del coro, no el del servidor (§17.1-octies). */
   hoy: string
-  /* H17 · DOS listas y no una. Lo que el coro pidió PARA ESTE DOMINGO y lo que
-     el coro quiere cantar EN GENERAL contestan preguntas distintas; sumarlas
-     daría un número que no responde ninguna (§17, §18-12). Van separadas, y
-     primero la concreta: alguien la pidió para esta misa. */
-  sugerenciasDeEstaMisa: FilaDelRanking[]
-  sugerenciasGenerales: FilaDelRanking[]
   /** El catálogo de momentos, en orden litúrgico: es el mapa del armado. */
   momentos: { nombre: string; orden: number }[]
 }) {
@@ -264,56 +255,6 @@ export default function Armador({
         <p className="mt-4 text-sm text-texto-tenue">
           Sin cantos todavía: {vacios.join(', ')}.
         </p>
-      )}
-
-      {[
-        { titulo: 'Pedido para esta misa', filas: sugerenciasDeEstaMisa, unidad: ['pedido', 'pedidos'] },
-        { titulo: 'Lo que el coro propone', filas: sugerenciasGenerales, unidad: ['voto', 'votos'] },
-      ].map(
-        ({ titulo, filas, unidad }) =>
-          filas.length > 0 && (
-            <section key={titulo} className="mt-10">
-              <TituloSeccion>{titulo}</TituloSeccion>
-              <ul className="mt-2 divide-y divide-borde border-t border-borde">
-                {filas.map((f) => {
-                  const yaEsta = asignados.some((a) => a.cantoId === f.cantoId)
-                  return (
-                    <li key={`${f.cantoId}·${f.momentoId}`} className="flex items-center gap-3 py-2">
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate">{f.titulo}</span>
-                        <span className="block text-sm text-texto-tenue">
-                          {f.momentoNombre} · {f.cuantas} {unidad[f.cuantas === 1 ? 0 : 1]}
-                        </span>
-                      </span>
-                      {yaEsta ? (
-                        // No se ofrece agregar lo que ya está: la acción
-                        // fallaría con «ese canto ya está en la misa», y un
-                        // botón que se sabe que va a fallar no se dibuja.
-                        <span className="shrink-0 text-sm text-texto-tenue">Ya está</span>
-                      ) : (
-                        <BotonIcono
-                          etiqueta={`Agregar ${f.titulo} en ${f.momentoNombre}`}
-                          apariencia="borde"
-                          onClick={() =>
-                            correr(() =>
-                              agregarCanto({
-                                misaId,
-                                cantoId: f.cantoId,
-                                momentoId: f.momentoId,
-                              })
-                            )
-                          }
-                          disabled={pendiente}
-                        >
-                          <IconoAgregar tamano={18} />
-                        </BotonIcono>
-                      )}
-                    </li>
-                  )
-                })}
-              </ul>
-            </section>
-          )
       )}
 
       <TituloSeccion className="mt-10">Agregar del repertorio</TituloSeccion>

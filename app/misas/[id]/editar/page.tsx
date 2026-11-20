@@ -7,9 +7,7 @@ import Cabecera from '@/app/componentes/cabecera'
 import { EnlaceIcono } from '@/app/componentes/boton-icono'
 import { IconoVolver } from '@/app/componentes/iconos'
 import Armador from './armador'
-import { sugerenciasDeMisa, sugerenciasGenerales } from '@/lib/datos/sugerencias'
 import { catalogosParaEditar } from '@/lib/datos/repertorio'
-import { rankear } from '@/lib/motores/sugerencia'
 import { hoyISO } from '@/lib/datos/historial'
 
 export const metadata = { title: 'Armar la misa · Cantoral' }
@@ -69,11 +67,6 @@ export default async function EditarMisaPage({
     )
   }
 
-  const [deEstaMisa, generales] = await Promise.all([
-    sugerenciasDeMisa(id),
-    sugerenciasGenerales(misa.coroId),
-  ])
-
   // El mapa de segmentos en orden litúrgico: la pantalla muestra cómo se va
   // llenando cada uno y cuáles siguen vacíos (2026-11-18).
   const { momentos } = await catalogosParaEditar()
@@ -97,8 +90,8 @@ export default async function EditarMisaPage({
           {misa.nombre}
         </h1>
         <p className="mt-1 max-w-prose text-sm text-texto-tenue">
-          La misa se ordena por segmento: Entrada, Gloria, Comunión… Cada canto cae en el suyo y
-          puedes moverlo dentro del segmento.
+          Elige los cantos de cada momento. Si hace falta, fija el tono con el que se cantan en
+          esta misa.
         </p>
 
         <Armador
@@ -106,8 +99,6 @@ export default async function EditarMisaPage({
           asignados={misa.cantos}
           disponibles={disponibles}
           hoy={hoyISO()}
-          sugerenciasDeEstaMisa={rankear(deEstaMisa)}
-          sugerenciasGenerales={rankear(generales)}
           momentos={momentos.map((m) => ({ nombre: m.nombre, orden: m.orden }))}
         />
       </main>
