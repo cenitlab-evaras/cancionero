@@ -7,11 +7,11 @@ import { claveDeTitulo, filtrarCatalogo, repetidas } from '@/lib/motores/catalog
 import { esEstadoValido } from '@/lib/motores/estado-canto'
 import {
   MarcaEnsayo,
-  MarcaLista,
   MarcaPartitura,
   MarcaRepetida,
   MarcaSolistas,
 } from '@/app/componentes/marcas'
+import { IconoDesplegar } from '@/app/componentes/iconos'
 import Filtros from '@/app/canciones/filtros'
 
 export type ParametrosDeVista = {
@@ -41,6 +41,8 @@ const POR_PAGINA = 50
  * cuenta. Es de solo lectura: el arrastre y el archivar quedan en «Por momento».
  * Se pagina de a 50 (`?pagina=N`): 529 filas en un tirón eran ~7 600 nodos, y
  * esta vista se recorre buscando, no de punta a punta.
+ * Desde el 2026-11-20 es una LISTA (no una tabla) con los filtros plegados y
+ * sin leyenda de íconos: el dueño la pidió «mucho más simple».
  */
 export default async function VistaTodas({
   sesion,
@@ -79,6 +81,14 @@ export default async function VistaTodas({
     veces
   )
   const filtrando = visibles.length !== canciones.length
+  // Cuántos filtros están puestos: el número que se ve en «Filtros» plegado.
+  const filtrosActivos = [
+    valores.momento,
+    valores.estado,
+    valores.partitura,
+    valores.repetidas,
+    valores.solistas,
+  ].filter(Boolean).length
   const cuantasRepetidas = new Set(
     canciones.filter((c) => veces.has(c.id)).map((c) => claveDeTitulo(c.titulo))
   ).size
@@ -118,111 +128,68 @@ export default async function VistaTodas({
         )}
       </p>
 
-      <div className="mt-5">
-        <Filtros valores={valores} momentos={momentos} />
-      </div>
+      {/* Filtros plegados (el dueño, 2026-11-20: «simplificado, está pésimo»).
+          El buscador del bloque pegajoso sigue siempre a la vista; esto se abre
+          solo cuando hace falta. */}
+      <details className="group mt-4 rounded-xl border border-borde bg-superficie">
+        <summary className="tactil flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 [&::-webkit-details-marker]:hidden">
+          <span className="text-sm font-semibold text-texto">Filtros</span>
+          {filtrosActivos > 0 && (
+            <span className="inline-flex min-w-6 justify-center rounded-full bg-acento px-1.5 text-sm font-bold text-sobre-acento tabular-nums">
+              {filtrosActivos}
+            </span>
+          )}
+          <IconoDesplegar className="ml-auto shrink-0 text-texto-tenue transition-transform duration-150 group-open:rotate-180 motion-reduce:transition-none" />
+        </summary>
+        <div className="border-t border-borde p-3">
+          <Filtros valores={valores} momentos={momentos} />
+        </div>
+      </details>
 
-      <p role="status" className="mt-4 text-sm text-texto-tenue">
-        {filtrando
-          ? `${visibles.length} de ${canciones.length}`
-          : 'Una fila por canción, con todos sus momentos.'}
-      </p>
-      {/* La leyenda de los íconos: se aprenden la primera vez. */}
-      <p className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-texto-tenue">
-        <span className="flex items-center gap-1.5">
-          <MarcaLista /> lista
-        </span>
-        <span className="flex items-center gap-1.5">
-          <MarcaEnsayo /> en ensayo
-        </span>
-        <span className="flex items-center gap-1.5">
-          <MarcaPartitura /> con partitura
-        </span>
-        <span className="flex items-center gap-1.5">
-          <MarcaSolistas /> con solista
-        </span>
-        <span className="flex items-center gap-1.5">
-          <MarcaRepetida veces={2} className="text-peligro" /> repetida
-        </span>
+      <p role="status" className="mt-3 text-sm text-texto-tenue">
+        {filtrando ? `${visibles.length} de ${canciones.length}` : 'Una fila por canción.'}
       </p>
 
       {visibles.length === 0 ? (
-        <p className="mt-6 text-base text-texto-tenue">
+        <p className="mt-4 text-base text-texto-tenue">
           Ninguna canción con estos filtros.{' '}
           <Link href="/repertorio?vista=todas" className="text-acento underline underline-offset-2">
             Quitar los filtros
           </Link>
         </p>
       ) : (
-        <table className="mt-2 w-full border-collapse text-left">
-          <thead className="sr-only sm:not-sr-only">
-            <tr className="border-b border-borde text-sm text-texto-tenue">
-              <th scope="col" className="py-2 pr-3 font-normal">
-                Canción
-              </th>
-              <th scope="col" className="hidden py-2 pr-3 font-normal sm:table-cell">
-                Momentos
-              </th>
-              <th scope="col" className="hidden py-2 pr-3 font-normal sm:table-cell">
-                Estado
-              </th>
-              <th scope="col" className="py-2 text-right font-normal">
-                Tono
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {enPagina.map((c) => {
-              const n = veces.get(c.id)
-              const susMomentos = c.momentos.map((m) => nombreMomento.get(m) ?? m).join(', ')
-              return (
-                <tr key={c.id} className="relative border-b border-borde align-top">
-                  <td className="py-2.5 pr-3">
-                    <span className="flex items-center gap-2">
-                      {/* La fila entera abre el canto: `after` cubre el tr.
-                          Antes solo el texto tenía 24 px de alto. */}
-                      <Link
-                        href={`/repertorio/${c.id}`}
-                        className="font-medium after:absolute after:inset-0 after:content-[''] hover:underline"
-                      >
-                        {c.titulo}
-                      </Link>
-                      {/* En el teléfono no hay columna de estado: va al lado. */}
-                      {c.estado === 'en_ensayo' && <MarcaEnsayo className="text-texto sm:hidden" />}
-                      {c.conPartitura && <MarcaPartitura className="text-texto-tenue" />}
-                      {c.conSolistas && <MarcaSolistas className="text-texto-tenue" />}
-                      {n && <MarcaRepetida veces={n} className="text-peligro" />}
+        <ul className="mt-1 border-t border-borde">
+          {enPagina.map((c) => {
+            const n = veces.get(c.id)
+            const susMomentos = c.momentos.map((m) => nombreMomento.get(m) ?? m).join(', ')
+            return (
+              <li key={c.id} className="border-b border-borde/70 last:border-b-0">
+                <Link
+                  href={`/repertorio/${c.id}`}
+                  className="tactil -mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5 hover:bg-superficie"
+                >
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-1.5">
+                      <span className="truncate">{c.titulo}</span>
+                      {c.estado === 'en_ensayo' && (
+                        <MarcaEnsayo className="shrink-0 text-texto-tenue" />
+                      )}
+                      {c.conPartitura && <MarcaPartitura className="shrink-0 text-texto-tenue" />}
+                      {c.conSolistas && <MarcaSolistas className="shrink-0 text-texto-tenue" />}
+                      {n && <MarcaRepetida veces={n} className="shrink-0 text-peligro" />}
                     </span>
-                    {/* La página del cancionero va bajo el título: es la
-                        referencia que el coro usa para encontrarlo. */}
-                    {c.fuentePagina !== null && (
-                      <span className="mt-1 block text-sm text-texto-tenue tabular-nums">
-                        pág. {c.fuentePagina}
-                      </span>
-                    )}
-                    {/* En el teléfono los momentos van acá: no caben columnas. */}
                     {susMomentos && (
-                      <span className="mt-1 block text-sm text-texto-tenue sm:hidden">{susMomentos}</span>
+                      <span className="mt-0.5 block truncate text-sm text-texto-tenue">{susMomentos}</span>
                     )}
-                  </td>
-                  <td className="hidden py-2.5 pr-3 text-sm text-texto-tenue sm:table-cell">
-                    {susMomentos || '—'}
-                  </td>
-                  <td className="hidden py-2.5 pr-3 sm:table-cell">
-                    {c.estado === 'en_ensayo' ? (
-                      <MarcaEnsayo className="text-texto" />
-                    ) : (
-                      <MarcaLista className="text-texto-tenue" />
-                    )}
-                  </td>
-                  <td className="py-2.5 text-right text-sm font-semibold text-acorde">
+                  </span>
+                  <span className="shrink-0 font-cifrado text-sm font-semibold text-acorde">
                     {c.tonalidadOriginal ?? ''}
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+                  </span>
+                </Link>
+              </li>
+            )
+          })}
+        </ul>
       )}
 
       {/* El paginador. Anterior/Siguiente conservan filtros y búsqueda; el
