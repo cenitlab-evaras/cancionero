@@ -123,7 +123,7 @@ export default async function EjecucionPage({
     <>
       <PantallaEncendida />
       <ProveedorDiagramas acordes={acordes}>
-        <main className="mx-auto w-full max-w-2xl flex-1 pb-8">
+        <main className="mx-auto w-full max-w-2xl flex-1 pb-20">
           {/* La cinta de la misa (maqueta «Teleprompter», 2026-11-18): volver,
               en qué misa y en qué punto. Los chevrones y el tema pasaron al
               panel que se pide; el paso al siguiente vive en la fila del pie. */}
@@ -218,7 +218,11 @@ export default async function EjecucionPage({
           )}
 
 
-          <PanelLectura>
+          <PanelLectura
+            tono={tonalidadActual ? nombrar(tonalidadActual) : null}
+            tamano={tamanoLetra}
+            mostrarTono={mostrarAcordes}
+          >
             {/* Lo que dejó la cinta: el canto anterior y el tema, junto a la
                 barra de lectura (maqueta «Teleprompter»). El siguiente sigue en
                 la fila del pie, que se ve siempre. */}

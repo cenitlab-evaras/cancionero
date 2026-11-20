@@ -9,15 +9,17 @@ resuelta y todo lo demás era un boceto sobre buenos tokens. El dueño pidió qu
 con identidad y fácil de navegar**. Este documento describe el sistema que salió de ahí.
 
 **Mundo «Teleprompter» en la lectura (2026-11-18).** La pantalla de tocar dejó de tener barra
-fija: la letra manda. Abajo ya no hay nada hasta que se pide; se abre tocando un **borde** de la
-pantalla o el botón de arriba a la derecha, y se cierra tocando afuera o con Esc. La cinta de
-arriba se redujo a volver y el nombre (en la misa, también «n de N»); el interruptor de acordes,
-el tema y «Editar» viven en el panel. El siguiente canto de la misa sigue en la fila del pie, que
-se ve siempre. Dos reglas técnicas sostienen el gesto: el panel se oculta con `transform` y
-`inert` y **no se desmonta** (el auto scroll vive adentro de `Controles`, y esconderlo no puede
-detener la letra), y la pila inferior quedó en el z de la cabecera para que su botón no quede
-tapado por la cinta. El mundo incluye Inicio, lectura y ejecución; los datos, permisos y caminos
-accesibles no cambiaron.
+fija: la letra manda. Abajo queda una sola **fila-manija de 44 px** (2026-11-20): el tono actual,
+el tamaño de letra y el chevron que abre el panel. Se abre también tocando un **borde** de la
+pantalla o el botón de arriba a la derecha, y se cierra tocando afuera o con Esc. La manija es
+fija y la ve **todo el coro**: quien lee tiene que descubrir que puede transponer sin buscar un
+permiso. El interruptor de acordes, el tema y «Editar» viven en el panel. El siguiente canto de la
+misa sigue en la fila del pie, ahora pegada a la manija. Tres reglas técnicas sostienen el gesto:
+el panel se oculta con `transform` y `inert` y **no se desmonta** (el auto scroll vive adentro de
+`Controles`, y esconderlo no puede detener la letra); una reja `0fr → 1fr` colapsa su alto cuando
+está cerrado (si no, quedaba una franja vacía entre «Siguiente» y la manija); y la pila inferior
+quedó en el z de la cabecera para que su botón no quede tapado por la cinta. El mundo incluye
+Inicio, lectura y ejecución; los datos, permisos y caminos accesibles no cambiaron.
 
 ## Visual Theme
 
@@ -134,9 +136,9 @@ el aumento se note en un teléfono angosto. Interlineado 1.9.
   - Antes eran dos filas arriba a 40 px, con Historial y Sugerencias escondidos al pie de un
     repertorio de 4 700 px y «Salir» a un toque en plena misa.
 - **La lectura y la ejecución no llevan esa navegación.** Solo una barra fija de 44 px arriba
-  (volver, el título, los dos controles que no son de tocar) y la barra de lectura abajo. Mientras se
-  toca no hay a dónde ir. En la ejecución, «Siguiente: *nombre del canto*» va abajo, sobre la barra
-  de lectura.
+  (volver y el título) y, abajo, la fila de lectura (tono · tamaño), que abre el panel de controles.
+  Mientras se toca no hay a dónde ir. En la ejecución, «Siguiente: *nombre del canto*» va abajo,
+  encima de la fila de lectura.
 - En la lectura el cifrado va **a sangre**, sin tarjeta, pero con su margen de 16 px alineado con el
   título. Lo que se decide planificando —historial, proponer, correcciones— va **al pie** del canto,
   nunca entre el título y el primer acorde.

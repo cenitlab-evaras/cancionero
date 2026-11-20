@@ -169,7 +169,7 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
           directo del <body> y conserva su `flex-1`. */}
       <ProveedorDiagramas acordes={acordes}>
       <PantallaEncendida />
-      <main className="mx-auto w-full max-w-2xl flex-1 pb-8">
+      <main className="mx-auto w-full max-w-2xl flex-1 pb-20">
         {/* La cinta (maqueta «Teleprompter», 2026-11-18): volver y el nombre, y
             nada más. Los controles no viven acá: se piden tocando un borde o el
             botón de arriba a la derecha (PanelLectura). */}
@@ -346,7 +346,11 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
           </HojaDiagramas>
         )}
 
-        <PanelLectura>
+        <PanelLectura
+          tono={tonalidadActual ? nombrar(tonalidadActual) : null}
+          tamano={tamanoLetra}
+          mostrarTono={mostrarAcordes}
+        >
           {/* Las herramientas que no son de tocar, pedidas junto con la barra
               (maqueta «Teleprompter»): el interruptor de acordes lo usa todo el
               mundo; «Editar», solo el director. */}

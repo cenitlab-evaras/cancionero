@@ -108,7 +108,7 @@ export default function Controles({
   return (
     // El `sticky` no vive acá: lo pone la pila inferior de la página, para que
     // la hoja de diagramas (H5) pueda apilarse encima de esta barra.
-    <div className="border-t border-borde bg-fondo pb-[env(safe-area-inset-bottom)]">
+    <div className="border-t border-borde bg-fondo">
       {aviso && (
         <p role="status" className="mx-auto max-w-2xl px-4 pt-2 text-sm text-peligro">
           {aviso}
