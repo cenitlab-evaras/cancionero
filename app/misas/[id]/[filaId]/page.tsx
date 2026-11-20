@@ -141,6 +141,7 @@ export default async function EjecucionPage({
             {siguiente ? (
               <Link
                 href={`/misas/${misa.id}/${siguiente.id}`}
+                prefetch
                 aria-label={`Siguiente canto: ${siguiente.titulo}`}
                 className="tactil inline-flex size-11 shrink-0 items-center justify-center rounded-lg text-texto-tenue hover:text-texto"
               >
@@ -208,6 +209,7 @@ export default async function EjecucionPage({
           {siguiente ? (
             <Link
               href={`/misas/${misa.id}/${siguiente.id}`}
+              prefetch
               className="tactil flex min-h-11 items-center gap-2 border-t border-borde bg-fondo px-4 hover:bg-superficie"
             >
               <span className="shrink-0 text-sm text-texto-tenue">Siguiente</span>

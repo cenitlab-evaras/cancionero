@@ -41,6 +41,10 @@ export default function DestinosNav({ destinos }: { destinos: DestinoNav[] }) {
             <li key={d.href} className="flex-1">
               <Link
                 href={d.href}
+                // Precarga la ruta (datos incluidos) apenas se abre la app. La
+                // RTT al servidor es de ~140 ms: sin esto, cada toque en la
+                // barra espera un viaje completo (2026-11-20).
+                prefetch
                 aria-current={activo ? 'page' : undefined}
                 className={`relative flex h-full flex-col items-center justify-center gap-1 text-sm transition-colors ${
                   activo ? 'font-bold text-acento' : 'text-texto-tenue hover:text-texto'
