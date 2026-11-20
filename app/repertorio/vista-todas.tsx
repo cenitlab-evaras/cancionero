@@ -182,9 +182,6 @@ export default async function VistaTodas({
                       <span className="mt-0.5 block truncate text-sm text-texto-tenue">{susMomentos}</span>
                     )}
                   </span>
-                  <span className="shrink-0 font-cifrado text-sm font-semibold text-acorde">
-                    {c.tonalidadOriginal ?? ''}
-                  </span>
                 </Link>
               </li>
             )

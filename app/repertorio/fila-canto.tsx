@@ -23,10 +23,8 @@ export type DatosFila = {
   repetida: number | null
   /** H23 · si tiene partitura para ensayar, y si trae estrofas de solista. */
   partitura: { solistas: boolean } | null
-  tonalidad: string | null
   /** Cuántas veces se cantó en misas pasadas: la regleta del dueño (2026-11-20). */
-  veces: number
-  /** 0–100: `veces` contra la canción más cantada del coro. */
+  veces: number  /** 0–100: `veces` contra la canción más cantada del coro. */
   intensidad: number
   autor: string | null
 }
@@ -117,12 +115,6 @@ export default function FilaCanto({
           >
             <MarcaSolistas />
           </Link>
-        )}
-        {/* Mínimo, no ancho fijo: un tono largo («Cmaj7» mide ~42 px a 14 px
-            mono) desbordaba los 24 px y estiraba el documento 2 px (P3-1).
-            Sigue alineado a la derecha, así la columna no baila. */}
-        {canto.tonalidad && (
-          <span className="min-w-6 shrink-0 text-right font-cifrado text-sm text-acorde">{canto.tonalidad}</span>
         )}
         {asa}
     </>

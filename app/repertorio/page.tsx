@@ -182,7 +182,6 @@ export default async function RepertorioPage({
           enEnsayo: Boolean(etiquetaEstado(c.estado)),
           repetida: veces.get(c.id) ?? null,
           partitura: conPartitura.get(c.id) ?? null,
-          tonalidad: c.tonalidadOriginal,
           veces: cantada,
           intensidad: Math.round((100 * cantada) / maxCantadas),
           autor: c.autor,
