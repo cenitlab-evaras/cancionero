@@ -2,6 +2,8 @@ import Link from 'next/link'
 import type { CSSProperties, ReactNode, Ref } from 'react'
 import { MarcaPartitura, MarcaRepetida, MarcaSolistas } from '@/app/componentes/marcas'
 import Deslizable, { type ResultadoAccion } from '@/app/componentes/deslizable'
+import DeslizableAcciones from './deslizable-acciones'
+import { archivarCanto, enviarAProximaMisa, marcarParaEnsayar } from './acciones'
 
 /**
  * Una fila del repertorio: el título que abre el canto y sus marcas.
@@ -37,6 +39,7 @@ export default function FilaCanto({
   className = '',
   como = 'li',
   deslizar,
+  gestos,
 }: {
   canto: DatosFila
   /** El asa de arrastre del director, a la derecha. */
@@ -51,6 +54,12 @@ export default function FilaCanto({
    * 2026-10-17). Sin esto la fila es la de siempre.
    */
   deslizar?: { texto: string; alConfirmar: () => Promise<ResultadoAccion>; alTerminar?: () => void }
+  /**
+   * Los gestos de la fila para el director (2026-11-20): izquierda descubre
+   * «Próxima misa» y «Ensayar»; derecha archiva. Sin esto la fila es la de
+   * siempre (miembros, o una pantalla sin acciones).
+   */
+  gestos?: { proximaMisa: boolean; ensayo: boolean; archivar: boolean }
 }) {
   const Elemento = como
   const contenido = (
@@ -114,11 +123,13 @@ export default function FilaCanto({
         {asa}
     </>
   )
+  const g = deslizar ? undefined : gestos
+  const conGestos = Boolean(g && (g.proximaMisa || g.ensayo || g.archivar))
   return (
     <Elemento
       ref={ref}
       style={style}
-      className={`relative border-b border-borde last:border-b-0 ${deslizar ? '' : 'flex items-center gap-1'} ${className}`}
+      className={`relative border-b border-borde last:border-b-0 ${deslizar || conGestos ? '' : 'flex items-center gap-1'} ${className}`}
     >
       {/* «En ensayo» es una banda al costado, no una palabra ni un ícono (el
           dueño, 2026-10-17). */}
@@ -131,6 +142,29 @@ export default function FilaCanto({
         <Deslizable {...deslizar} className="flex items-center gap-1 pl-2">
           {contenido}
         </Deslizable>
+      ) : conGestos && g ? (
+        <DeslizableAcciones
+          izquierda={[
+            ...(g.proximaMisa
+              ? [{ texto: 'Próxima misa', alConfirmar: enviarAProximaMisa.bind(null, canto.id) }]
+              : []),
+            ...(g.ensayo
+              ? [{ texto: 'Ensayar', alConfirmar: marcarParaEnsayar.bind(null, canto.id) }]
+              : []),
+          ]}
+          derecha={
+            g.archivar
+              ? {
+                  texto: 'Archivar',
+                  peligro: true,
+                  alConfirmar: archivarCanto.bind(null, canto.id),
+                }
+              : undefined
+          }
+          className="flex items-center gap-1 pl-2"
+        >
+          {contenido}
+        </DeslizableAcciones>
       ) : (
         contenido
       )}

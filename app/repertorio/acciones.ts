@@ -6,6 +6,8 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { obtenerSesion } from '@/lib/sesion'
 import { puede } from '@/lib/permisos'
+import { hoyISO } from '@/lib/datos/historial'
+import { agregarCanto } from '@/app/misas/acciones'
 import { validarCanto, type Campo } from '@/lib/motores/validar-canto'
 import { ESTADOS_EDITABLES, normalizarEstado } from '@/lib/motores/estado-canto'
 import { ordenarMomento, soltarCanto } from '@/lib/motores/orden-en-el-momento'
@@ -234,6 +236,101 @@ export async function archivarCanto(cantoId: string): Promise<ResultadoArchivo> 
 
 export async function desarchivarCanto(cantoId: string): Promise<ResultadoArchivo> {
   return cambiarEstadoDeArchivo(cantoId, 'listo')
+}
+
+/* -------------------------------------------------------------------------- */
+/* Los gestos de la fila (el dueño, 2026-11-20): deslizar a la izquierda       */
+/* descubre «Próxima misa» y «Ensayar»; a la derecha, «Archivar».             */
+/* -------------------------------------------------------------------------- */
+
+export type ResultadoGesto = { ok: true; mensaje: string } | { ok: false; error: string }
+
+const SIN_CORO = 'No tienes un coro activo.'
+
+/**
+ * Manda el canto a la próxima misa agendada, en su primer momento litúrgico.
+ * Reusa `agregarCanto`: la validación, el orden y la RLS son los mismos que
+ * los del botón «Agregar» del armador.
+ */
+export async function enviarAProximaMisa(cantoId: string): Promise<ResultadoGesto> {
+  const sesion = await obtenerSesion()
+  if (!sesion?.coroActivo) return { ok: false, error: SIN_CORO }
+  if (!puede(sesion.sujeto, 'asignar_cantos_misa')) {
+    return { ok: false, error: 'Solo el director arma las misas.' }
+  }
+
+  const supabase = await createClient()
+  const { data: misa } = await supabase
+    .from('misas')
+    .select('id, nombre')
+    .eq('coro_id', sesion.coroActivo.id)
+    .gte('fecha', hoyISO())
+    .order('fecha', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  if (!misa) return { ok: false, error: 'No hay una próxima misa agendada.' }
+
+  const { data: vinculos } = await supabase
+    .from('canto_momentos')
+    .select('momento_id, momentos_liturgicos(orden)')
+    .eq('canto_id', cantoId)
+    .eq('coro_id', sesion.coroActivo.id)
+
+  const primero = (vinculos ?? [])
+    .filter((v) => (v as { momento_id?: string | null }).momento_id)
+    .sort(
+      (a, b) =>
+        ((a as { momentos_liturgicos?: { orden?: number } }).momentos_liturgicos?.orden ?? 0) -
+        ((b as { momentos_liturgicos?: { orden?: number } }).momentos_liturgicos?.orden ?? 0)
+    )[0] as { momento_id?: string } | undefined
+
+  if (!primero?.momento_id) {
+    return { ok: false, error: 'Ese canto no tiene momento litúrgico.' }
+  }
+
+  const resultado = await agregarCanto({
+    misaId: misa.id,
+    cantoId,
+    momentoId: primero.momento_id,
+  })
+  if (!resultado.ok) return { ok: false, error: resultado.error }
+
+  revalidatePath('/')
+  revalidatePath(`/misas/${misa.id}`)
+  revalidatePath(`/misas/${misa.id}/editar`)
+  return { ok: true, mensaje: `Enviada a ${misa.nombre}` }
+}
+
+/** Marca el canto «en ensayo», el estado que ya usa el repertorio. */
+export async function marcarParaEnsayar(cantoId: string): Promise<ResultadoGesto> {
+  const sesion = await obtenerSesion()
+  if (!sesion?.coroActivo) return { ok: false, error: SIN_CORO }
+  if (!puede(sesion.sujeto, 'editar_canto')) return { ok: false, error: NO_PUEDE }
+
+  const supabase = await createClient()
+  const { data: canto } = await supabase
+    .from('cantos')
+    .select('id, estado')
+    .eq('id', cantoId)
+    .eq('coro_id', sesion.coroActivo.id)
+    .maybeSingle()
+
+  if (!canto) return { ok: false, error: 'No tienes acceso a ese canto.' }
+  if (canto.estado === 'en_ensayo') return { ok: true, mensaje: 'Ya estaba en ensayo' }
+
+  const { error } = await supabase
+    .from('cantos')
+    .update({ estado: 'en_ensayo' })
+    .eq('id', cantoId)
+    .eq('coro_id', sesion.coroActivo.id)
+
+  if (error) return { ok: false, error: 'No pudimos marcarlo en ensayo.' }
+
+  revalidatePath('/repertorio')
+  revalidatePath('/')
+  revalidatePath(`/repertorio/${cantoId}`)
+  return { ok: true, mensaje: 'Marcada en ensayo' }
 }
 
 /**

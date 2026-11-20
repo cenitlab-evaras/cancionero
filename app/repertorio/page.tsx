@@ -111,6 +111,15 @@ export default async function RepertorioPage({
   const vista = sp.vista === 'todas' ? 'todas' : undefined
 
   const puedeEditar = puede(sesion.sujeto, 'editar_canto')
+  // Los gestos de la fila (2026-11-20): solo el director. Cada acción vuelve a
+  // comprobar su capacidad en el servidor y la RLS decide al escribir.
+  const gestosDeFila = puedeEditar
+    ? {
+        proximaMisa: puede(sesion.sujeto, 'asignar_cantos_misa'),
+        ensayo: true,
+        archivar: puede(sesion.sujeto, 'archivar_canto'),
+      }
+    : undefined
   let grupos: Awaited<ReturnType<typeof repertorioPorMomento>> = []
   let conPartitura: Map<string, { solistas: boolean }> = new Map()
   let conHistorial: Awaited<ReturnType<typeof repertorioConHistorial>> = []
@@ -239,7 +248,7 @@ export default async function RepertorioPage({
                 <TituloSeccion>{m.nombre}</TituloSeccion>
                 <ul className="mt-1">
                   {m.cantos.map((id) => (
-                    <FilaCanto key={id} canto={filas[id]} />
+                    <FilaCanto key={id} canto={filas[id]} gestos={gestosDeFila} />
                   ))}
                 </ul>
               </section>
