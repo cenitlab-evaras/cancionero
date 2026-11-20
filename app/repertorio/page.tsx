@@ -14,6 +14,7 @@ import Buscador from './buscador'
 import Atajos from './atajos'
 import FilaCanto, { type DatosFila } from './fila-canto'
 import { ProveedorSeleccion } from './seleccion'
+import GestosDeLista from './gestos-lista'
 import VistaTodas from './vista-todas'
 
 export const metadata = { title: 'Canciones · Cantoral' }
@@ -268,6 +269,7 @@ export default async function RepertorioPage({
                 El `id` y el `scroll-mt` son el destino de los chips: el título
                 aterriza bajo el bloque pegajoso (cabecera 56 px + buscador +
                 conmutador + chips), no escondido detrás. */}
+            <GestosDeLista>
             {momentos.map((m) => (
               <section
                 key={m.codigo}
@@ -291,6 +293,7 @@ export default async function RepertorioPage({
                 </ul>
               </section>
             ))}
+            </GestosDeLista>
 
             {/* Solo la cuenta. Los enlaces a historial, sugerencias y archivados
                 que vivían en este pie se mudaron a «Más» (2026-10-17): al final de

@@ -2,9 +2,8 @@ import Link from 'next/link'
 import type { CSSProperties, ReactNode, Ref } from 'react'
 import { MarcaPartitura, MarcaRepetida, MarcaSolistas } from '@/app/componentes/marcas'
 import Deslizable, { type ResultadoAccion } from '@/app/componentes/deslizable'
-import DeslizableAcciones from './deslizable-acciones'
 import { CasillaSeleccion } from './seleccion'
-import { archivarCanto, enviarAProximaMisa, marcarParaEnsayar } from './acciones'
+import { ANCHO_ACCION, ANCHO_ARCHIVAR } from './gestos-constantes'
 
 /**
  * Una fila del repertorio: el título que abre el canto y sus marcas.
@@ -148,28 +147,62 @@ export default function FilaCanto({
           {contenido}
         </Deslizable>
       ) : conGestos && g ? (
-        <DeslizableAcciones
-          izquierda={[
-            ...(g.proximaMisa
-              ? [{ texto: 'Próxima misa', alConfirmar: enviarAProximaMisa.bind(null, canto.id) }]
-              : []),
-            ...(g.ensayo
-              ? [{ texto: 'Ensayar', alConfirmar: marcarParaEnsayar.bind(null, canto.id) }]
-              : []),
-          ]}
-          derecha={
-            g.archivar
-              ? {
-                  texto: 'Archivar',
-                  peligro: true,
-                  alConfirmar: archivarCanto.bind(null, canto.id),
-                }
-              : undefined
-          }
-          className="flex items-center gap-1 pl-2"
-        >
-          {contenido}
-        </DeslizableAcciones>
+        // Los gestos los maneja UN controlador por lista (GestosDeLista). La
+        // fila solo pinta sus botones detrás; sin isla de cliente por fila.
+        <div data-fila-canto className="relative overflow-hidden">
+          {g.archivar && (
+            <button
+              type="button"
+              data-accion="archivar"
+              data-canto={canto.id}
+              tabIndex={-1}
+              aria-hidden="true"
+              style={{ width: ANCHO_ARCHIVAR }}
+              className="absolute inset-y-0 left-0 flex items-center justify-center bg-peligro px-2 text-sm font-bold text-sobre-peligro"
+            >
+              Archivar
+            </button>
+          )}
+          <div
+            className="absolute inset-y-0 right-0 flex"
+            style={{ width: ANCHO_ACCION * (Number(g.proximaMisa) + Number(g.ensayo)) }}
+            aria-hidden="true"
+          >
+            {g.proximaMisa && (
+              <button
+                type="button"
+                data-accion="proxima"
+                data-canto={canto.id}
+                tabIndex={-1}
+                aria-hidden="true"
+                style={{ width: ANCHO_ACCION }}
+                className="flex items-center justify-center bg-superficie-alta px-2 text-sm font-bold text-texto"
+              >
+                Próxima misa
+              </button>
+            )}
+            {g.ensayo && (
+              <button
+                type="button"
+                data-accion="ensayo"
+                data-canto={canto.id}
+                tabIndex={-1}
+                aria-hidden="true"
+                style={{ width: ANCHO_ACCION }}
+                className="flex items-center justify-center bg-superficie-alta px-2 text-sm font-bold text-texto"
+              >
+                Ensayar
+              </button>
+            )}
+          </div>
+          <div
+            data-frente
+            className="relative flex items-center gap-1 bg-fondo pl-2"
+            style={{ touchAction: 'pan-y', transition: 'transform var(--transicion)' }}
+          >
+            {contenido}
+          </div>
+        </div>
       ) : (
         contenido
       )}
