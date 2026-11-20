@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState, useTransition, type ReactNode } from 'react'
+import { useRouter } from 'next/navigation'
 
 /**
  * Deslizar a la izquierda para una acción, como en el correo del teléfono (el
@@ -28,6 +29,7 @@ export default function Deslizable({
   texto,
   alConfirmar,
   alTerminar,
+  refrescar = false,
   children,
   className = '',
 }: {
@@ -36,10 +38,13 @@ export default function Deslizable({
   alConfirmar: () => Promise<ResultadoAccion>
   /** Después de un `ok`: refrescar, sacar la fila de una lista local… */
   alTerminar?: () => void
+  /** Recarga los datos del servidor después de un `ok` (listas sin isla). */
+  refrescar?: boolean
   children: ReactNode
   /** Clases del frente (la fila que se desliza). */
   className?: string
 }) {
+  const router = useRouter()
   const [desplazo, setDesplazo] = useState(0)
   const [arrastrando, setArrastrando] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -63,6 +68,7 @@ export default function Deslizable({
       }
       setDesplazo(0)
       alTerminar?.()
+      if (refrescar) router.refresh()
     })
   }
 

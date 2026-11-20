@@ -90,6 +90,8 @@ export async function misasDelCoro(coroId: string): Promise<MisaDeLista[]> {
       'id, nombre, fecha, misa_cantos(id), misa_participante!participante_misa_del_mismo_coro(perfil_id, perfiles(nombre, email))'
     )
     .eq('coro_id', coroId)
+    // Archivadas = fuera de la app, como respaldo en la base (2026-11-20).
+    .eq('archivada', false)
     .order('fecha', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false })
 

@@ -10,6 +10,7 @@ import { ordenDeInsercion, reordenar } from '@/lib/motores/misa'
 import { validarInscripcion } from '@/lib/motores/inscripcion'
 import { esTonoDeMisa } from '@/lib/motores/tono-en-la-misa'
 import { obtenerMisa } from '@/lib/datos/misas'
+import { hoyISO } from '@/lib/datos/historial'
 
 /**
  * Escrituras de misas (H6).
@@ -376,6 +377,32 @@ export async function cambiarTono(raw: unknown): Promise<Resultado> {
   if (error || !data?.length) return { ok: false, error: 'No pudimos cambiar el tono.' }
 
   revalidatePath(`/misas/${datos.data.misaId}`, 'layout')
+  revalidatePath('/')
+  return { ok: true }
+}
+
+
+/**
+ * Archiva una misa que ya pasó (el dueño, 2026-11-20): sale de la app, queda en
+ * la base como respaldo. No borra la misa ni sus cantos, y el historial de lo
+ * que se cantó sigue contando.
+ */
+export async function archivarMisa(misaId: string): Promise<Resultado> {
+  const sesion = await obtenerSesion()
+  if (!sesion) return { ok: false, error: 'Tu sesión expiró. Vuelve a entrar.' }
+  if (!puede(sesion.sujeto, 'editar_misa')) return { ok: false, error: NO_HABILITADO }
+
+  const supabase = await createClient()
+  const { data: misa } = await supabase.from('misas').select('id, fecha').eq('id', misaId).maybeSingle()
+  if (!misa) return { ok: false, error: 'No tienes acceso a esta misa.' }
+  if (!misa.fecha || misa.fecha >= hoyISO()) {
+    return { ok: false, error: 'Solo se archivan misas que ya pasaron.' }
+  }
+
+  const { error } = await supabase.from('misas').update({ archivada: true }).eq('id', misaId)
+  if (error) return { ok: false, error: 'No pudimos archivar la misa.' }
+
+  revalidatePath('/misas')
   revalidatePath('/')
   return { ok: true }
 }

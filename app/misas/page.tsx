@@ -9,8 +9,10 @@ import { agruparMisas } from '@/lib/motores/agenda'
 import { cuantoFalta, fechaLarga } from '@/lib/motores/fecha'
 import Cabecera from '@/app/componentes/cabecera'
 import TituloSeccion from '@/app/componentes/titulo-seccion'
+import Deslizable from '@/app/componentes/deslizable'
 import { EnlaceIcono } from '@/app/componentes/boton-icono'
 import { IconoAgregar } from '@/app/componentes/iconos'
+import { archivarMisa } from './acciones'
 
 export const metadata = { title: 'Misas · Cantoral' }
 
@@ -77,10 +79,15 @@ export default async function MisasPage() {
               <Seccion titulo="Lo que viene" misas={grupos.proximas} hoy={hoy} />
             )}
             {grupos.pasadas.length > 0 && (
-              <Seccion titulo="Ya celebradas" misas={grupos.pasadas} />
+              <Seccion
+                titulo="Ya celebradas"
+                misas={grupos.pasadas}
+                hoy={hoy}
+                puedeArchivar={puedeEditar}
+              />
             )}
             {grupos.sinFecha.length > 0 && (
-              <Seccion titulo="Sin fecha" misas={grupos.sinFecha} />
+              <Seccion titulo="Sin fecha" misas={grupos.sinFecha} hoy={hoy} />
             )}
           </>
         )}
@@ -107,10 +114,12 @@ function Seccion({
   titulo,
   misas,
   hoy,
+  puedeArchivar = false,
 }: {
   titulo: string
   misas: Awaited<ReturnType<typeof misasDelCoro>>
   hoy?: string
+  puedeArchivar?: boolean
 }) {
   return (
     <section className="mt-8">
@@ -118,42 +127,59 @@ function Seccion({
       <ul className="mt-2 divide-y divide-borde border-t border-borde">
         {misas.map((c, i) => {
           const falta = hoy && i === 0 && c.fecha ? cuantoFalta(c.fecha, hoy) : null
+          const pasada = Boolean(c.fecha && hoy && c.fecha < hoy)
+          const fila = (
+            <Link
+              href={`/misas/${c.id}`}
+              className="-mx-2 flex min-h-14 items-center gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-superficie"
+            >
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-base">{c.nombre}</span>
+                {/* Sin fecha no se repite «Sin fecha»: ya lo dice la sección. */}
+                {c.fecha && (
+                  <span className="block text-sm text-texto-tenue">
+                    {falta && <span className="font-semibold text-acento">{falta} · </span>}
+                    {fechaLarga(c.fecha)}
+                  </span>
+                )}
+              </span>
+              <span className="shrink-0 text-right text-sm text-texto-tenue">
+                <span className="block">
+                  {c.cantidadCantos === 1 ? '1 canto' : `${c.cantidadCantos} cantos`}
+                </span>
+                {/* H15 · solo si hay alguien: «0 anotados» en cada fila sería
+                    un reproche semanal, no un dato. Desde el 2026-10-17, sus
+                    iniciales con el color de su cuerda, además del número. */}
+                {c.anotados > 0 && (
+                  <span className="mt-1 flex items-center justify-end gap-2">
+                    <Anotados quienes={c.quienes} />
+                    <span aria-hidden>{c.anotados}</span>
+                    {/* El número visible no dice qué cuenta. Para lector de
+                        pantalla va la unidad; para el ojo, los avatares. */}
+                    <span className="sr-only">
+                      {c.anotados === 1 ? '1 anotado' : `${c.anotados} anotados`}
+                    </span>
+                  </span>
+                )}
+              </span>
+            </Link>
+          )
           return (
             <li key={c.id}>
-              <Link
-                href={`/misas/${c.id}`}
-                className="-mx-2 flex min-h-14 items-center gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-superficie"
-              >
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-base">{c.nombre}</span>
-                  {/* Sin fecha no se repite «Sin fecha»: ya lo dice la sección. */}
-                  {c.fecha && (
-                    <span className="block text-sm text-texto-tenue">
-                      {falta && <span className="font-semibold text-acento">{falta} · </span>}
-                      {fechaLarga(c.fecha)}
-                    </span>
-                  )}
-                </span>
-                <span className="shrink-0 text-right text-sm text-texto-tenue">
-                  <span className="block">
-                    {c.cantidadCantos === 1 ? '1 canto' : `${c.cantidadCantos} cantos`}
-                  </span>
-                  {/* H15 · solo si hay alguien: «0 anotados» en cada fila sería
-                      un reproche semanal, no un dato. Desde el 2026-10-17, sus
-                      iniciales con el color de su cuerda, además del número. */}
-                  {c.anotados > 0 && (
-                    <span className="mt-1 flex items-center justify-end gap-2">
-                      <Anotados quienes={c.quienes} />
-                      <span aria-hidden>{c.anotados}</span>
-                      {/* El número visible no dice qué cuenta. Para lector de
-                          pantalla va la unidad; para el ojo, los avatares. */}
-                      <span className="sr-only">
-                        {c.anotados === 1 ? '1 anotado' : `${c.anotados} anotados`}
-                      </span>
-                    </span>
-                  )}
-                </span>
-              </Link>
+              {/* Misas viejas (2026-11-20): deslizar descubre «Archivar». La
+                  fila queda en la base como respaldo y el historial no cambia. */}
+              {pasada && puedeArchivar ? (
+                <Deslizable
+                  texto="Archivar"
+                  alConfirmar={archivarMisa.bind(null, c.id)}
+                  refrescar
+                  className="px-2"
+                >
+                  {fila}
+                </Deslizable>
+              ) : (
+                fila
+              )}
             </li>
           )
         })}
