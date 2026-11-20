@@ -47,6 +47,7 @@ texto que se lee en la misma celebración, sin meter una segunda app.
 - Usar IA para buscar, resumir o generar lecturas (PRD §16).
 - Depender de una API de terceros o raspar el sitio en cada visita: se pide una vez por misa y se
   guarda. No hay scraping de fondo ni de fechas que no se usan.
+- Interpretar días con varios formularios, secuencias o vigilias: esos días se pegan a mano.
 - Garantizar lectura con la app **cerrada y reabierta sin señal** (haría falta el service worker,
   que sigue pendiente).
 - Editar lecturas desde «Armar la misa»: el armador sigue siendo solo cantos y tono.
@@ -110,6 +111,9 @@ propone y la ve el coro.
   test y no en la iglesia.
 - Si el sitio falla, la app no inventa: muestra «No pudimos traerlas; pegá o editá el texto» y
   conserva lo que ya estuviera guardado.
+- El parser devuelve además `complejo: true` cuando encuentra más de un formulario, una secuencia,
+  una vigilia o más de cuatro partes; en ese caso la importación **no escribe nada** y la hoja
+  ofrece el pegado.
 - Atribución visible en el lector: «Fuente: Iglesia.cl · Eucaristía Diaria».
 
 ### Motor puro · `lib/motores/lecturas.ts`
@@ -232,11 +236,16 @@ lecturas**. El servidor de producción puede llegar al sitio, así que el import
   (`nota is null or misa_id is not null`). Si la persona ya propuso, puede agregar o cambiar su
   nota en la misma fila; las propuestas generales no llevan nota.
 
-### Pendiente de decisión del dueño
+### Decisiones del dueño sobre lo que quedaba abierto
 
-1. **Días complejos**: Navidad tiene tres formularios en la misma página, la Vigilia pascual
-   siete lecturas, hay secuencias y misas vespertinas anticipadas. ¿La importación se acota al día
-   ordinario (y esos días se pegan a mano), o se soportan formularios y lecturas extra?
-2. **Uso del texto y fixtures**: confirmar el uso privado y la atribución («Iglesia.cl ·
-   Eucaristía Diaria, Arzobispado de Santiago»), y que los fixtures del repo público sean
-   sintéticos —misma estructura, sin texto real— para no publicar el leccionario.
+1. **Días complejos: se acota al día ordinario.** La importación cubre la forma
+   primera–salmo–segunda–evangelio. Si la página trae más de un formulario (Navidad), una secuencia,
+   una vigilia o más de cuatro partes, el importador **no adivina**: devuelve `complejo`, muestra
+   «Este día tiene varias misas o lecturas: pegalas a mano» y el director las carga en los cuatro
+   campos. La Vigilia pascual y las secuencias entran en el campo del evangelio o en el que
+   corresponda; nunca se pierde texto. Una misa vespertina del sábado se importa eligiendo el
+   domingo en el campo de fecha de la hoja.
+2. **Texto privado y fixtures sintéticos.** El texto vive solo en la base del coro (RLS) y se cita
+   «Iglesia.cl · Eucaristía Diaria, Arzobispado de Santiago». Los fixtures del repo público son
+   HTML sintético con la misma estructura —encabezados, colores, anidado— y **sin texto real**, para
+   probar el parser sin publicar el leccionario.
