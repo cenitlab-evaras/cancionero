@@ -80,6 +80,7 @@ export default async function RepertorioPage({
     solistas?: string
     pagina?: string
     seleccion?: string
+    mas?: string
   }>
 }) {
   const sesion = await obtenerSesion()
@@ -191,6 +192,26 @@ export default async function RepertorioPage({
   )
   const momentos = grupos.map((g) => ({ codigo: g.codigo, nombre: g.nombre, cantos: g.cantos.map((c) => c.id) }))
 
+  // Tramos de la lista (2026-11-20, pedido del dueño: la primera carga pesaba
+  // 75 KB y ~529 filas): cada momento muestra 100 y «Ver más» expande esa
+  // sección desde la URL. Lo expandido se recuerda en `mas=` para que volver
+  // atrás —o compartir el enlace— conserve lo que se abrió.
+  const TRAMO = 100
+  const expandidos = new Set(
+    (sp.mas ?? '')
+      .split(',')
+      .map((c) => c.trim())
+      .filter((c) => momentos.some((m) => m.codigo === c))
+  )
+  function hrefConMas(codigo: string) {
+    const p = new URLSearchParams()
+    for (const [k, v] of Object.entries(sp)) {
+      if (v && k !== 'mas') p.set(k, v)
+    }
+    p.set('mas', [...expandidos, codigo].join(','))
+    return `/repertorio?${p.toString()}#momento-${codigo}`
+  }
+
   return (
     <>
       {/* Sin «Buscar un canto» de la cabecera: acá está la lupa del repertorio. */}
@@ -262,7 +283,10 @@ export default async function RepertorioPage({
                 aterriza bajo el bloque pegajoso (cabecera 56 px + buscador +
                 conmutador + chips), no escondido detrás. */}
             <GestosDeLista>
-            {momentos.map((m) => (
+            {momentos.map((m) => {
+              const mostrados = expandidos.has(m.codigo) ? m.cantos : m.cantos.slice(0, TRAMO)
+              const restantes = m.cantos.length - mostrados.length
+              return (
               <section
                 key={m.codigo}
                 id={`momento-${m.codigo}`}
@@ -274,7 +298,7 @@ export default async function RepertorioPage({
                     y la cuenta total ya está al pie. */}
                 <TituloSeccion>{m.nombre}</TituloSeccion>
                 <ul className="mt-1">
-                  {m.cantos.map((id) => (
+                  {mostrados.map((id) => (
                     <FilaCanto
                       key={id}
                       canto={filas[id]}
@@ -283,8 +307,17 @@ export default async function RepertorioPage({
                     />
                   ))}
                 </ul>
+                {restantes > 0 && (
+                  <Link
+                    href={hrefConMas(m.codigo)}
+                    className="tactil mt-2 inline-flex min-h-11 items-center rounded-lg px-1 text-sm text-acento underline underline-offset-2"
+                  >
+                    Ver más ({restantes})
+                  </Link>
+                )}
               </section>
-            ))}
+              )
+            })}
             </GestosDeLista>
 
             {/* Solo la cuenta. Los enlaces a historial, sugerencias y archivados
