@@ -64,7 +64,12 @@ export default async function HistorialPage() {
 
         {cantados.length > 0 && (
           <section className="pt-8">
-            <TituloSeccion detalle={String(cantados.length)}>Lo que cantamos</TituloSeccion>
+            <TituloSeccion
+              detalle={String(cantados.length)}
+              detalleHablado={cantados.length === 1 ? '1 canción' : `${cantados.length} canciones`}
+            >
+              Lo que cantamos
+            </TituloSeccion>
 
             <ul className="mt-2 border-t border-borde">
               {cantados.map((canto) => (
@@ -106,7 +111,12 @@ export default async function HistorialPage() {
 
         {nunca.length > 0 && (
           <section className="pt-8">
-            <TituloSeccion detalle={String(nunca.length)}>Nunca cantados</TituloSeccion>
+            <TituloSeccion
+              detalle={String(nunca.length)}
+              detalleHablado={nunca.length === 1 ? '1 canción' : `${nunca.length} canciones`}
+            >
+              Nunca cantados
+            </TituloSeccion>
             <p className="mt-1 max-w-prose text-sm text-texto-tenue">
               Están en el repertorio pero no han sonado en ninguna misa.
             </p>

@@ -71,7 +71,11 @@ export default function ListaMiembros({
         </p>
       )}
 
-      <TituloSeccion className="mt-6" detalle={String(enElCoro.length)}>
+      <TituloSeccion
+        className="mt-6"
+        detalle={String(enElCoro.length)}
+        detalleHablado={enElCoro.length === 1 ? '1 persona' : `${enElCoro.length} personas`}
+      >
         En el coro
       </TituloSeccion>
 

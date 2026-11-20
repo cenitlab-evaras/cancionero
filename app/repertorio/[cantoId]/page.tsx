@@ -245,7 +245,12 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
               className="flex min-w-0 flex-1 flex-col text-[0.9375rem] font-bold text-texto"
             >
               Sobre este canto
-              <span className="text-sm font-normal text-texto-tenue">{resumenSobreElCanto}</span>
+              {/* El resumen visible no se anuncia: sin esto se oía «Sobre este
+                  canto1 corrección». El sr-only lleva su espacio delante. */}
+              <span aria-hidden className="text-sm font-normal text-texto-tenue">
+                {resumenSobreElCanto}
+              </span>
+              <span className="sr-only">{` ${resumenSobreElCanto}`}</span>
             </h2>
             <IconoDesplegar className="shrink-0 text-texto-tenue transition-transform duration-150 group-open:rotate-180 motion-reduce:transition-none" />
           </summary>

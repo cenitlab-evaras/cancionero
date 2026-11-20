@@ -286,7 +286,10 @@ export default async function MisaPage({
                 manda la inscripción. */}
             {faltan.length > 0 && (
               <div className="mt-6">
-                <TituloSeccion detalle={String(faltan.length)}>
+                <TituloSeccion
+                  detalle={String(faltan.length)}
+                  detalleHablado={faltan.length === 1 ? '1 persona' : `${faltan.length} personas`}
+                >
                   {faltan.length === 1 ? 'Falta' : 'Faltan'}
                 </TituloSeccion>
                 <ul className="mt-2 divide-y divide-borde border-t border-borde">

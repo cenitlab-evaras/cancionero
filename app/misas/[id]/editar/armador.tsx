@@ -156,7 +156,11 @@ export default function Armador({
         </p>
       )}
 
-      <TituloSeccion className="mt-6" detalle={asignados.length > 0 ? String(asignados.length) : undefined}>
+      <TituloSeccion
+        className="mt-6"
+        detalle={asignados.length > 0 ? String(asignados.length) : undefined}
+        detalleHablado={asignados.length === 1 ? '1 canto' : `${asignados.length} cantos`}
+      >
         En la misa
       </TituloSeccion>
 

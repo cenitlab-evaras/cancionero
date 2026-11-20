@@ -47,6 +47,7 @@ export default function PanelAdmin({
       <TituloSeccion
         className="mt-6"
         detalle={esperando.length > 0 ? String(esperando.length) : undefined}
+        detalleHablado={esperando.length === 1 ? '1 cuenta' : `${esperando.length} cuentas`}
       >
         Esperando aprobación
       </TituloSeccion>
@@ -76,7 +77,11 @@ export default function PanelAdmin({
         </ul>
       )}
 
-      <TituloSeccion className="mt-10" detalle={String(habilitados.length)}>
+      <TituloSeccion
+        className="mt-10"
+        detalle={String(habilitados.length)}
+        detalleHablado={habilitados.length === 1 ? '1 cuenta' : `${habilitados.length} cuentas`}
+      >
         Cuentas habilitadas
       </TituloSeccion>
 
@@ -126,7 +131,11 @@ export default function PanelAdmin({
         ))}
       </ul>
 
-      <TituloSeccion className="mt-10" detalle={String(coros.length)}>
+      <TituloSeccion
+        className="mt-10"
+        detalle={String(coros.length)}
+        detalleHablado={coros.length === 1 ? '1 coro' : `${coros.length} coros`}
+      >
         Coros
       </TituloSeccion>
 

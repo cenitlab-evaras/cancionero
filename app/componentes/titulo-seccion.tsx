@@ -11,19 +11,33 @@ import type { ReactNode } from 'react'
 export default function TituloSeccion({
   children,
   detalle,
+  detalleHablado,
   id,
   className = '',
 }: {
   children: ReactNode
   /** Un dato corto que acompaña: «3 cantos», «hace 2 semanas». */
   detalle?: ReactNode
+  /**
+   * Lo que oye el lector de pantalla cuando el detalle es un número solo
+   * («12», «516»): sin esto la cuenta se pega al título y suena «En el coro12»
+   * (WCAG 1.3.1). Con la frase («12 personas») se entiende lo que se cuenta.
+   */
+  detalleHablado?: string
   id?: string
   className?: string
 }) {
   return (
     <h2 id={id} className={`flex items-baseline gap-2 text-[0.9375rem] font-bold text-texto ${className}`}>
       {children}
-      {detalle && <span className="text-sm font-normal text-texto-tenue">{detalle}</span>}
+      {detalle && (
+        <span className="text-sm font-normal text-texto-tenue">
+          {/* La cuenta visible no se anuncia: la frase de abajo la reemplaza,
+              con su espacio delante para que no se pegue al título. */}
+          <span aria-hidden>{detalle}</span>
+          <span className="sr-only">{` ${detalleHablado ?? detalle}`}</span>
+        </span>
+      )}
     </h2>
   )
 }

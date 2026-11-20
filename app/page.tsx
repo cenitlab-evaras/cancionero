@@ -218,6 +218,7 @@ export default async function Inicio() {
             id="miembros"
             titulo="Miembros del coro"
             detalle={String(fichas.length)}
+            detalleHablado={fichas.length === 1 ? '1 persona' : `${fichas.length} personas`}
             enlace={{ href: '/coro/miembros', texto: 'Ver' }}
           >
             <div className="mt-2 flex items-center gap-2">
@@ -315,19 +316,21 @@ function Bloque({
   id,
   titulo,
   detalle,
+  detalleHablado,
   enlace,
   children,
 }: {
   id: string
   titulo: string
   detalle?: string
+  detalleHablado?: string
   enlace?: { href: string; texto: string }
   children: ReactNode
 }) {
   return (
     <section aria-labelledby={id} className="mt-6 border-t border-borde pt-5">
       <div className="flex items-baseline justify-between gap-3">
-        <TituloSeccion id={id} detalle={detalle}>
+        <TituloSeccion id={id} detalle={detalle} detalleHablado={detalleHablado}>
           {titulo}
         </TituloSeccion>
         {enlace && (
