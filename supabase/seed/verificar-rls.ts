@@ -106,10 +106,13 @@ async function main() {
   await director.from('cantos').update({ notas: null }).eq('id', idAjeno!)
 
   // --- Catálogo global: visible para los internos aprobados -----------------
+  // El catálogo pasó de 11 a 12 el 2026-11-18 (`20261118000000_momento_salida.sql`
+  // agregó «Salida»). El número se actualiza, no se borra la comprobación: lo
+  // que protege es que el miembro vea el catálogo global completo.
   const { data: momentosMusico } = await musico.from('momentos_liturgicos').select('id')
   comprobar(
-    'musico@ ve los 11 momentos (catálogo global, clase D)',
-    momentosMusico?.length === 11,
+    'musico@ ve los 12 momentos (catálogo global, clase D)',
+    momentosMusico?.length === 12,
     `${momentosMusico?.length ?? 0} momentos`
   )
 
@@ -256,6 +259,151 @@ async function main() {
       JSON.stringify(ordenes) === JSON.stringify(ordenes.map((_, i) => i)),
       JSON.stringify(ordenes)
     )
+  }
+
+  // --- Lecturas de la misa · misa_lectura, RLS y RPC (2026-11-20) ------------
+  // La tabla nueva y la RPC de guardado. La RPC es `security invoker`: el
+  // delete y el insert pasan por la RLS de `misa_lectura`, y `es_director_de`
+  // devuelve un error claro en vez de cero filas afectadas. Las tres sesiones
+  // prueban lo mismo que la matriz de las misas: el director guarda, el coro
+  // lee, el ajeno ni ve ni escribe.
+  if (!misa) {
+    console.log('· sin misas armadas: se omiten las comprobaciones de lecturas')
+  } else {
+    const parte = {
+      tipo: 'primera',
+      referencia: 'Isaías 55, 1-11',
+      texto: 'Esto dice el Señor: vengan a mí.',
+      fuente: 'manual',
+    }
+
+    // El director guarda las cuatro partes con una sola llamada; acá va una
+    // sola para que el conteo sea exacto y fácil de leer.
+    const { error: errGuardarDirector } = await director.rpc('guardar_lecturas', {
+      p_misa_id: misa.id,
+      p_partes: [parte],
+    })
+    const { data: lecturasDirector } = await director
+      .from('misa_lectura')
+      .select('id, tipo, referencia, texto')
+      .eq('misa_id', misa.id)
+    comprobar(
+      'director@ guarda las lecturas de su misa por la RPC',
+      !errGuardarDirector && lecturasDirector?.length === 1,
+      errGuardarDirector
+        ? `error: ${errGuardarDirector.message}`
+        : `${lecturasDirector?.length ?? 0} filas`
+    )
+
+    const { data: lecturasMusico } = await musico
+      .from('misa_lectura')
+      .select('id, tipo, texto')
+      .eq('misa_id', misa.id)
+    comprobar(
+      'musico@ ve la lectura de su coro',
+      lecturasMusico?.[0]?.texto === parte.texto,
+      `${lecturasMusico?.length ?? 0} filas · ${lecturasMusico?.[0]?.tipo ?? '—'}`
+    )
+
+    // La RPC también se prueba por acción directa: los predicados de la tabla
+    // podrían dejar pasar un delete vacío silencioso; lo que tiene que pasar es
+    // un error.
+    const { error: errGuardarMusico } = await musico.rpc('guardar_lecturas', {
+      p_misa_id: misa.id,
+      p_partes: [{ tipo: 'salmo', texto: 'intento de un miembro' }],
+    })
+    const { data: lecturasTrasMusico } = await director
+      .from('misa_lectura')
+      .select('tipo')
+      .eq('misa_id', misa.id)
+    comprobar(
+      'musico@ no puede guardar lecturas: la RPC le responde «No tienes permiso»',
+      errGuardarMusico?.message === 'No tienes permiso' &&
+        (lecturasTrasMusico ?? []).every((l) => l.tipo !== 'salmo'),
+      errGuardarMusico ? `la RPC falló: ${errGuardarMusico.message}` : 'LA RPC NO FALLÓ: falta el permiso'
+    )
+
+    const { data: lecturasAjeno } = await ajeno.from('misa_lectura').select('id')
+    comprobar(
+      'ajeno@ no ve ninguna lectura de San José',
+      (lecturasAjeno?.length ?? 0) === 0,
+      `${lecturasAjeno?.length ?? 0} filas`
+    )
+
+    // Para el ajeno la misa ni siquiera existe: la RLS filtra el `select` de la
+    // RPC y esta corta con «La misa no existe». Falla igual, que es lo que
+    // importa.
+    const { error: errGuardarAjeno } = await ajeno.rpc('guardar_lecturas', {
+      p_misa_id: misa.id,
+      p_partes: [{ tipo: 'primera', texto: 'intento de un ajeno' }],
+    })
+    comprobar(
+      'ajeno@ no puede guardar lecturas: su RPC falla',
+      !!errGuardarAjeno,
+      errGuardarAjeno ? `la RPC falló: ${errGuardarAjeno.message}` : 'LA RPC NO FALLÓ: la política está mal'
+    )
+
+    // La nota de una sugerencia: solo con misa y hasta 280 caracteres. El check
+    // es la última línea, no el formulario — la prueba va por acción directa.
+    // Se busca un par canto/momento que este perfil no haya usado, para que un
+    // rechazo inesperado no pueda confundirse con el índice único.
+    const { data: usadas } = await musico
+      .from('sugerencia')
+      .select('canto_id, momento_id')
+      .eq('perfil_id', idMusico)
+    const par = (cantosMusico ?? [])
+      .flatMap((c) =>
+        (momentosMusico ?? []).map((m) => ({ canto_id: c.id as string, momento_id: m.id as string }))
+      )
+      .find((p) => !(usadas ?? []).some((u) => u.canto_id === p.canto_id && u.momento_id === p.momento_id))
+
+    if (!par) {
+      comprobar(
+        'una sugerencia con misa y nota se acepta',
+        false,
+        'NO SE PUDO PROBAR: no quedó un par canto/momento libre para el miembro'
+      )
+    } else {
+      const baseNota = {
+        perfil_id: idMusico,
+        canto_id: par.canto_id,
+        momento_id: par.momento_id,
+        coro_id: misa.coro_id,
+      }
+
+      const { error: errNotaGeneral } = await musico
+        .from('sugerencia')
+        .insert({ ...baseNota, misa_id: null, nota: 'Un porqué sin misa' })
+      comprobar(
+        'una sugerencia general con nota la rechaza el check de la base',
+        errNotaGeneral?.code === '23514',
+        errNotaGeneral ? 'el check lo rechazó' : 'SE ESCRIBIÓ: falta el check'
+      )
+
+      const { data: conNota, error: errNotaMisa } = await musico
+        .from('sugerencia')
+        .insert({ ...baseNota, misa_id: misa.id, nota: 'Porque habla del perdón.' })
+        .select('nota')
+        .maybeSingle()
+      comprobar(
+        'una sugerencia con misa y nota de hasta 280 caracteres se acepta',
+        conNota?.nota === 'Porque habla del perdón.',
+        errNotaMisa ? `RECHAZADA: ${errNotaMisa.message}` : 'nota guardada'
+      )
+
+      // Se deja el coro como estaba: sin la sugerencia de prueba. El par se
+      // eligió libre, así que cualquier fila que quede con estas claves es de
+      // acá — también la general si el check hubiera fallado en rechazarla.
+      await musico
+        .from('sugerencia')
+        .delete()
+        .eq('perfil_id', idMusico)
+        .eq('canto_id', par.canto_id)
+        .eq('momento_id', par.momento_id)
+    }
+
+    // Y la misa, sin lecturas: la semilla no siembra ninguna.
+    await director.from('misa_lectura').delete().eq('misa_id', misa.id)
   }
 
   // --- H7 · Gobernar el coro -------------------------------------------------
