@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { extraerLecturasDeIglesia } from './lecturas'
+import { extraerLecturasDeIglesia } from './lecturas-iglesia'
 import { CON_SEGUNDA, SIN_SEGUNDA, COMPLEJO, VACIA } from './lecturas-iglesia.fixtures'
 
 describe('extraerLecturasDeIglesia', () => {
