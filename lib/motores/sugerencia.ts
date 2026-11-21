@@ -26,6 +26,11 @@ export type Sugerencia = {
   misaId: string | null
   /** ISO. Entra como dato y no se lee el reloj: el motor tiene que ser probable. */
   creada: string
+  /**
+   * El «por qué» de quien propuso, solo con misa. `null` para la propuesta
+   * general: la base ya lo vuelve imposible ahí, y el motor no lo usa.
+   */
+  nota: string | null
 }
 
 export type FilaDelRanking = {
@@ -37,6 +42,8 @@ export type FilaDelRanking = {
   cuantas: number
   /** Quiénes, en el orden en que se fueron sumando. */
   quienes: string[]
+  /** Las notas de los que propusieron, con su autor. Vacía si nadie dejó una. */
+  notas: { nombre: string | null; texto: string }[]
   /** La más reciente de las que componen esta fila. Desempata. */
   ultima: string
 }
@@ -64,6 +71,8 @@ export function rankear(sugerencias: Sugerencia[]): FilaDelRanking[] {
   // el tipo que sale de acá sea exactamente el que la pantalla necesita, sin un
   // campo interno que después haya que recordar no dibujar.
   const vistos = new Map<string, Set<string>>()
+  // Quiénes ya dejaron su nota en cada fila: una persona, una nota.
+  const conNota = new Map<string, Set<string>>()
 
   for (const s of sugerencias) {
     const clave = `${s.cantoId}·${s.momentoId}`
@@ -74,9 +83,11 @@ export function rankear(sugerencias: Sugerencia[]): FilaDelRanking[] {
       momentoNombre: s.momentoNombre,
       cuantas: 0,
       quienes: [],
+      notas: [],
       ultima: s.creada,
     }
     const yaContados = vistos.get(clave) ?? new Set<string>()
+    const yaConNota = conNota.get(clave) ?? new Set<string>()
 
     if (!yaContados.has(s.perfilId)) {
       yaContados.add(s.perfilId)
@@ -85,8 +96,16 @@ export function rankear(sugerencias: Sugerencia[]): FilaDelRanking[] {
     }
     if (s.creada > fila.ultima) fila.ultima = s.creada
 
+    // La nota se conserva tal cual vino, con su autor. Nulas o en blanco no
+    // entran, y la misma persona no la repite aunque venga dos veces.
+    if (s.nota !== null && s.nota.trim() !== '' && !yaConNota.has(s.perfilId)) {
+      yaConNota.add(s.perfilId)
+      fila.notas.push({ nombre: s.nombre, texto: s.nota })
+    }
+
     filas.set(clave, fila)
     vistos.set(clave, yaContados)
+    conNota.set(clave, yaConNota)
   }
 
   return [...filas.values()]

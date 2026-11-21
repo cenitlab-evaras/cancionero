@@ -31,6 +31,17 @@ const Entrada = z.object({
   momentoId: z.string().uuid(),
   /** `null` = propuesta general para el momento. */
   misaId: z.string().uuid().nullable(),
+  /**
+   * El «por qué» de proponerlo, SOLO con misa. Opcional: sin ella o en blanco se
+   * guarda `null`. Se recorta y no pasa de 280 (el check de la base dice lo
+   * mismo). Quien manda nota con alcance general recibe un error claro abajo.
+   */
+  nota: z
+    .string()
+    .trim()
+    .max(280)
+    .transform((v) => (v === '' ? null : v))
+    .nullish(),
 })
 
 const NO_PUEDE = 'No perteneces a este coro.'
@@ -38,6 +49,12 @@ const NO_PUEDE = 'No perteneces a este coro.'
 async function contexto(raw: unknown) {
   const datos = Entrada.safeParse(raw)
   if (!datos.success) return { ok: false as const, error: 'Esa propuesta no es válida.' }
+  // La nota es el porqué de pedirlo PARA UNA MISA. Con alcance general no tiene
+  // sentido —la base lo volvería imposible con su check—, así que se rechaza con
+  // un error que lo diga en vez de callarlo o guardar una propuesta a medias.
+  if (datos.data.nota && datos.data.misaId === null) {
+    return { ok: false as const, error: 'El porqué solo va con una misa.' }
+  }
 
   const sesion = await obtenerSesion()
   if (!sesion) return { ok: false as const, error: 'Sesión expirada. Vuelve a entrar.' }
@@ -59,6 +76,7 @@ async function contexto(raw: unknown) {
     perfilId: sesion.usuarioId,
     coroId: canto.coro_id as string,
     ...datos.data,
+    nota: datos.data.nota ?? null,
   }
 }
 
@@ -72,13 +90,32 @@ export async function sugerirCanto(raw: unknown): Promise<Resultado> {
     momento_id: c.momentoId,
     coro_id: c.coroId,
     misa_id: c.misaId,
+    // La nota solo existe con misa; en la general ni se manda el campo.
+    ...(c.misaId !== null ? { nota: c.nota } : {}),
   })
 
   if (error) {
     // 23505 es el índice único parcial: ya la había propuesto con este alcance.
-    // No es un fallo que haya que explicar como error del sistema.
-    if (error.code === '23505') return { ok: false, error: 'Ya la propusiste.' }
-    return { ok: false, error: 'No pudimos guardar tu propuesta.' }
+    if (error.code === '23505') {
+      // Con nota, no es un duplicado: es «guardar por qué». Se actualiza la fila
+      // propia que ya estaba, y nada más — la nota viaja con misa, así que acá
+      // `misaId` no es nulo y el `eq` apunta exacto.
+      if (c.nota) {
+        const { error: errorAlGuardar } = await c.supabase
+          .from('sugerencia')
+          .update({ nota: c.nota })
+          .eq('perfil_id', c.perfilId)
+          .eq('canto_id', c.cantoId)
+          .eq('momento_id', c.momentoId)
+          .eq('misa_id', c.misaId)
+        if (errorAlGuardar) return { ok: false, error: 'No pudimos guardar tu porqué.' }
+      } else {
+        // Sin nota no hay qué guardar: es la propuesta repetida de siempre.
+        return { ok: false, error: 'Ya la propusiste.' }
+      }
+    } else {
+      return { ok: false, error: 'No pudimos guardar tu propuesta.' }
+    }
   }
 
   revalidatePath('/sugerencias')

@@ -8,6 +8,8 @@ import { misSugerencias } from '@/lib/datos/sugerencias'
 import { contarVersiones } from '@/lib/datos/versiones'
 import { misasDelCoro } from '@/lib/datos/misas'
 import { partituraPublicada } from '@/lib/datos/partitura'
+import { lecturasDeVariasMis } from '@/lib/datos/lecturas'
+import type { TipoDeLectura } from '@/lib/motores/lecturas'
 import { agruparMisas } from '@/lib/motores/agenda'
 import { renderizarCifrado } from '@/lib/motores/renderizar-cifrado'
 import { transponer, transponerAcorde } from '@/lib/motores/transponer'
@@ -86,6 +88,19 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
   // porque es una lista de trabajo abierta (§18-6).
   const agenda = agruparMisas(misas, hoyISO())
   const misasProximas = [...agenda.proximas, ...agenda.sinFecha]
+
+  // H30 · qué se lee en cada misa próxima, para mostrarlo al elegirla al proponer.
+  // Solo las partes (tipo, cita y texto); la procedencia no se dibuja acá.
+  const lecturasPorMisa: Record<
+    string,
+    { tipo: TipoDeLectura; referencia: string; texto: string }[]
+  > = {}
+  if (puedeSugerir) {
+    const mapa = await lecturasDeVariasMis(misasProximas.map((m) => m.id))
+    for (const [id, lista] of mapa) {
+      lecturasPorMisa[id] = lista.map(({ tipo, referencia, texto }) => ({ tipo, referencia, texto }))
+    }
+  }
 
   if (!canto) {
     return (
@@ -318,6 +333,7 @@ export default async function CantoPage({ params }: { params: Promise<{ cantoId:
                 momentos={canto.momentos}
                 misasProximas={misasProximas}
                 mias={mias}
+                lecturasPorMisa={lecturasPorMisa}
               />
             )}
           </div>

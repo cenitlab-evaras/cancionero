@@ -224,6 +224,16 @@ export default async function MisaPage({
                     <span className="block text-sm text-texto-tenue">
                       Lo {f.quienes.length === 1 ? 'pide' : 'piden'} {f.quienes.join(', ')}
                     </span>
+                    {/* H30 · El «por qué» de cada pedido, con quien lo dejó. */}
+                    {f.notas.length > 0 && (
+                      <ul className="mt-1 space-y-0.5">
+                        {f.notas.map((n, i) => (
+                          <li key={i} className="text-sm text-texto-tenue">
+                            «{n.texto}»{n.nombre ? ` — ${n.nombre}` : ''}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </span>
                   {/* El contador no es un acorde: va en tenue y con su unidad. */}
                   <span className="shrink-0 text-sm text-texto-tenue">

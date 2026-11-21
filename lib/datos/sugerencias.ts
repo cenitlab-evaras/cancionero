@@ -18,7 +18,7 @@ import type { Sugerencia } from '@/lib/motores/sugerencia'
  * podría resolver el embed (PGRST201, la lección de H15).
  */
 const COLUMNAS =
-  'canto_id, momento_id, misa_id, created_at, perfil_id, cantos(titulo), momentos_liturgicos(nombre), perfiles(nombre, email)'
+  'canto_id, momento_id, misa_id, created_at, perfil_id, nota, cantos(titulo), momentos_liturgicos(nombre), perfiles(nombre, email)'
 
 type Fila = {
   canto_id: string
@@ -26,6 +26,7 @@ type Fila = {
   misa_id: string | null
   created_at: string
   perfil_id: string
+  nota: string | null
   cantos: { titulo: string } | null
   momentos_liturgicos: { nombre: string } | null
   perfiles: { nombre: string | null; email: string } | null
@@ -41,6 +42,7 @@ function aDominio(data: unknown[]): Sugerencia[] {
     momentoNombre: f.momentos_liturgicos?.nombre ?? '',
     misaId: f.misa_id,
     creada: f.created_at,
+    nota: f.nota,
   }))
 }
 

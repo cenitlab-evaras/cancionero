@@ -23,7 +23,8 @@ const s = (
   perfilId: string,
   momentoId = 'comunion',
   misaId: string | null = null,
-  creada = '2026-09-01T10:00:00Z'
+  creada = '2026-09-01T10:00:00Z',
+  nota: string | null = null
 ): Sugerencia => ({
   cantoId,
   titulo: cantoId,
@@ -33,6 +34,7 @@ const s = (
   momentoNombre: momentoId,
   misaId,
   creada,
+  nota,
 })
 
 describe('rankear', () => {
@@ -93,6 +95,49 @@ describe('rankear', () => {
     const r = rankear([s('alma', 'ana'), s('alma', 'ana')])
     expect(r[0]!.cuantas).toBe(1)
     expect(r[0]!.quienes).toEqual(['ana'])
+  })
+
+  test('dos personas con notas distintas: la fila las lista con su autor', () => {
+    const r = rankear([
+      s('alma', 'ana', 'comunion', 'misa-1', '2026-09-01T10:00:00Z', 'Porque habla del envío'),
+      s('alma', 'juan', 'comunion', 'misa-1', '2026-09-02T10:00:00Z', 'La pide todo el coro'),
+    ])
+    expect(r[0]!.notas).toEqual([
+      { nombre: 'ana', texto: 'Porque habla del envío' },
+      { nombre: 'juan', texto: 'La pide todo el coro' },
+    ])
+  })
+
+  test('sin notas la fila trae `notas: []`', () => {
+    const r = rankear([s('alma', 'ana'), s('alma', 'juan')])
+    expect(r[0]!.notas).toEqual([])
+  })
+
+  test('una nota larga no rompe el ranking', () => {
+    // La base la corta a 280; el motor es puro y no puede confiar en eso.
+    const larga = 'x'.repeat(500)
+    const r = rankear([
+      s('alma', 'ana', 'comunion', 'misa-1', '2026-09-01T10:00:00Z', larga),
+      s('pescador', 'juan'),
+    ])
+    expect(r).toHaveLength(2)
+    expect(r.find((x) => x.cantoId === 'alma')!.notas[0]!.texto).toBe(larga)
+  })
+
+  test('las notas nulas o en blanco no entran', () => {
+    const r = rankear([
+      s('alma', 'ana', 'comunion', 'misa-1', '2026-09-01T10:00:00Z', '   '),
+      s('alma', 'juan', 'comunion', 'misa-1', '2026-09-02T10:00:00Z', 'La quiere el coro'),
+    ])
+    expect(r[0]!.notas).toEqual([{ nombre: 'juan', texto: 'La quiere el coro' }])
+  })
+
+  test('la misma persona no repite su nota', () => {
+    const r = rankear([
+      s('alma', 'ana', 'comunion', 'misa-1', '2026-09-01T10:00:00Z', 'Porque sí'),
+      s('alma', 'ana', 'comunion', 'misa-1', '2026-09-02T10:00:00Z', 'Porque sí'),
+    ])
+    expect(r[0]!.notas).toEqual([{ nombre: 'ana', texto: 'Porque sí' }])
   })
 })
 
