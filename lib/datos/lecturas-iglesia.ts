@@ -1,4 +1,7 @@
-import { extraerLecturasDeIglesia } from '../motores/lecturas-iglesia'
+import {
+  extraerLecturasDeIglesia,
+  type ExtraccionDeLecturas,
+} from '../motores/lecturas-iglesia'
 import type { ParteDeLectura } from '../motores/lecturas'
 
 /**
@@ -57,7 +60,7 @@ export async function traerLecturasDeIglesia(
 ): Promise<ResultadoTraida> {
   const url = `${URL_BASE}?fecha=${fecha}`
 
-  let html: string
+  let extraccion: ExtraccionDeLecturas
   try {
     const respuesta = await fetchImpl(url, {
       headers: { 'User-Agent': AGENTE },
@@ -65,12 +68,13 @@ export async function traerLecturasDeIglesia(
       cache: 'no-store',
     })
     if (!respuesta.ok) return { ok: false, motivo: 'red' }
-    html = await respuesta.text()
+    const html = await respuesta.text()
+    // El parseo también vive en el try: una excepción del extractor no debe
+    // rechazar la promesa y dejar a la acción sin el contrato `ResultadoTraida`.
+    extraccion = extraerLecturasDeIglesia(html)
   } catch {
     return { ok: false, motivo: 'red' }
   }
-
-  const extraccion = extraerLecturasDeIglesia(html)
 
   if (extraccion.complejo) return { ok: false, motivo: 'complejo' }
   if (extraccion.partes.length === 0) return { ok: false, motivo: 'sin_datos' }

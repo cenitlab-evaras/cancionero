@@ -52,7 +52,12 @@ const MESES: Record<string, string> = {
 }
 
 /** Los rótulos que abren un formulario distinto en los días complejos. */
-const FORMULARIOS = ['Misa vespertina', 'Misa de la Noche', 'Misa del Día'] as const
+const FORMULARIOS = [
+  'Misa vespertina',
+  'Misa de la Noche',
+  'Misa del Día',
+  'Misa de la aurora',
+] as const
 
 /** El texto visible de un nodo, sin `&nbsp;` ni espacios de más. */
 function limpiarTexto(texto: string): string {
@@ -161,7 +166,10 @@ function esSecuencia(texto: string): boolean {
  * se importan: el extractor no puede saber cuál de las formas es la del coro.
  */
 function esCompleja(secciones: Secciones): boolean {
-  const formularios = FORMULARIOS.filter((marca) => secciones.textoCompleto.includes(marca))
+  // Compara normalizado en ambos lados: un rótulo en MAYÚSCULAS o con otra
+  // tilde también abre un formulario distinto.
+  const texto = normalizarBusqueda(secciones.textoCompleto)
+  const formularios = FORMULARIOS.filter((marca) => texto.includes(normalizarBusqueda(marca)))
   if (formularios.length > 1) return true
 
   if (secciones.liturgia.some((parrafo) => esSecuencia(parrafo.texto))) return true
@@ -197,7 +205,7 @@ function esReferenciaDeEvangelio(texto: string): boolean {
 
 /** Después del Evangelio vienen el Credo y la oración de los fieles. */
 function cierraElEvangelio(texto: string): boolean {
-  return /^(?:credo|se dice credo|oracion universal|plegaria universal)\b/.test(
+  return /^(?:credo|se dice credo|oracion universal|plegaria universal|oracion de los fieles)\b/.test(
     normalizarBusqueda(texto),
   )
 }

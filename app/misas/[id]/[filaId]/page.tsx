@@ -94,8 +94,9 @@ export default async function EjecucionPage({
     // H23 · el enlace «Ensayar» solo si el canto tiene partitura publicada.
     puede(sesion.sujeto, 'ensayar_canto') ? partituraPublicada(fila.cantoId) : Promise.resolve(null),
     // H30 · las lecturas de la misa, para leerlas sin salir del canto. La RLS
-    // decide qué filas salen; el lector no hace fetch.
-    lecturasDeMisa(misa.id),
+    // decide qué filas salen; el lector no hace fetch. Un error de `misa_lectura`
+    // no debe tumbar la ejecución: se degrada a «sin lecturas».
+    lecturasDeMisa(misa.id).catch(() => []),
   ])
   if (!canto) redirect(`/misas/${id}`)
 

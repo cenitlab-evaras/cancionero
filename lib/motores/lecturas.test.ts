@@ -38,4 +38,43 @@ describe('repartirLecturas', () => {
   test('el texto vacío no inventa partes', () => {
     expect(repartirLecturas('   ').partes).toEqual([])
   })
+
+  test('reconoce encabezados con mayúsculas y tildes variadas', () => {
+    const r = repartirLecturas(`Primera Lectura
+Lectura del libro de Isaías 55, 1-11
+Texto de prueba de la primera.
+
+Salmo Responsorial 144, 8-9
+R. Estribillo de prueba.
+
+Segunda Lectura
+Lectura de la primera carta del Apóstol san Pablo a los Romanos 8, 35-39
+Texto de prueba de la segunda.
+
+Aclamación al Evangelio
+Aleluya de prueba.
+
+Evangelio
+Lectura del santo Evangelio según san Mateo 14, 13-21
+Texto de prueba del Evangelio.`)
+    expect(r.reconocido).toBe(true)
+    expect(r.partes.map((p) => p.tipo)).toEqual(['primera', 'salmo', 'segunda', 'evangelio'])
+    expect(r.partes[3].texto).toContain('Texto de prueba del Evangelio')
+  })
+
+  test('sin segunda lectura devuelve tres partes y no inventa una segunda', () => {
+    const r = repartirLecturas(`PRIMERA LECTURA
+Lectura del libro de Isaías 55, 1-11
+Texto de prueba de la primera.
+
+SALMO RESPONSORIAL 144, 8-9
+R. Estribillo de prueba.
+
+EVANGELIO
+Lectura del santo Evangelio según san Mateo 14, 13-21
+Texto de prueba del Evangelio.`)
+    expect(r.reconocido).toBe(true)
+    expect(r.partes.map((p) => p.tipo)).toEqual(['primera', 'salmo', 'evangelio'])
+    expect(r.partes.some((p) => p.tipo === 'segunda')).toBe(false)
+  })
 })

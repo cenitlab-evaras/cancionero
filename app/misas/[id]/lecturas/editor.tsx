@@ -328,6 +328,7 @@ export default function Editor({
                 value={c.referencia}
                 onChange={(e) => cambiar(c.tipo, { referencia: e.target.value })}
                 placeholder="Referencia (p. ej. Isaías 55, 1-11)"
+                disabled={trayendo}
                 className={`mt-1.5 ${CAMPO}`}
               />
               <textarea
@@ -335,6 +336,7 @@ export default function Editor({
                 onChange={(e) => cambiar(c.tipo, { texto: e.target.value })}
                 placeholder="Texto de la lectura"
                 rows={6}
+                disabled={trayendo}
                 className={`mt-2 min-h-28 ${CAMPO}`}
               />
               {c.fuente === 'iglesia.cl' && (

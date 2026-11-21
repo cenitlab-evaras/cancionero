@@ -58,6 +58,8 @@ export const CON_SEGUNDA = pagina(
 <p style="text-align:justify"><span style="color:rgb(255, 0, 0)">+</span><span style="color:rgb(0, 0, 0)"> Evangelio de nuestro Señor Jesucristo según san Ejemplo </span><span style="color:rgb(238, 0, 0)">14, 13-21</span></p>
 <p style="text-align:justify"><span style="color:rgb(0, 0, 0)">Texto de prueba del Evangelio.</span></p>
 <p style="text-align:justify"><span style="color:rgb(0, 0, 0)">Palabra del Señor.</span></p>
+<p style="text-align:justify"><span style="color:rgb(238, 0, 0)">Oración de los fieles</span></p>
+<p style="text-align:justify"><span style="color:rgb(0, 0, 0)">Texto inventado de la oración de los fieles que no debe entrar en el Evangelio.</span></p>
 <p style="text-align:justify"><span style="color:rgb(238, 0, 0)">Credo</span></p>
 <p style="text-align:justify"><span style="color:rgb(0, 0, 0)">Texto inventado del Credo que no debe entrar en el Evangelio.</span></p>
 </div>
@@ -100,6 +102,8 @@ export const SIN_SEGUNDA = pagina(
 /**
  * Navidad con tres formularios. El rótulo de cada uno está en un p propio,
  * como en el sitio real; las lecturas visibles son las de uno solo de ellos.
+ * Los rótulos alternan mayúsculas y tildes a propósito: el extractor debe
+ * reconocerlos igual (p. ej. «MISA DE LA NOCHE», «Misa de la aurora»).
  */
 export const COMPLEJO = pagina(
   'Eucaristía del Viernes 25 de Diciembre de 2026',
@@ -126,10 +130,10 @@ export const COMPLEJO = pagina(
 </div>
 <div class="subtitulos"><a name="eucaristia" class="subtitulos">LITURGIA EUCARÍSTICA</a></div>
 <div>
-<p style="text-align:center"><span style="color:#FF0000"><strong>Misa de la Noche</strong></span></p>
+<p style="text-align:center"><span style="color:#FF0000"><strong>MISA DE LA NOCHE</strong></span></p>
 <p style="text-align:justify"><span style="color:rgb(0, 0, 0)">Texto inventado del formulario de la noche.</span></p>
-<p style="text-align:center"><span style="color:#FF0000"><strong>Misa del Día</strong></span></p>
-<p style="text-align:justify"><span style="color:rgb(0, 0, 0)">Texto inventado del formulario del día.</span></p>
+<p style="text-align:center"><span style="color:#FF0000"><strong>Misa de la aurora</strong></span></p>
+<p style="text-align:justify"><span style="color:rgb(0, 0, 0)">Texto inventado del formulario de la aurora.</span></p>
 </div>`,
 )
 

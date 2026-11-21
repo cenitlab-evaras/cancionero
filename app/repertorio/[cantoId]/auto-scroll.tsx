@@ -55,13 +55,18 @@ export function useAutoScroll() {
         resto.current = paso.resto
 
         if (paso.avance > 0) {
-          const antes = window.scrollY
-          window.scrollBy(0, paso.avance)
-          // Si la ventana no se movió, se llegó al final: detenerse solo en vez
-          // de seguir pidiendo cuadros para siempre.
-          if (window.scrollY === antes) {
-            setAndando(false)
-            return
+          // Mientras haya un diálogo modal abierto (p. ej. el lector de las
+          // lecturas), el bucle saltea el cuadro: no se desplaza el fondo detrás
+          // del lector. Al cerrarse, retoma donde quedó.
+          if (!document.querySelector('dialog[open]')) {
+            const antes = window.scrollY
+            window.scrollBy(0, paso.avance)
+            // Si la ventana no se movió, se llegó al final: detenerse solo en vez
+            // de seguir pidiendo cuadros para siempre.
+            if (window.scrollY === antes) {
+              setAndando(false)
+              return
+            }
           }
         }
       }

@@ -97,10 +97,11 @@ export async function sugerirCanto(raw: unknown): Promise<Resultado> {
   if (error) {
     // 23505 es el índice único parcial: ya la había propuesto con este alcance.
     if (error.code === '23505') {
-      // Con nota, no es un duplicado: es «guardar por qué». Se actualiza la fila
-      // propia que ya estaba, y nada más — la nota viaja con misa, así que acá
-      // `misaId` no es nulo y el `eq` apunta exacto.
-      if (c.nota) {
+      // Con misa no es un duplicado: es «guardar (o borrar) el porqué». Se
+      // actualiza la fila propia que ya estaba SIEMPRE, con la nota tal cual
+      // llegó — incluido `null`, que borra el porqué que había. La nota viaja
+      // con misa, así que acá `misaId` no es nulo y el `eq` apunta exacto.
+      if (c.misaId !== null) {
         const { error: errorAlGuardar } = await c.supabase
           .from('sugerencia')
           .update({ nota: c.nota })
@@ -110,7 +111,7 @@ export async function sugerirCanto(raw: unknown): Promise<Resultado> {
           .eq('misa_id', c.misaId)
         if (errorAlGuardar) return { ok: false, error: 'No pudimos guardar tu porqué.' }
       } else {
-        // Sin nota no hay qué guardar: es la propuesta repetida de siempre.
+        // La propuesta general no tiene nota: repetirla no guarda nada.
         return { ok: false, error: 'Ya la propusiste.' }
       }
     } else {

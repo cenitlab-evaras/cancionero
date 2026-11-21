@@ -45,7 +45,7 @@ const MENSAJE_DE_MOTIVO: Record<MotivoDeTraida, string> = {
   // página no traiga una fecha que podamos reconocer.
   fecha:
     'No pudimos confirmar que la página sea del día pedido. Revisa la fecha o pega el texto a mano.',
-  red: 'No pudimos conectar con Iglesia.cl. Revisa tu conexión o pega el texto a mano.',
+  red: 'No pudimos conectar con Iglesia.cl. Intenta de nuevo en un momento o pega el texto a mano.',
 }
 
 // -----------------------------------------------------------------------------

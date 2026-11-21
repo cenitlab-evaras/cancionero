@@ -90,7 +90,9 @@ export default async function MisaPage({
       ? sugerenciasDeMisa(misa.id)
       : Promise.resolve([]),
     // H30 · las lecturas y el tamaño de letra de la persona, para la puerta.
-    lecturasDeMisa(misa.id),
+    // Las lecturas son un feature aditivo: un error de `misa_lectura` no debe
+    // tumbar la misa, así que se degradan a «sin lecturas».
+    lecturasDeMisa(misa.id).catch(() => []),
     preferenciasDelPerfil(),
   ])
   const pedidosRankeados = rankear(pedidos)

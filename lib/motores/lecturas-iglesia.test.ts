@@ -17,6 +17,14 @@ describe('extraerLecturasDeIglesia', () => {
     ])
   })
 
+  test('la oración de los fieles no entra en el Evangelio', () => {
+    const r = extraerLecturasDeIglesia(CON_SEGUNDA)
+    const evangelio = r.partes.find((p) => p.tipo === 'evangelio')
+    expect(evangelio).toBeDefined()
+    expect(evangelio!.texto).not.toContain('Oración de los fieles')
+    expect(evangelio!.texto).not.toContain('oración de los fieles')
+  })
+
   test('varios formularios son complejos y no traen partes', () => {
     const r = extraerLecturasDeIglesia(COMPLEJO)
     expect(r.complejo).toBe(true)
