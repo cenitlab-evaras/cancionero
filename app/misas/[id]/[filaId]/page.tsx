@@ -5,6 +5,8 @@ import { puede } from '@/lib/permisos'
 import { partituraPublicada } from '@/lib/datos/partitura'
 import { obtenerMisa } from '@/lib/datos/misas'
 import { obtenerCanto, obtenerTransposicion, preferenciasDelPerfil } from '@/lib/datos/repertorio'
+import { lecturasDeMisa } from '@/lib/datos/lecturas'
+import { fechaLarga } from '@/lib/motores/fecha'
 import { recorrido } from '@/lib/motores/misa'
 import { tonoEnLaMisa } from '@/lib/motores/tono-en-la-misa'
 import { transponer, transponerAcorde } from '@/lib/motores/transponer'
@@ -30,6 +32,7 @@ import {
   ProveedorDiagramas,
   ZonaAcordes,
 } from '@/app/repertorio/[cantoId]/diagramas'
+import PuertaLecturas from './puerta-lecturas'
 
 export const metadata = { title: 'Misa · Cantoral' }
 
@@ -84,16 +87,24 @@ export default async function EjecucionPage({
   const fila = misa.cantos.find((c) => c.id === filaId)
   if (!fila) redirect(`/misas/${id}`)
 
-  const [canto, transposicionPersonal, perfil, partitura] = await Promise.all([
+  const [canto, transposicionPersonal, perfil, partitura, lecturas] = await Promise.all([
     obtenerCanto(fila.cantoId),
     obtenerTransposicion(fila.cantoId),
     preferenciasDelPerfil(),
     // H23 · el enlace «Ensayar» solo si el canto tiene partitura publicada.
     puede(sesion.sujeto, 'ensayar_canto') ? partituraPublicada(fila.cantoId) : Promise.resolve(null),
+    // H30 · las lecturas de la misa, para leerlas sin salir del canto. La RLS
+    // decide qué filas salen; el lector no hace fetch.
+    lecturasDeMisa(misa.id),
   ])
   if (!canto) redirect(`/misas/${id}`)
 
   const { mostrarAcordes, tamanoLetra } = perfil
+  // El título del lector suma la fecha para saber de qué misa son las lecturas
+  // cuando se abren desde la ejecución, donde la cinta solo muestra el nombre.
+  const tituloLecturas = misa.fecha
+    ? `${misa.nombre} · ${fechaLarga(misa.fecha)}`
+    : misa.nombre
   // H27 · En la misa manda el tono que fijó el director para ESTA fila; sin
   // fijar, el personal de cada uno, como antes.
   const tono = tonoEnLaMisa(fila.tonoDeMisa, transposicionPersonal)
@@ -160,9 +171,18 @@ export default async function EjecucionPage({
 
           <div className="px-4 pt-4">
             <p className="text-sm text-texto-tenue">{fila.momentoNombre}</p>
-            <h1 className="titulo-libro mt-0.5 text-[1.5rem] leading-tight">
-              {canto.titulo}
-            </h1>
+            {/* El título manda; «Lecturas» va en su fila, a la derecha, y no
+                dibuja nada si la misa no tiene partes guardadas. */}
+            <div className="mt-0.5 flex items-start gap-2">
+              <h1 className="titulo-libro min-w-0 flex-1 text-[1.5rem] leading-tight">
+                {canto.titulo}
+              </h1>
+              <PuertaLecturas
+                partes={lecturas}
+                titulo={tituloLecturas}
+                tamanoLetra={tamanoLetra}
+              />
+            </div>
             {(canto.autor || canto.tonalidadOriginal || (herramientas.darTono && tonoParaDar)) && (
               <p className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-texto-tenue">
                 {[canto.autor, canto.tonalidadOriginal ? `original en ${nombrar(canto.tonalidadOriginal)}` : null]
