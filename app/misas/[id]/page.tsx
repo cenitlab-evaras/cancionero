@@ -8,6 +8,8 @@ import { inscritosDeMisa } from '@/lib/datos/inscripciones'
 import { sugerenciasDeMisa } from '@/lib/datos/sugerencias'
 import { rankear } from '@/lib/motores/sugerencia'
 import { fichasDelCoro } from '@/lib/datos/ficha'
+import { lecturasDeMisa } from '@/lib/datos/lecturas'
+import { preferenciasDelPerfil } from '@/lib/datos/repertorio'
 import { hoyISO } from '@/lib/datos/historial'
 import {
   contarInstrumento,
@@ -26,6 +28,7 @@ import TituloSeccion from '@/app/componentes/titulo-seccion'
 import { EnlaceIcono } from '@/app/componentes/boton-icono'
 import { IconoEditar, IconoVolver } from '@/app/componentes/iconos'
 import Inscripcion from './inscripcion'
+import BloqueLecturas from './lecturas/bloque'
 
 export const metadata = { title: 'Misa · Cantoral' }
 
@@ -78,7 +81,7 @@ export default async function MisaPage({
   // director). Sin ellas, `resumirCoro` agrupa las voces bajo `null` y la
   // pantalla dice «3 cantan» en vez de desglosar por tesitura — que es la
   // decisión de privacidad de H14 sostenida, no una carencia de este hito.
-  const [inscritos, fichas, pedidos] = await Promise.all([
+  const [inscritos, fichas, pedidos, lecturas, preferencias] = await Promise.all([
     puedeVerQuienVa ? inscritosDeMisa(misa.id) : Promise.resolve([]),
     puede(sesion.sujeto, 'ver_ficha_del_coro') ? fichasDelCoro(misa.coroId) : Promise.resolve([]),
     // H17 · lo que el coro pidió PARA ESTA misa. Lo general vive en
@@ -86,6 +89,9 @@ export default async function MisaPage({
     puede(sesion.sujeto, 'ver_sugerencias')
       ? sugerenciasDeMisa(misa.id)
       : Promise.resolve([]),
+    // H30 · las lecturas y el tamaño de letra de la persona, para la puerta.
+    lecturasDeMisa(misa.id),
+    preferenciasDelPerfil(),
   ])
   const pedidosRankeados = rankear(pedidos)
 
@@ -142,6 +148,18 @@ export default async function MisaPage({
             </EnlaceIcono>
           )}
         </div>
+
+        {/* H30 · Las lecturas, antes de los cantos: van primero en la liturgia.
+            El lector y el editor viven dentro del bloque; acá solo se pasa lo
+            que ya trajeron las consultas. */}
+        <BloqueLecturas
+          misaId={misa.id}
+          fecha={misa.fecha}
+          partes={lecturas}
+          esDirector={puedeEditar}
+          tamanoLetra={preferencias.tamanoLetra}
+          titulo={misa.nombre}
+        />
 
         {misa.cantos.length === 0 ? (
           <p className="mt-8 max-w-prose text-sm text-texto-tenue">
