@@ -121,10 +121,11 @@ export default function HojaTamano({
   const [error, setError] = useState<string | null>(null)
   const activo = presetDePixeles(actual)
 
-  function cerrar() {
+  function cerrar(forzar = false) {
     // Mientras se guarda, el clic-afuera y Esc no cierran: la hoja se va con
-    // el resultado, no antes.
-    if (guardando) return
+    // el resultado, no antes. `forzar` es para el cierre exitoso: el estado
+    // `guardando` de este render todavía es `true` cuando la action termina.
+    if (guardando && !forzar) return
     setError(null)
     onCerrar()
   }
@@ -139,13 +140,26 @@ export default function HojaTamano({
 
     setError(null)
     setGuardando(true)
-    const r = await guardarTamanoLetra(px)
-    setGuardando(false)
-    if (!r.ok) {
-      setError(r.error)
-      return
+    let guardado = false
+    try {
+      const r = await guardarTamanoLetra(px)
+      if (!r.ok) {
+        setError(r.error)
+        return
+      }
+      guardado = true
+    } catch {
+      // Una red caída o una sesión vencida rechazan la promesa: se dice acá y
+      // se deja la hoja cerrable, en vez de quedar con `guardando` en true.
+      setError('No se pudo guardar el tamaño. Intenta de nuevo.')
+    } finally {
+      // Pase lo que pase, los presets vuelven a estar disponibles y la X, Esc
+      // y el clic-afuera vuelven a cerrar.
+      setGuardando(false)
     }
-    cerrar()
+
+    if (!guardado) return
+    cerrar(true)
     // El tamaño vale para el canto, la misa y el repertorio que se abra después.
     router.refresh()
   }
