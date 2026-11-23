@@ -193,10 +193,12 @@ export default async function RepertorioPage({
   const momentos = grupos.map((g) => ({ codigo: g.codigo, nombre: g.nombre, cantos: g.cantos.map((c) => c.id) }))
 
   // Tramos de la lista (2026-11-20, pedido del dueño: la primera carga pesaba
-  // 75 KB y ~529 filas): cada momento muestra 100 y «Ver más» expande esa
+  // 75 KB y ~529 filas): cada momento muestra 6 y «Ver el resto» expande esa
   // sección desde la URL. Lo expandido se recuerda en `mas=` para que volver
-  // atrás —o compartir el enlace— conserve lo que se abrió.
-  const TRAMO = 100
+  // atrás —o compartir el enlace— conserve lo que se abrió. El tramo bajó de
+  // 100 a 6 en el rediseño de lectura (2026-11-23): la pared de filas de
+  // entrada era el problema, no solo el peso.
+  const TRAMO = 6
   const expandidos = new Set(
     (sp.mas ?? '')
       .split(',')
@@ -312,7 +314,7 @@ export default async function RepertorioPage({
                     href={hrefConMas(m.codigo)}
                     className="tactil mt-2 inline-flex min-h-11 items-center rounded-lg px-1 text-sm text-acento underline underline-offset-2"
                   >
-                    Ver más ({restantes})
+                    Ver el resto ({restantes})
                   </Link>
                 )}
               </section>
