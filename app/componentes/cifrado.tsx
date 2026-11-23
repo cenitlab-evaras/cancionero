@@ -1,4 +1,8 @@
+'use client'
+
+import { useEffect, useRef, useState } from 'react'
 import { renderizarCifrado, type LineaCifrado } from '@/lib/motores/renderizar-cifrado'
+import { columnasPara } from '@/lib/motores/cifrado-ancho'
 import {
   atenuarParaMiCuerda,
   nombreDeQuienCanta,
@@ -16,35 +20,19 @@ import type { CuerdaDelCoro } from '@/lib/motores/cuerdas'
  *   1. Tipografía monoespaciada. En una proporcional esto no funcionaría.
  *   2. La línea de acordes se rellena con espacios hasta la columna que toca.
  *
- * Y el ajuste de línea: el cifrado se parte a `COLUMNAS` y la tipografía se
- * encoge según el ancho del contenedor, de modo que esas columnas SIEMPRE
- * entren sin scroll horizontal — ni en un teléfono de 360 px.
+ * Y el ajuste de línea: el cifrado se parte a las columnas que ENTRAN en el
+ * ancho medido del contenedor, manteniendo la letra al tamaño pedido. La letra
+ * nunca se encoge; el reflow lo hacen las columnas — así el preset de tamaño
+ * se ve de verdad, también en un teléfono de 360 px.
  */
-
-/** Columnas de referencia, para el tamaño de letra de referencia (16 px). */
-const COLUMNAS_BASE = 42
-const TAMANO_BASE = 16
 
 /**
- * Cuántos caracteres por línea, según el tamaño de letra pedido.
- *
- * Pedir letra más grande tiene que AGRANDAR la letra, no quedar en nada. Si las
- * columnas fueran fijas, en un teléfono angosto el ajuste al ancho recalcularía
- * la fuente hacia abajo y el botón A+ no haría nada visible. Con menos columnas
- * por línea, el verso se parte más seguido y la letra sí crece.
+ * Ancho de partida antes de medir. Es el ancho útil de un teléfono de 360 px
+ * (360 − los 2×16 px de `px-4`), el caso más común. El observer lo corrige en
+ * cuanto monta; esto solo evita que el primer render use la columna del
+ * servidor sin dato.
  */
-function columnasPara(tamano: number): number {
-  return Math.max(20, Math.round((COLUMNAS_BASE * TAMANO_BASE) / tamano))
-}
-
-/**
- * Ancho de un carácter, en fracción del tamaño de fuente.
- *
- * JetBrains Mono mide exactamente 0.6em (DESIGN.md · Typography); el 0.615 deja
- * un pelo de aire por si la fuente todavía no cargó y el navegador dibuja con
- * la mono de sistema, que puede ser un poco más ancha.
- */
-const ANCHO_CARACTER = 0.615
+const ANCHO_INICIAL = 328
 
 /**
  * Las herramientas que tocan el cifrado (2026-10-17), ya resueltas por la
@@ -106,7 +94,24 @@ export default function Cifrado({
   mostrarAcordes?: boolean
   herramientas?: HerramientasDelCifrado
 }) {
-  const columnas = columnasPara(tamano)
+  const contenedor = useRef<HTMLDivElement>(null)
+  const [ancho, setAncho] = useState(ANCHO_INICIAL)
+
+  // El ancho real del contenedor manda el reflow. Se mide con ResizeObserver y
+  // no con `100cqi` porque las columnas se deciden en JS (`partirAlAncho`), no
+  // en CSS: hay que saber el ancho para cortar la letra, no solo para pintarla.
+  useEffect(() => {
+    const nodo = contenedor.current
+    if (!nodo) return
+
+    const observer = new ResizeObserver(([entrada]) => {
+      setAncho(entrada.contentRect.width)
+    })
+    observer.observe(nodo)
+    return () => observer.disconnect()
+  }, [])
+
+  const columnas = columnasPara(tamano, ancho)
   const { lineas, quienCanta } = renderizarCifrado(cifrado, {
     ancho: columnas,
     mostrarAcordes,
@@ -169,16 +174,14 @@ export default function Cifrado({
     )
   }
 
-  // El `container-type` va en el PADRE, no en el mismo elemento que usa `cqi`:
-  // un contenedor no puede consultar su propio tamaño (sería un ciclo), y las
-  // unidades se resolverían contra el viewport, que es más ancho.
+  // El `container-type` va en el PADRE y es el nodo que se mide: las columnas
+  // salen de su ancho, y el hijo solo pinta. La letra queda al px pedido: si no
+  // entra, `columnasPara` devuelve menos columnas y la letra se parte.
   return (
-    <div style={{ containerType: 'inline-size' }}>
+    <div ref={contenedor} style={{ containerType: 'inline-size' }}>
       <div
         className="cifrado"
-        style={{
-          fontSize: `min(${tamano}px, calc(100cqi / ${(columnas * ANCHO_CARACTER).toFixed(2)}))`,
-        }}
+        style={{ fontSize: `${tamano}px` }}
         aria-label="Cifrado del canto"
       >
         {enBloques(lineas).map((bloque, b) => {
