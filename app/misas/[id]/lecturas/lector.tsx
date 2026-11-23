@@ -4,7 +4,7 @@ import { useEffect, useOptimistic, useRef, useState, useTransition } from 'react
 import { useRouter } from 'next/navigation'
 import type { LecturaGuardada } from '@/lib/datos/lecturas'
 import { NOMBRE_DE_PARTE, type TipoDeLectura } from '@/lib/motores/lecturas'
-import { TAMANO_MAX, TAMANO_MIN, cambiarTamano } from '@/lib/motores/tamano-letra'
+import { PIXELES, cambiarTamano } from '@/lib/motores/tamano-letra'
 import { guardarTamanoLetra } from '@/app/repertorio/[cantoId]/acciones'
 import PantallaEncendida from '@/app/componentes/pantalla-encendida'
 import { BotonIcono } from '@/app/componentes/boton-icono'
@@ -116,7 +116,7 @@ export default function Lector({
                 <BotonIcono
                   etiqueta={`Achicar la letra, ahora en ${optimista}`}
                   apariencia="borde"
-                  disabled={optimista <= TAMANO_MIN}
+                  disabled={optimista <= PIXELES.pequeno}
                   onClick={() => ajustar(-1)}
                 >
                   <span className="text-sm font-bold" aria-hidden>
@@ -129,7 +129,7 @@ export default function Lector({
                 <BotonIcono
                   etiqueta={`Agrandar la letra, ahora en ${optimista}`}
                   apariencia="borde"
-                  disabled={optimista >= TAMANO_MAX}
+                  disabled={optimista >= PIXELES.grande}
                   onClick={() => ajustar(1)}
                 >
                   <span className="text-xl font-bold" aria-hidden>

@@ -1,41 +1,50 @@
 import { describe, expect, test } from 'vitest'
 import {
-  TAMANO_MAX,
-  TAMANO_MIN,
+  PIXELES,
+  TAMANOS,
   TAMANO_POR_DEFECTO,
   cambiarTamano,
   esTamanoValido,
+  presetDePixeles,
+  siguienteTamano,
 } from './tamano-letra'
 
 /**
- * El tamaño de letra del cifrado (RN-14, revisada el 2026-10-17).
+ * El tamaño de letra del cifrado (RN-14, revisada el 2026-11-23).
  *
- * Es de la PERSONA, no del canto, y su tope subió de 24 a 32: en 360 px los 24
- * pedidos quedaban en unos 21 reales, y para quien ve poco eso no alcanzaba.
+ * Tres presets reales —Pequeño 18 px, Regular 22 px, Grande 28 px— en vez de
+ * una grilla de 14 a 32 de a 2. Es de la PERSONA, no del canto: quien ve poco
+ * lo elige una vez y vale en todo el repertorio y en toda la misa.
  */
 describe('tamaño de letra', () => {
-  test('el rango es 14–32 y el valor por defecto 16', () => {
-    expect([TAMANO_MIN, TAMANO_MAX, TAMANO_POR_DEFECTO]).toEqual([14, 32, 16])
+  test('los presets son Pequeño 18, Regular 22 y Grande 28', () => {
+    expect([PIXELES.pequeno, PIXELES.regular, PIXELES.grande]).toEqual([18, 22, 28])
+    expect(TAMANOS).toEqual(['pequeno', 'regular', 'grande'])
+    expect(TAMANO_POR_DEFECTO).toBe('regular')
   })
 
-  test('cambia de a 2 y se topa en los extremos sin pasarse', () => {
-    expect(cambiarTamano(16, +1)).toBe(18)
-    expect(cambiarTamano(16, -1)).toBe(14)
-    expect(cambiarTamano(32, +1)).toBe(32)
-    expect(cambiarTamano(14, -1)).toBe(14)
+  test('valida lo que llega de afuera: solo los tres píxeles de los presets', () => {
+    expect(esTamanoValido(18)).toBe(true)
+    expect(esTamanoValido(20)).toBe(false)
   })
 
-  test('un valor fuera de la grilla vuelve a ella', () => {
-    // Un 24 guardado con la regla vieja sigue siendo válido; un 17 no lo es.
-    expect(cambiarTamano(17, +1)).toBe(18)
-    expect(cambiarTamano(40, -1)).toBe(32)
+  test('normaliza un píxel viejo al preset más cercano', () => {
+    expect(presetDePixeles(14)).toBe('pequeno')
+    expect(presetDePixeles(24)).toBe('regular')
+    expect(presetDePixeles(32)).toBe('grande')
   })
 
-  test('valida lo que llega de afuera', () => {
-    expect(esTamanoValido(24)).toBe(true)
-    expect(esTamanoValido(32)).toBe(true)
-    expect(esTamanoValido(34)).toBe(false)
-    expect(esTamanoValido(17)).toBe(false)
-    expect(esTamanoValido('20')).toBe(false)
+  test('un paso más grande o más chico, sin salirse de la lista', () => {
+    expect(siguienteTamano('regular', 1)).toBe('grande')
+    expect(siguienteTamano('pequeno', -1)).toBe('pequeno')
+  })
+
+  test('cambiarTamano devuelve el píxel del preset siguiente y topa en los extremos', () => {
+    expect(cambiarTamano('pequeno', 1)).toBe(22)
+    // Un valor viejo (16 px) se normaliza antes de moverse.
+    expect(cambiarTamano(16, 1)).toBe(22)
+    expect(cambiarTamano(22, -1)).toBe(18)
+    expect(cambiarTamano('grande', 1)).toBe(28)
+    expect(cambiarTamano('pequeno', -1)).toBe(18)
   })
 })

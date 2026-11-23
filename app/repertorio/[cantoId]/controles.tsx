@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useEffect, useOptimistic, useState, useTransition } from 'react'
 import { normalizarSemitonos } from '@/lib/motores/transponer'
-import { TAMANO_MAX, TAMANO_MIN, cambiarTamano } from '@/lib/motores/tamano-letra'
+import { PIXELES, cambiarTamano } from '@/lib/motores/tamano-letra'
 import { BotonIcono } from '@/app/componentes/boton-icono'
 import { IconoAgregar, IconoPausa, IconoQuitar, IconoReproducir } from '@/app/componentes/iconos'
 import { guardarTamanoLetra, guardarTransposicion } from './acciones'
@@ -198,7 +198,7 @@ export default function Controles({
               <BotonIcono
                 etiqueta={`Achicar la letra, ahora en ${optimista.tamanoLetra}`}
                 apariencia="borde"
-                disabled={optimista.tamanoLetra <= TAMANO_MIN}
+                disabled={optimista.tamanoLetra <= PIXELES.pequeno}
                 onClick={() => tamano(-1)}
               >
                 <span className="text-sm font-bold" aria-hidden>
@@ -211,7 +211,7 @@ export default function Controles({
               <BotonIcono
                 etiqueta={`Agrandar la letra, ahora en ${optimista.tamanoLetra}`}
                 apariencia="borde"
-                disabled={optimista.tamanoLetra >= TAMANO_MAX}
+                disabled={optimista.tamanoLetra >= PIXELES.grande}
                 onClick={() => tamano(1)}
               >
                 <span className="text-xl font-bold" aria-hidden>

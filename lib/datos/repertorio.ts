@@ -4,7 +4,7 @@ import { normalizarEstado, type EstadoCanto } from '@/lib/motores/estado-canto'
 import type { CancionDeCatalogo } from '@/lib/motores/catalogo'
 import { ordenarMomento } from '@/lib/motores/orden-en-el-momento'
 import { normalizarHerramientas, type Herramienta } from '@/lib/motores/herramientas'
-import { TAMANO_POR_DEFECTO, esTamanoValido } from '@/lib/motores/tamano-letra'
+import { PIXELES, TAMANO_POR_DEFECTO, presetDePixeles } from '@/lib/motores/tamano-letra'
 
 /**
  * Consultas del repertorio.
@@ -134,7 +134,7 @@ export async function repertorioPorMomento(
  * Lo que vale para esta PERSONA en todo el repertorio: si quiere ver los
  * acordes (H11) y con qué tamaño de letra lee (2026-10-17, antes era por canto).
  *
- * Sin fila devuelve los defaults de las columnas —acordes sí, 16 px—, que es el
+ * Sin fila devuelve los defaults de las columnas —acordes sí, 22 px—, que es el
  * caso de todo el mundo hasta que cambia algo. Ese vacío es legítimo y no se
  * confunde con falta de acceso: la política es `perfil_id = auth.uid()`, así que
  * nadie ve la de otro.
@@ -154,9 +154,16 @@ export async function preferenciasDelPerfil(): Promise<PreferenciasDelPerfil> {
     .select('mostrar_acordes, tamano_letra, herramientas')
     .maybeSingle()
 
+  // El píxel guardado —incluidos los 14–32 de la grilla vieja— se normaliza al
+  // preset más cercano. La base no se migra: se lee siempre como un preset.
+  const preset =
+    typeof data?.tamano_letra === 'number'
+      ? presetDePixeles(data.tamano_letra)
+      : TAMANO_POR_DEFECTO
+
   return {
     mostrarAcordes: data?.mostrar_acordes ?? true,
-    tamanoLetra: esTamanoValido(data?.tamano_letra) ? data.tamano_letra : TAMANO_POR_DEFECTO,
+    tamanoLetra: PIXELES[preset],
     herramientas: normalizarHerramientas(data?.herramientas),
   }
 }
