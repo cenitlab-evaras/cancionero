@@ -3,10 +3,19 @@
 import { useRouter } from 'next/navigation'
 import { useEffect, useOptimistic, useState, useTransition } from 'react'
 import { normalizarSemitonos } from '@/lib/motores/transponer'
-import { PIXELES, cambiarTamano } from '@/lib/motores/tamano-letra'
-import { BotonIcono } from '@/app/componentes/boton-icono'
-import { IconoAgregar, IconoPausa, IconoQuitar, IconoReproducir } from '@/app/componentes/iconos'
-import { guardarTamanoLetra, guardarTransposicion } from './acciones'
+import { BotonIcono, EnlaceIcono, clasesBotonIcono } from '@/app/componentes/boton-icono'
+import {
+  IconoAcordes,
+  IconoAgregar,
+  IconoListo,
+  IconoPausa,
+  IconoQuitar,
+  IconoReproducir,
+  IconoSeguir,
+  IconoVolver,
+} from '@/app/componentes/iconos'
+import HojaTamano from '@/app/componentes/hoja-tamano'
+import { guardarMostrarAcordes, guardarTransposicion } from './acciones'
 import { cambiarTono } from '@/app/misas/acciones'
 import { Velocidad, useAutoScroll } from './auto-scroll'
 
@@ -38,6 +47,8 @@ export default function Controles({
   tonalidadActual,
   mostrarAcordes = true,
   misa,
+  sinAutoScroll = false,
+  sinTamano = false,
 }: {
   cantoId: string
   coroId: string
@@ -56,6 +67,13 @@ export default function Controles({
    * Sin fijar, la barra es la de siempre: el tono personal.
    */
   misa?: { misaId: string; filaId: string; fijado: boolean; puedeFijar: boolean }
+  /**
+   * La ejecución de la misa (H31) lleva el auto-scroll y el Aa en su barra fija
+   * de cuatro acciones. Ahí este panel deja de dibujarlos para no ofrecer dos
+   * veces el mismo control; la transposición sigue viviendo acá.
+   */
+  sinAutoScroll?: boolean
+  sinTamano?: boolean
 }) {
   const router = useRouter()
   const [, iniciarTransicion] = useTransition()
@@ -90,17 +108,6 @@ export default function Controles({
   // «cada uno con el suyo»), igual que tocarla fuera de la misa vuelve al original.
   const quitaElDeLaMisa = !!misa?.fijado && misa.puedeFijar
 
-  function tamano(direccion: 1 | -1) {
-    const nuevo = cambiarTamano(optimista.tamanoLetra, direccion)
-    if (nuevo === optimista.tamanoLetra) return
-    iniciarTransicion(async () => {
-      aplicarOptimista({ ...optimista, tamanoLetra: nuevo })
-      const r = await guardarTamanoLetra(nuevo)
-      if (!r.ok) setAviso(r.error)
-      router.refresh()
-    })
-  }
-
   const enOriginal = optimista.transposicion === 0
   const signo =
     optimista.transposicion > 0 ? `+${optimista.transposicion}` : `${optimista.transposicion}`
@@ -116,15 +123,17 @@ export default function Controles({
       )}
 
       <div className="mx-auto flex w-full max-w-2xl items-center gap-2 px-3 py-2">
-        <BotonIcono
-          etiqueta={scroll.andando ? 'Pausar el desplazamiento' : 'Desplazar solo'}
-          apariencia="borde"
-          aria-pressed={scroll.andando}
-          onClick={scroll.alternar}
-          className={scroll.andando ? '!border-texto !bg-superficie-alta' : ''}
-        >
-          {scroll.andando ? <IconoPausa /> : <IconoReproducir />}
-        </BotonIcono>
+        {!sinAutoScroll && (
+          <BotonIcono
+            etiqueta={scroll.andando ? 'Pausar el desplazamiento' : 'Desplazar solo'}
+            apariencia="borde"
+            aria-pressed={scroll.andando}
+            onClick={scroll.alternar}
+            className={scroll.andando ? '!border-texto !bg-superficie-alta' : ''}
+          >
+            {scroll.andando ? <IconoPausa /> : <IconoReproducir />}
+          </BotonIcono>
+        )}
 
         {scroll.andando ? (
           <Velocidad velocidad={scroll.velocidad} setVelocidad={scroll.setVelocidad} />
@@ -189,51 +198,160 @@ export default function Controles({
 
         {/* Tamaño de letra. No es un ajuste secundario: hay gente en el coro que
             ve poco y este control es su forma de usar la app (PRODUCT.md).
-            Desde el 2026-11-17 es UN control con el valor a la vista: antes
-            eran dos «A» sin número y la barra pasaba de los cinco controles.
-            La hoja queda abierta al costado para repetir el toque. */}
-        <div className="relative shrink-0">
-          {ajustando && (
-            <div className="absolute right-0 bottom-[calc(100%+8px)] flex items-center gap-1 rounded-lg border border-borde-fuerte bg-superficie p-1.5">
-              <BotonIcono
-                etiqueta={`Achicar la letra, ahora en ${optimista.tamanoLetra}`}
-                apariencia="borde"
-                disabled={optimista.tamanoLetra <= PIXELES.pequeno}
-                onClick={() => tamano(-1)}
-              >
-                <span className="text-sm font-bold" aria-hidden>
-                  A
-                </span>
-              </BotonIcono>
-              <span className="w-9 text-center text-sm font-bold tabular-nums" aria-live="polite">
-                {optimista.tamanoLetra}
-              </span>
-              <BotonIcono
-                etiqueta={`Agrandar la letra, ahora en ${optimista.tamanoLetra}`}
-                apariencia="borde"
-                disabled={optimista.tamanoLetra >= PIXELES.grande}
-                onClick={() => tamano(1)}
-              >
-                <span className="text-xl font-bold" aria-hidden>
-                  A
-                </span>
-              </BotonIcono>
-            </div>
-          )}
-          <button
-            type="button"
-            onClick={() => setAjustando(!ajustando)}
-            aria-expanded={ajustando}
-            aria-label={`Tamaño de letra, ahora en ${optimista.tamanoLetra}`}
-            className={`tactil flex h-11 items-center justify-center gap-1 rounded-lg border border-borde-fuerte px-2.5 text-sm font-bold ${
-              ajustando ? 'border-texto bg-superficie-alta' : ''
-            }`}
-          >
-            <span aria-hidden>Aa</span>
-            <span className="tabular-nums">{optimista.tamanoLetra}</span>
-          </button>
-        </div>
+            Desde H31 es UN botón «Aa» con el píxel del preset a la vista, y
+            abre la hoja de tres presets; antes eran dos «A» sin número que
+            obligaban a tocar cinco veces (y la barra pasaba de cinco controles).
+            En la ejecución de la misa el Aa vive en la barra fija: `sinTamano`. */}
+        {!sinTamano && (
+          <div className="shrink-0">
+            <button
+              type="button"
+              onClick={() => setAjustando(true)}
+              aria-haspopup="dialog"
+              aria-expanded={ajustando}
+              aria-label={`Tamaño de letra, ahora en ${tamanoLetra} píxeles`}
+              className={`tactil flex h-11 items-center justify-center gap-1 rounded-lg border border-borde-fuerte px-2.5 text-sm font-bold ${
+                ajustando ? 'border-texto bg-superficie-alta' : ''
+              }`}
+            >
+              <span aria-hidden>Aa</span>
+              <span className="tabular-nums">{tamanoLetra}</span>
+            </button>
+            <HojaTamano
+              abierto={ajustando}
+              onCerrar={() => setAjustando(false)}
+              actual={tamanoLetra}
+            />
+          </div>
+        )}
       </div>
+    </div>
+  )
+}
+
+/**
+ * El interruptor de acordes de la barra del lector (H11), en ícono.
+ *
+ * `SoloLetra` —el de la lectura del repertorio— lleva su texto «Acordes» al
+ * lado; en la barra de la ejecución no entra con los otros tres íconos. Misma
+ * preferencia y misma acción (`guardarMostrarAcordes`), así que se alterna desde
+ * cualquiera de las dos pantallas. El tachado dice «solo letra» sin depender
+ * del color.
+ */
+export function BotonAcordes({ mostrarAcordes }: { mostrarAcordes: boolean }) {
+  const router = useRouter()
+  const [, iniciarTransicion] = useTransition()
+  const [optimista, aplicarOptimista] = useOptimistic(mostrarAcordes)
+
+  function alternar() {
+    iniciarTransicion(async () => {
+      aplicarOptimista(!optimista)
+      await guardarMostrarAcordes(!optimista)
+      // Se vuelve a leer siempre: si el guardado falló, el ícono regresa al
+      // estado real en vez de quedarse mintiendo.
+      router.refresh()
+    })
+  }
+
+  return (
+    <BotonIcono
+      etiqueta={optimista ? 'Ocultar los acordes' : 'Mostrar los acordes'}
+      apariencia={optimista ? 'activo' : 'plano'}
+      aria-pressed={optimista}
+      onClick={alternar}
+    >
+      <span className="relative">
+        <IconoAcordes />
+        {!optimista && (
+          <span
+            aria-hidden
+            className="absolute top-1/2 left-1/2 h-[1.75px] w-7 -translate-x-1/2 -translate-y-1/2 -rotate-45 rounded bg-current"
+          />
+        )}
+      </span>
+    </BotonIcono>
+  )
+}
+
+/**
+ * La barra fija del lector de una tarea (H31): anterior · Aa · auto · siguiente.
+ *
+ * Es la única barra que se usa de pie, con el pulgar, a mitad de la misa: los
+ * cuatro controles son de 44 px y no hay scroll horizontal a 360. El
+ * auto-scroll es el MISMO hook de `auto-scroll.tsx` (`useAutoScroll`); con el
+ * desplazamiento andando aparece arriba su velocidad, para no perder el control
+ * que antes vivía en el panel.
+ *
+ * El panel (`PanelLectura`) sigue existiendo para transponer, y por eso
+ * `Controles` se monta con `sinAutoScroll` y `sinTamano`: acá no se duplica
+ * ningún control.
+ */
+export function BarraLector({
+  misaId,
+  anterior,
+  siguiente,
+  tamanoLetra,
+}: {
+  misaId: string
+  anterior: string | null
+  siguiente: string | null
+  tamanoLetra: number
+}) {
+  const scroll = useAutoScroll()
+  const [hoja, setHoja] = useState(false)
+
+  return (
+    <div className="border-t border-borde bg-fondo pb-[env(safe-area-inset-bottom)]">
+      {scroll.andando && (
+        <div className="mx-auto flex w-full max-w-2xl items-center gap-2 px-4 pt-1">
+          <Velocidad velocidad={scroll.velocidad} setVelocidad={scroll.setVelocidad} />
+        </div>
+      )}
+
+      <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-1 px-2 py-1">
+        {anterior ? (
+          <EnlaceIcono href={`/misas/${misaId}/${anterior}`} etiqueta="Canto anterior">
+            <IconoVolver />
+          </EnlaceIcono>
+        ) : (
+          <span aria-hidden className={clasesBotonIcono('plano', 'opacity-30')}>
+            <IconoVolver />
+          </span>
+        )}
+
+        <BotonIcono
+          etiqueta={`Tamaño de letra, ahora en ${tamanoLetra} píxeles`}
+          aria-haspopup="dialog"
+          aria-expanded={hoja}
+          onClick={() => setHoja(true)}
+          className="px-2"
+        >
+          <span aria-hidden className="text-base font-bold">
+            Aa
+          </span>
+        </BotonIcono>
+
+        <BotonIcono
+          etiqueta={scroll.andando ? 'Pausar el desplazamiento' : 'Desplazar solo'}
+          apariencia={scroll.andando ? 'activo' : 'plano'}
+          aria-pressed={scroll.andando}
+          onClick={scroll.alternar}
+        >
+          {scroll.andando ? <IconoPausa /> : <IconoReproducir />}
+        </BotonIcono>
+
+        {siguiente ? (
+          <EnlaceIcono href={`/misas/${misaId}/${siguiente}`} etiqueta="Siguiente canto">
+            <IconoSeguir />
+          </EnlaceIcono>
+        ) : (
+          <EnlaceIcono href={`/misas/${misaId}`} etiqueta="Terminar la misa">
+            <IconoListo />
+          </EnlaceIcono>
+        )}
+      </div>
+
+      <HojaTamano abierto={hoja} onCerrar={() => setHoja(false)} actual={tamanoLetra} />
     </div>
   )
 }

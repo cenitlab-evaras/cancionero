@@ -9,8 +9,10 @@ import { sugerenciasDeMisa } from '@/lib/datos/sugerencias'
 import { rankear } from '@/lib/motores/sugerencia'
 import { fichasDelCoro } from '@/lib/datos/ficha'
 import { lecturasDeMisa } from '@/lib/datos/lecturas'
-import { preferenciasDelPerfil } from '@/lib/datos/repertorio'
-import { hoyISO } from '@/lib/datos/historial'
+import { preferenciasDelPerfil, repertorioPorMomento } from '@/lib/datos/repertorio'
+import { hoyISO, repertorioConHistorial } from '@/lib/datos/historial'
+import { nivelDeComplejidad } from '@/lib/motores/complejidad'
+import type { EstadoCanto } from '@/lib/motores/estado-canto'
 import {
   contarInstrumento,
   contarVoces,
@@ -25,11 +27,14 @@ import { fechaLarga } from '@/lib/motores/fecha'
 import { tonalidadDeLaFila } from '@/lib/motores/tono-en-la-misa'
 import Cabecera from '@/app/componentes/cabecera'
 import TituloSeccion from '@/app/componentes/titulo-seccion'
+import Ayuda from '@/app/componentes/ayuda'
+import ContextoMisa from '@/app/componentes/contexto-misa'
 import { EnlaceIcono } from '@/app/componentes/boton-icono'
-import { IconoEditar, IconoVolver } from '@/app/componentes/iconos'
+import { IconoEditar, IconoReproducir, IconoVolver } from '@/app/componentes/iconos'
 import Inscripcion from './inscripcion'
 import BloqueLecturas from './lecturas/bloque'
 import ArchivarMisa from './archivar'
+import { guardarContextoDeMisa } from '../acciones'
 
 export const metadata = { title: 'Misa · Cantoral' }
 
@@ -82,21 +87,49 @@ export default async function MisaPage({
   // director). Sin ellas, `resumirCoro` agrupa las voces bajo `null` y la
   // pantalla dice «3 cantan» en vez de desglosar por tesitura — que es la
   // decisión de privacidad de H14 sostenida, no una carencia de este hito.
-  const [inscritos, fichas, pedidos, lecturas, preferencias] = await Promise.all([
-    puedeVerQuienVa ? inscritosDeMisa(misa.id) : Promise.resolve([]),
-    puede(sesion.sujeto, 'ver_ficha_del_coro') ? fichasDelCoro(misa.coroId) : Promise.resolve([]),
-    // H17 · lo que el coro pidió PARA ESTA misa. Lo general vive en
-    // /sugerencias: son dos preguntas distintas y no se suman.
-    puede(sesion.sujeto, 'ver_sugerencias')
-      ? sugerenciasDeMisa(misa.id)
-      : Promise.resolve([]),
-    // H30 · las lecturas y el tamaño de letra de la persona, para la puerta.
-    // Las lecturas son un feature aditivo: un error de `misa_lectura` no debe
-    // tumbar la misa, así que se degradan a «sin lecturas».
-    lecturasDeMisa(misa.id).catch(() => []),
-    preferenciasDelPerfil(),
-  ])
+  const [inscritos, fichas, pedidos, lecturas, preferencias, grupos, conHistorial] =
+    await Promise.all([
+      puedeVerQuienVa ? inscritosDeMisa(misa.id) : Promise.resolve([]),
+      puede(sesion.sujeto, 'ver_ficha_del_coro') ? fichasDelCoro(misa.coroId) : Promise.resolve([]),
+      // H17 · lo que el coro pidió PARA ESTA misa. Lo general vive en
+      // /sugerencias: son dos preguntas distintas y no se suman.
+      puede(sesion.sujeto, 'ver_sugerencias')
+        ? sugerenciasDeMisa(misa.id)
+        : Promise.resolve([]),
+      // H30 · las lecturas y el tamaño de letra de la persona, para la puerta.
+      // Las lecturas son un feature aditivo: un error de `misa_lectura` no debe
+      // tumbar la misa, así que se degradan a «sin lecturas».
+      lecturasDeMisa(misa.id).catch(() => []),
+      preferenciasDelPerfil(),
+      // H31 · el contexto de la misa: la complejidad se calcula al leer con el
+      // estado de cada canto y las veces que ya sonó. Es el mismo patrón de
+      // `app/page.tsx`; `repertorioPorMomento` aporta el estado y sobra el resto.
+      repertorioPorMomento(misa.coroId),
+      repertorioConHistorial(misa.coroId),
+    ])
   const pedidosRankeados = rankear(pedidos)
+
+  // El estado de cada canto de la misa y sus veces cantadas, como mapas por id:
+  // una misa puede repetir el mismo canto en dos momentos.
+  const estadoDe = new Map<string, EstadoCanto>()
+  for (const grupo of grupos) {
+    for (const canto of grupo.cantos) estadoDe.set(canto.id, canto.estado)
+  }
+  const vecesDe = new Map(conHistorial.map((c) => [c.id, c.historial.veces]))
+  const nivel = nivelDeComplejidad(
+    misa.cantos.map((c) => ({
+      id: c.cantoId,
+      estado: estadoDe.get(c.cantoId) ?? 'listo',
+      veces: vecesDe.get(c.cantoId) ?? 0,
+    }))
+  )
+  const contextoNivel = { ...nivel, total: new Set(misa.cantos.map((c) => c.cantoId)).size }
+  // El coro que canta es el de la misa, no necesariamente el activo: la cookie
+  // puede apuntar a otro y la misa se abre desde el calendario del suyo.
+  const coroNombre =
+    sesion.coros.find((c) => c.id === misa.coroId)?.nombre ??
+    sesion.coroActivo?.nombre ??
+    'Tu coro'
 
   const miInscripcion = inscritos.find((i) => i.perfilId === sesion.usuarioId) ?? null
   const resumen = resumirCoro(inscritos, fichas)
@@ -119,7 +152,7 @@ export default async function MisaPage({
 
   return (
     <>
-      <Cabecera sesion={sesion} />
+      <Cabecera sesion={sesion} acciones={<Ayuda />} />
 
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 pb-10">
         <div className="-ml-3 pt-2">
@@ -132,24 +165,44 @@ export default async function MisaPage({
           {misa.nombre}
         </h1>
         {/* La fecha no aparecía en ninguna parte del detalle: había que volver
-            a la lista para saber de qué domingo era. */}
+            a la lista para saber de qué domingo era. Desde H31 comparte la
+            línea con la cuenta de cantos, como el meta de la maqueta. */}
         <p className="mt-1 text-base text-texto-tenue">
-          {misa.fecha ? fechaLarga(misa.fecha) : 'Sin fecha'}
+          {misa.fecha ? fechaLarga(misa.fecha) : 'Sin fecha'} · {cantos}
         </p>
 
-        <div className="mt-3 flex items-center justify-between gap-3">
-          <p className="text-sm text-texto-tenue">{cantos}</p>
-          {puedeEditar && (
-            <EnlaceIcono
-              href={`/misas/${misa.id}/editar`}
-              etiqueta="Armar la misa"
-              texto="Armar la misa"
-              apariencia="borde"
-              className="pr-4"
-            >
-              <IconoEditar tamano={18} />
-            </EnlaceIcono>
+        {/* H31 · la fila de la maqueta: el ícono manda y la etiqueta solo
+            acompaña. «Empezar» entra al primer canto; «Editar» abre el armado
+            completo (la celebración y el lugar se editan desde el contexto).
+            El ancho de las cajas está calculado para que a 360 px entren las
+            dos acciones y los cuatro íconos del contexto. */}
+        <div className="mt-4 flex items-start justify-between gap-1">
+          {misa.cantos.length > 0 && (
+            <AccionMisa
+              href={`/misas/${misa.id}/${misa.cantos[0].id}`}
+              etiqueta="Empezar la misa"
+              texto="Empezar"
+              primaria
+              icono={<IconoReproducir tamano={22} />}
+            />
           )}
+          {puedeEditar && (
+            <AccionMisa
+              href={`/misas/${misa.id}/editar`}
+              etiqueta="Editar la misa"
+              texto="Editar"
+              icono={<IconoEditar tamano={22} />}
+            />
+          )}
+          <ContextoMisa
+            misaId={misa.id}
+            coro={coroNombre}
+            nivel={contextoNivel}
+            celebracion={misa.celebracion}
+            lugar={misa.lugar}
+            puedeEditar={puedeEditar}
+            onGuardarContexto={guardarContextoDeMisa}
+          />
         </div>
 
         {/* H30 · Las lecturas, antes de los cantos: van primero en la liturgia.
@@ -168,7 +221,7 @@ export default async function MisaPage({
           <p className="mt-8 max-w-prose text-sm text-texto-tenue">
             Esta misa todavía no tiene cantos.
             {puedeEditar
-              ? ' Toca «Armar la misa» para asignarle uno por momento.'
+              ? ' Toca «Editar» para asignarle uno por momento.'
               : ' Cuando tu director la arme, aparecen acá.'}
           </p>
         ) : (
@@ -192,17 +245,6 @@ export default async function MisaPage({
               ))}
             </ol>
 
-            {/* Sin «Empezar la misa» (2026-11-20): se toca el canto que toca y
-                se avanza con la flecha de la lectura. El repaso de una misa que
-                ya pasó sí se ofrece: no hay una «primera vez» que empezar. */}
-            {yaPaso && (
-              <Link
-                href={`/misas/${misa.id}/${misa.cantos[0].id}`}
-                className="tactil mt-4 inline-flex items-center text-sm text-acento underline underline-offset-2"
-              >
-                Repasar los cantos
-              </Link>
-            )}
           </>
         )}
 
@@ -342,5 +384,51 @@ export default async function MisaPage({
         {yaPaso && puedeEditar && <ArchivarMisa misaId={misa.id} />}
       </main>
     </>
+  )
+}
+
+/**
+ * Una de las acciones de la cabecera de la misa: el ícono en su caja y la
+ * etiqueta debajo, como `.accion-icono` de la maqueta y `AccionHoy`.
+ *
+ * La caja mide 46 px y la etiqueta 10,5 px para que «Empezar», «Editar» y los
+ * cuatro íconos del contexto entren en una fila a 360 px sin scroll horizontal.
+ */
+function AccionMisa({
+  href,
+  etiqueta,
+  texto,
+  icono,
+  primaria = false,
+}: {
+  href: string
+  etiqueta: string
+  texto: string
+  icono: React.ReactNode
+  primaria?: boolean
+}) {
+  return (
+    <Link
+      href={href}
+      aria-label={etiqueta}
+      className="flex w-[46px] shrink-0 flex-col items-center gap-1.5"
+    >
+      <span
+        className={`grid h-[46px] w-[46px] place-items-center rounded-[14px] border transition-colors ${
+          primaria
+            ? 'border-acento bg-acento text-sobre-acento hover:brightness-110 active:brightness-95'
+            : 'border-borde-fuerte bg-transparent text-texto hover:bg-superficie'
+        }`}
+      >
+        {icono}
+      </span>
+      <span
+        className={`text-[10.5px] font-bold whitespace-nowrap ${
+          primaria ? 'text-acento' : 'text-texto-tenue'
+        }`}
+      >
+        {texto}
+      </span>
+    </Link>
   )
 }

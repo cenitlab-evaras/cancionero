@@ -13,6 +13,11 @@ import { IconoDesplegar } from '@/app/componentes/iconos'
  * arriba a la derecha, y se cierra tocando afuera, con Esc, o con el mismo
  * botón.
  *
+ * En el lector de una tarea (H31) el Aa subió a la barra fija de cuatro
+ * acciones y el botón de arriba a la derecha chocaría con su barra de íconos:
+ * esa pantalla pasa `mostrarTamano={false}` y `sinBotonSuperior`. La manija y
+ * los bordes siguen abriendo el panel, que es donde vive la transposición.
+ *
  * NO se desmonta: el auto scroll vive adentro de `Controles`, y esconder la
  * barra no puede detener la letra que avanza sola. Cerrado se colapsa con
  * `transform` y una reja de 0fr —sin alto reservado— y queda `inert`, así el
@@ -23,6 +28,8 @@ export default function PanelLectura({
   tono,
   tamano,
   mostrarTono = true,
+  mostrarTamano = true,
+  sinBotonSuperior = false,
 }: {
   children: ReactNode
   /** El tono actual, ya nombrado; `null` = sin tonalidad. */
@@ -31,6 +38,10 @@ export default function PanelLectura({
   tamano: number
   /** H11 · Con los acordes apagados el tono no cambia la pantalla: no se muestra. */
   mostrarTono?: boolean
+  /** H31 · En la ejecución el Aa vive en la barra fija: la manija no lo repite. */
+  mostrarTamano?: boolean
+  /** H31 · La barra de arriba del lector ocupa la esquina: se retira el botón. */
+  sinBotonSuperior?: boolean
 }) {
   const [abierto, setAbierto] = useState(false)
 
@@ -55,17 +66,19 @@ export default function PanelLectura({
   return (
     <>
       {/* El botón de arriba: el camino con teclado y lector de pantalla. */}
-      <button
-        type="button"
-        data-panel-toggle
-        onClick={() => setAbierto((a) => !a)}
-        aria-expanded={abierto}
-        aria-controls="panel-controles-lectura"
-        aria-label={abierto ? 'Ocultar los controles del canto' : 'Mostrar los controles del canto'}
-        className={`fixed top-1 right-2 z-(--z-cabecera) ${clasesBotonIcono(abierto ? 'activo' : 'plano')}`}
-      >
-        <IconoDesplegar />
-      </button>
+      {!sinBotonSuperior && (
+        <button
+          type="button"
+          data-panel-toggle
+          onClick={() => setAbierto((a) => !a)}
+          aria-expanded={abierto}
+          aria-controls="panel-controles-lectura"
+          aria-label={abierto ? 'Ocultar los controles del canto' : 'Mostrar los controles del canto'}
+          className={`fixed top-1 right-2 z-(--z-cabecera) ${clasesBotonIcono(abierto ? 'activo' : 'plano')}`}
+        >
+          <IconoDesplegar />
+        </button>
+      )}
 
       {/* Los bordes: el gesto del pulgar. Invisibles salvo su hebra. */}
       {!abierto && (
@@ -132,7 +145,7 @@ export default function PanelLectura({
           aria-controls="panel-controles-lectura"
           aria-label={`${abierto ? 'Ocultar' : 'Mostrar'} los controles del canto. ${
             mostrarTono && tono ? `Tono ${tono}. ` : ''
-          }Letra ${tamano}.`}
+          }${mostrarTamano ? `Letra ${tamano}.` : ''}`}
           className="tactil flex min-h-11 w-full items-center gap-3 px-4 text-left text-texto"
         >
           {mostrarTono && (
@@ -141,12 +154,14 @@ export default function PanelLectura({
               <span className="font-cifrado text-base font-bold text-acorde">{tono ?? '—'}</span>
             </span>
           )}
-          <span className="flex items-baseline gap-1.5 text-sm text-texto-tenue">
-            <span aria-hidden className="font-bold">
-              Aa
+          {mostrarTamano && (
+            <span className="flex items-baseline gap-1.5 text-sm text-texto-tenue">
+              <span aria-hidden className="font-bold">
+                Aa
+              </span>
+              <span className="tabular-nums">{tamano}</span>
             </span>
-            <span className="tabular-nums">{tamano}</span>
-          </span>
+          )}
           <span className="ml-auto flex items-center gap-1.5 text-sm text-texto-tenue">
             <span>{abierto ? 'Ocultar' : 'Controles'}</span>
             <IconoDesplegar
