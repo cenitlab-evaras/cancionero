@@ -25,11 +25,11 @@ import { fechaLarga } from '@/lib/motores/fecha'
 import { tonalidadDeLaFila } from '@/lib/motores/tono-en-la-misa'
 import Cabecera from '@/app/componentes/cabecera'
 import TituloSeccion from '@/app/componentes/titulo-seccion'
-import { BotonIcono, EnlaceIcono } from '@/app/componentes/boton-icono'
-import { IconoArchivo, IconoEditar, IconoVolver } from '@/app/componentes/iconos'
+import { EnlaceIcono } from '@/app/componentes/boton-icono'
+import { IconoEditar, IconoVolver } from '@/app/componentes/iconos'
 import Inscripcion from './inscripcion'
 import BloqueLecturas from './lecturas/bloque'
-import { archivarMisa } from '../acciones'
+import ArchivarMisa from './archivar'
 
 export const metadata = { title: 'Misa · Cantoral' }
 
@@ -109,16 +109,6 @@ export default async function MisaPage({
   // halo invitaba a «empezar» algo que ya ocurrió; ahí queda un enlace tenue
   // para repasar. Una misa sin fecha (una lista) se puede empezar siempre.
   const yaPaso = !!misa.fecha && misa.fecha < hoy
-
-  // Archivar vivía SOLO en la lista de Misas, que ahora es el calendario. La
-  // salida se queda en la pantalla de la misa: el director archiva una misa que
-  // ya pasó y vuelve al calendario, donde deja de aparecer.
-  const misaId = misa.id
-  async function archivarLaMisa() {
-    'use server'
-    const resultado = await archivarMisa(misaId)
-    if (resultado.ok) redirect('/misas')
-  }
 
   const cantos =
     misa.cantos.length === 0
@@ -347,26 +337,9 @@ export default async function MisaPage({
 
         {/* La misa vieja se archiva desde acá (2026-11-23): sale de la app y
             queda en la base como respaldo. Solo se ofrece cuando ya pasó, que
-            es exactamente lo que la acción acepta. */}
-        {yaPaso && puedeEditar && (
-          <section className="mt-10 border-t border-borde pt-6">
-            <TituloSeccion>Esta misa ya pasó</TituloSeccion>
-            <p className="mt-1 max-w-prose text-sm text-texto-tenue">
-              Al archivarla sale del calendario de Misas y queda guardada como respaldo.
-            </p>
-            <form action={archivarLaMisa} className="mt-3">
-              <BotonIcono
-                type="submit"
-                etiqueta="Archivar misa"
-                apariencia="borde"
-                className="pr-4"
-              >
-                <IconoArchivo tamano={18} />
-                <span className="text-sm">Archivar misa</span>
-              </BotonIcono>
-            </form>
-          </section>
-        )}
+            es exactamente lo que la acción acepta. La confirmación vive en la
+            isla, porque archivar es destructivo y el gesto anterior la pedía. */}
+        {yaPaso && puedeEditar && <ArchivarMisa misaId={misa.id} />}
       </main>
     </>
   )

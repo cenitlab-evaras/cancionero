@@ -122,6 +122,9 @@ export default async function MisasPage({
   // Las misas que caen en ESTE mes. `misasDelCoro` ya trae el orden por fecha
   // descendente y excluye las archivadas; acá solo se separa el mes.
   const misasDelMes = misas.filter((m) => m.fecha && dias.has(m.fecha))
+  // Las listas de trabajo no tienen día en la grilla, pero no pueden quedar
+  // huérfanas: el calendario las deja accesibles al pie.
+  const sinFecha = misas.filter((m) => !m.fecha)
 
   const porDia = new Map<string, MisaDeLista[]>()
   for (const misa of misasDelMes) {
@@ -341,6 +344,30 @@ export default async function MisasPage({
             </>
           )}
         </section>
+
+        {/* Las misas sin fecha no entran al calendario —no son un día— pero
+            siguen existiendo como listas de trabajo. Antes vivían en su propia
+            sección de la lista agrupada; al reemplazarla por la grilla no
+            pueden quedar sin ningún acceso. */}
+        {sinFecha.length > 0 && (
+          <section className="mt-10 border-t border-borde pt-6">
+            <TituloSeccion>Misas sin fecha</TituloSeccion>
+            <ul className="mt-2 divide-y divide-borde border-t border-borde">
+              {sinFecha.map((misa) => (
+                <li key={misa.id}>
+                  <Link
+                    href={`/misas/${misa.id}`}
+                    className="-mx-2 flex min-h-14 items-center rounded-lg px-2 py-2.5 transition-colors hover:bg-superficie"
+                  >
+                    <span className="min-w-0 flex-1 truncate text-base">
+                      {misa.nombre}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
       </main>
     </>
   )
