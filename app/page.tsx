@@ -92,32 +92,27 @@ export default async function Hoy() {
 
   return (
     <>
-      <Cabecera sesion={sesion} />
+      <Cabecera sesion={sesion} acciones={<Ayuda />} />
 
       <main className="mx-auto w-full max-w-2xl px-4 pt-4 pb-10">
         {misa && resumen?.fecha ? (
           <>
             <section aria-labelledby="hoy-misa">
-              <div className="flex items-start gap-2">
-                <div className="min-w-0 flex-1">
-                  <h1
-                    id="hoy-misa"
-                    className="text-[2.5rem] leading-[1.02] font-bold tracking-[-0.02em] text-balance"
-                  >
-                    {misa.nombre}
-                  </h1>
-                  <p className="mt-1.5 text-sm text-texto-tenue">
-                    {falta && (
-                      <>
-                        <span className="font-bold text-acento">{falta}</span> ·{' '}
-                      </>
-                    )}
-                    {fechaLarga(resumen.fecha)} · {cuentaCantos}
-                  </p>
-                </div>
-                <div className="shrink-0">
-                  <Ayuda />
-                </div>
+              <div className="min-w-0">
+                <h1
+                  id="hoy-misa"
+                  className="text-[2.5rem] leading-[1.02] font-bold tracking-[-0.02em] text-balance"
+                >
+                  {misa.nombre}
+                </h1>
+                <p className="mt-1.5 text-sm text-texto-tenue">
+                  {falta && (
+                    <>
+                      <span className="font-bold text-acento">{falta}</span> ·{' '}
+                    </>
+                  )}
+                  {fechaLarga(resumen.fecha)} · {cuentaCantos}
+                </p>
               </div>
 
               {/* Sin cantos, «Empezar» no existe: no hay a qué entrar. «La misa»
@@ -205,23 +200,18 @@ export default async function Hoy() {
           </>
         ) : (
           <section aria-labelledby="sin-misa" className="pt-6">
-            <div className="flex items-start gap-2">
-              <div className="min-w-0 flex-1">
-                <h1
-                  id="sin-misa"
-                  className="text-[2.5rem] leading-[1.02] font-bold tracking-[-0.02em] text-balance"
-                >
-                  No hay ninguna misa agendada
-                </h1>
-                <p className="mt-2 max-w-prose text-texto-tenue prosa-equilibrada">
-                  {puedeEditarMisa
-                    ? 'Agenda la próxima y aparece acá, lista para empezar.'
-                    : 'Cuando el director agende la próxima, aparece acá, lista para empezar.'}
-                </p>
-              </div>
-              <div className="shrink-0">
-                <Ayuda />
-              </div>
+            <div className="min-w-0">
+              <h1
+                id="sin-misa"
+                className="text-[2.5rem] leading-[1.02] font-bold tracking-[-0.02em] text-balance"
+              >
+                No hay ninguna misa agendada
+              </h1>
+              <p className="mt-2 max-w-prose text-texto-tenue prosa-equilibrada">
+                {puedeEditarMisa
+                  ? 'Agenda la próxima y aparece acá, lista para empezar.'
+                  : 'Cuando el director agende la próxima, aparece acá, lista para empezar.'}
+              </p>
             </div>
 
             {puedeEditarMisa && (
@@ -243,7 +233,7 @@ export default async function Hoy() {
  * Una de las dos acciones de la fila: el ícono en su caja y la etiqueta debajo.
  *
  * Es la forma de la maqueta (`.accion-icono`): el ícono manda y el texto solo
- * acompaña. La caja mide 46 px y la etiqueta 10 px para que «Empezar», «La
+ * acompaña. La caja mide 46 px y la etiqueta 10,5 px para que «Empezar», «La
  * misa» y los cuatro íconos del contexto entren en una fila a 360 px.
  */
 function AccionHoy({

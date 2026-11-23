@@ -18,7 +18,7 @@ import { IconoAyuda, IconoCerrar } from './iconos'
 const ITEMS = [
   ['Empezar', 'Abre el primer canto y te deja en el lector.'],
   ['Barra de abajo', 'Anterior, Aa, auto-scroll y siguiente, siempre a la vista.'],
-  ['Aa', 'Pequeño, Regular o Grande. Se guarda para vos.'],
+  ['Aa', 'Pequeño, Regular o Grande. Se guarda para ti.'],
   ['Acordes', 'La nota musical muestra u oculta los acordes.'],
   ['Lecturas y partes', 'El libro abre las lecturas; la lista, los cantos de la misa.'],
   [
@@ -72,7 +72,7 @@ export default function Ayuda({ etiqueta = 'Cómo leer' }: { etiqueta?: string }
 
           <div className="px-4 pt-3 pb-6">
             <p className="max-w-prose text-sm text-texto-tenue prosa-equilibrada">
-              Todo lo que necesitás para pasar de un canto al siguiente sin salir del lector.
+              Todo lo que necesitas para pasar de un canto al siguiente sin salir del lector.
             </p>
 
             <ul className="mt-4 space-y-3">

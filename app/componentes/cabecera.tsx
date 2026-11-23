@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import type { ReactNode } from 'react'
 import type { SesionCantoral } from '@/lib/sesion'
 import { nombreDelRol } from '@/lib/permisos'
 import EscudoCoro from './escudo-coro'
@@ -14,7 +15,9 @@ import ConmutadorTema from './conmutador-tema'
  * escondidos al pie de un repertorio de 4 700 px. Ahora:
  *
  *   · Arriba, una sola fila de 56 px (`h-14`): de quién es esto. El logo del
- *     coro y su nombre, que también llevan a Inicio. Nada más compite ahí.
+ *     coro y su nombre, que también llevan a Inicio. Nada más compite ahí,
+ *     salvo la acción propia de la pantalla que llega por `acciones` (H31: el
+ *     «?» de Hoy, que tiene que quedar fijo al hacer scroll).
  *   · Abajo, la barra fija con cuatro destinos (`barra-nav.tsx`), donde llega
  *     el pulgar.
  *
@@ -36,9 +39,16 @@ import ConmutadorTema from './conmutador-tema'
 export default function Cabecera({
   sesion,
   buscador = true,
+  acciones,
 }: {
   sesion: SesionCantoral
   buscador?: boolean
+  /**
+   * Una acción propia de la pantalla, al final de la fila fija (H31). Es
+   * opcional para no sembrar el «?» de Hoy en todas las pantallas; cada isla
+   * que se pase acá tiene que medir 44 px como los demás controles.
+   */
+  acciones?: ReactNode
 }) {
   const coro = sesion.coroActivo
   const rol = nombreDelRol(sesion.sujeto)
@@ -76,6 +86,8 @@ export default function Cabecera({
           >
             {rol}
           </Link>
+
+          {acciones && <div className="flex shrink-0 items-center">{acciones}</div>}
         </div>
       </header>
 
