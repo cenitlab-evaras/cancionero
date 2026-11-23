@@ -406,3 +406,56 @@ export async function archivarMisa(misaId: string): Promise<Resultado> {
   revalidatePath('/')
   return { ok: true }
 }
+
+// -----------------------------------------------------------------------------
+// H31 · Celebración y lugar de la misa (texto libre)
+// -----------------------------------------------------------------------------
+
+/**
+ * El contexto de la misa: la celebración («Domingo 33 del Tiempo Ordinario») y
+ * el lugar («Capilla del colegio»). Es texto libre, como el nombre; vacío se
+ * guarda como NULL para no distinguir «sin indicar» de «indicado en blanco».
+ *
+ * Va por `editar_misa`, igual que crear y archivar, y la RLS de `misas` vuelve
+ * a decidir. El `.select()` está para distinguir «no se pudo» de «la RLS dejó 0
+ * filas»: un update que no toca nada no da error, y sin esto el director
+ * creería que quedó guardado.
+ */
+const ContextoDeMisa = z.object({
+  misaId: z.string().uuid(),
+  celebracion: z
+    .string()
+    .trim()
+    .max(200, 'La celebración no puede pasar de 200 caracteres.')
+    .optional(),
+  lugar: z.string().trim().max(200, 'El lugar no puede pasar de 200 caracteres.').optional(),
+})
+
+export async function guardarContextoDeMisa(raw: unknown): Promise<Resultado> {
+  const datos = ContextoDeMisa.safeParse(raw)
+  if (!datos.success) {
+    return { ok: false, error: datos.error.issues[0]?.message ?? 'Revisa los datos.' }
+  }
+
+  const ctx = await exigir('editar_misa')
+  if (!ctx.ok) return ctx
+
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('misas')
+    .update({
+      celebracion: datos.data.celebracion || null,
+      lugar: datos.data.lugar || null,
+    })
+    .eq('id', datos.data.misaId)
+    .select('id')
+
+  if (error) return { ok: false, error: 'No pudimos guardar la celebración y el lugar.' }
+  // Cero filas sin error es la RLS diciendo que no (§14): la misa no es de un
+  // coro que este usuario pueda editar.
+  if (!data?.length) return { ok: false, error: 'No tienes acceso a esta misa.' }
+
+  revalidatePath('/misas')
+  revalidatePath(`/misas/${datos.data.misaId}`)
+  return { ok: true }
+}

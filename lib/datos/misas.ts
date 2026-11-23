@@ -51,6 +51,10 @@ export type MisaCompleta = {
   id: string
   nombre: string
   fecha: string | null
+  /** Texto libre: la celebración litúrgica («Domingo 33 del Tiempo Ordinario»). */
+  celebracion: string | null
+  /** Texto libre: dónde es la misa. */
+  lugar: string | null
   coroId: string
   cantos: CantoDeMisa[]
 }
@@ -145,7 +149,7 @@ export async function obtenerMisa(misaId: string): Promise<MisaCompleta | null> 
   const { data, error } = await supabase
     .from('misas')
     .select(
-      'id, nombre, fecha, coro_id, misa_cantos(id, canto_id, orden, transposicion, momentos_liturgicos(nombre, orden), cantos(titulo, tonalidad_original, fuente_numero, autores(nombre)))'
+      'id, nombre, fecha, celebracion, lugar, coro_id, misa_cantos(id, canto_id, orden, transposicion, momentos_liturgicos(nombre, orden), cantos(titulo, tonalidad_original, fuente_numero, autores(nombre)))'
     )
     .eq('id', misaId)
     .maybeSingle()
@@ -159,6 +163,10 @@ export async function obtenerMisa(misaId: string): Promise<MisaCompleta | null> 
     id: data.id,
     nombre: data.nombre,
     fecha: data.fecha,
+    // Las dos son opcionales en la base: `?? null` para que el tipo no dependa
+    // de que PostgREST las mande (una misa vieja no las tiene).
+    celebracion: data.celebracion ?? null,
+    lugar: data.lugar ?? null,
     coroId: data.coro_id,
     cantos: filas
       .map((f) => ({
