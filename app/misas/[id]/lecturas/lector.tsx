@@ -1,11 +1,9 @@
 'use client'
 
-import { useEffect, useOptimistic, useRef, useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useRef, useState } from 'react'
 import type { LecturaGuardada } from '@/lib/datos/lecturas'
 import { NOMBRE_DE_PARTE, type TipoDeLectura } from '@/lib/motores/lecturas'
-import { PIXELES, cambiarTamano } from '@/lib/motores/tamano-letra'
-import { guardarTamanoLetra } from '@/app/repertorio/[cantoId]/acciones'
+import HojaTamano from '@/app/componentes/hoja-tamano'
 import PantallaEncendida from '@/app/componentes/pantalla-encendida'
 import { BotonIcono } from '@/app/componentes/boton-icono'
 import { IconoCerrar } from '@/app/componentes/iconos'
@@ -31,10 +29,10 @@ export const ROTULO_CORTO: Record<TipoDeLectura, string> = {
  * `<dialog>`. No hace fetch: todo le llega por props, así que sigue funcionando
  * sin red.
  *
- * El tamaño de letra es de la persona y se guarda con `guardarTamanoLetra` (el
- * mismo control «Aa» del repertorio). `PantallaEncendida` adentro, para que el
- * teléfono no se apague a mitad de lectura. Esc y el clic fuera del contenido
- * cierran.
+ * El tamaño de letra es de la persona y se elige con el mismo botón «Aa» y la
+ * misma hoja de presets del resto de los lectores (`HojaTamano`), que guarda
+ * con `guardarTamanoLetra`. `PantallaEncendida` adentro, para que el teléfono no
+ * se apague a mitad de lectura. Esc y el clic fuera del contenido cierran.
  */
 export default function Lector({
   abierto,
@@ -53,10 +51,6 @@ export default function Lector({
   tamanoLetra: number
 }) {
   const ref = useRef<HTMLDialogElement>(null)
-  const router = useRouter()
-  const [, iniciar] = useTransition()
-  const [optimista, aplicar] = useOptimistic(tamanoLetra)
-  const [aviso, setAviso] = useState<string | null>(null)
   const [ajustando, setAjustando] = useState(false)
   const [activa, setActiva] = useState(0)
 
@@ -68,23 +62,11 @@ export default function Lector({
   }, [abierto])
 
   // Al cerrar se deja todo como estaba: la próxima apertura parte de la primera
-  // parte, sin el ajuste de letra abierto ni avisos de la vez anterior.
+  // parte y sin la hoja de tamaño abierta.
   function cerrar() {
     setActiva(0)
     setAjustando(false)
-    setAviso(null)
     onCerrar()
-  }
-
-  function ajustar(direccion: 1 | -1) {
-    const siguiente = cambiarTamano(optimista, direccion)
-    if (siguiente === optimista) return
-    iniciar(async () => {
-      aplicar(siguiente)
-      const r = await guardarTamanoLetra(siguiente)
-      if (!r.ok) setAviso(r.error ?? 'No se guardó el tamaño de letra.')
-      router.refresh()
-    })
   }
 
   const parte = partes[Math.min(activa, partes.length - 1)]
@@ -109,47 +91,27 @@ export default function Lector({
           </BotonIcono>
           <h2 className="min-w-0 flex-1 truncate text-base font-semibold">{titulo}</h2>
 
-          {/* El tamaño de letra: el mismo control «Aa» del repertorio. */}
-          <div className="relative shrink-0">
-            {ajustando && (
-              <div className="absolute right-0 top-[calc(100%+8px)] flex items-center gap-1 rounded-lg border border-borde-fuerte bg-superficie p-1.5">
-                <BotonIcono
-                  etiqueta={`Achicar la letra, ahora en ${optimista}`}
-                  apariencia="borde"
-                  disabled={optimista <= PIXELES.pequeno}
-                  onClick={() => ajustar(-1)}
-                >
-                  <span className="text-sm font-bold" aria-hidden>
-                    A
-                  </span>
-                </BotonIcono>
-                <span className="w-9 text-center text-sm font-bold tabular-nums" aria-live="polite">
-                  {optimista}
-                </span>
-                <BotonIcono
-                  etiqueta={`Agrandar la letra, ahora en ${optimista}`}
-                  apariencia="borde"
-                  disabled={optimista >= PIXELES.grande}
-                  onClick={() => ajustar(1)}
-                >
-                  <span className="text-xl font-bold" aria-hidden>
-                    A
-                  </span>
-                </BotonIcono>
-              </div>
-            )}
+          {/* El tamaño de letra: el mismo botón «Aa» y la misma hoja de
+              presets del repertorio y de la ejecución de la misa. */}
+          <div className="shrink-0">
             <button
               type="button"
-              onClick={() => setAjustando(!ajustando)}
+              onClick={() => setAjustando(true)}
+              aria-haspopup="dialog"
               aria-expanded={ajustando}
-              aria-label={`Tamaño de letra, ahora en ${optimista}`}
+              aria-label={`Tamaño de letra, ahora en ${tamanoLetra} píxeles`}
               className={`tactil flex h-11 items-center justify-center gap-1 rounded-lg border border-borde-fuerte px-2.5 text-sm font-bold ${
                 ajustando ? 'border-texto bg-superficie-alta' : ''
               }`}
             >
               <span aria-hidden>Aa</span>
-              <span className="tabular-nums">{optimista}</span>
+              <span className="tabular-nums">{tamanoLetra}</span>
             </button>
+            <HojaTamano
+              abierto={ajustando}
+              onCerrar={() => setAjustando(false)}
+              actual={tamanoLetra}
+            />
           </div>
         </header>
 
@@ -187,7 +149,7 @@ export default function Lector({
             )}
             <div
               className="mt-3 whitespace-pre-line leading-relaxed"
-              style={{ fontSize: optimista }}
+              style={{ fontSize: tamanoLetra }}
             >
               {parte.texto}
             </div>
@@ -196,11 +158,6 @@ export default function Lector({
 
         {parte && (
           <footer className="border-t border-borde px-4 py-2">
-            {aviso && (
-              <p role="status" className="text-sm text-peligro">
-                {aviso}
-              </p>
-            )}
             <p className="text-sm text-texto-tenue">
               {parte.fuente === 'iglesia.cl' ? (
                 parte.fuenteUrl ? (

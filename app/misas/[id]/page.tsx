@@ -172,16 +172,18 @@ export default async function MisaPage({
         </p>
 
         {/* H31 · la fila de la maqueta: el ícono manda y la etiqueta solo
-            acompaña. «Empezar» entra al primer canto; «Editar» abre el armado
-            completo (la celebración y el lugar se editan desde el contexto).
-            El ancho de las cajas está calculado para que a 360 px entren las
-            dos acciones y los cuatro íconos del contexto. */}
+            acompaña. La misma acción entra al primer canto; en una misa que ya
+            pasó dice «Repasar», no «Empezar» (el criterio de `yaPaso` es el
+            mismo del archivar). «Editar» abre el armado completo (la
+            celebración y el lugar se editan desde el contexto). El ancho de las
+            cajas está calculado para que a 360 px entren las dos acciones y los
+            cuatro íconos del contexto. */}
         <div className="mt-4 flex items-start justify-between gap-1">
           {misa.cantos.length > 0 && (
             <AccionMisa
               href={`/misas/${misa.id}/${misa.cantos[0].id}`}
-              etiqueta="Empezar la misa"
-              texto="Empezar"
+              etiqueta={yaPaso ? 'Repasar la misa' : 'Empezar la misa'}
+              texto={yaPaso ? 'Repasar' : 'Empezar'}
               primaria
               icono={<IconoReproducir tamano={22} />}
             />
