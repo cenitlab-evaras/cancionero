@@ -138,9 +138,9 @@ export default async function MisaPage({
   const faltan = quienFalta(fichas, inscritos, fichas)
   const hoy = hoyISO()
   const abierta = sePuedeInscribir(misa.fecha, hoy)
-  // «Empezar la misa» es para la que viene. En una que ya pasó, el botón en el
-  // halo invitaba a «empezar» algo que ya ocurrió; ahí queda un enlace tenue
-  // para repasar. Una misa sin fecha (una lista) se puede empezar siempre.
+  // «Empezar la misa» es para la que viene. En una que ya pasó, la misma
+  // acción primaria dice «Repasar»: invitar a «empezar» algo que ya ocurrió era
+  // una promesa falsa. Una misa sin fecha (una lista) se puede empezar siempre.
   const yaPaso = !!misa.fecha && misa.fecha < hoy
 
   const cantos =
@@ -175,9 +175,9 @@ export default async function MisaPage({
             acompaña. La misma acción entra al primer canto; en una misa que ya
             pasó dice «Repasar», no «Empezar» (el criterio de `yaPaso` es el
             mismo del archivar). «Editar» abre el armado completo (la
-            celebración y el lugar se editan desde el contexto). El ancho de las
-            cajas está calculado para que a 360 px entren las dos acciones y los
-            cuatro íconos del contexto. */}
+            celebración y el lugar se editan ahí o desde el lápiz del
+            contexto). El ancho de las cajas está calculado para que a 360 px
+            entren las dos acciones y los cuatro íconos del contexto. */}
         <div className="mt-4 flex items-start justify-between gap-1">
           {misa.cantos.length > 0 && (
             <AccionMisa

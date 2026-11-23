@@ -199,10 +199,9 @@ body:has(.barra-nav) {
 
 /* El objetivo táctil de 44 px vive en un ::after transparente, FUERA del flujo:
    con padding se movería la columna. El calc se resuelve contra el tamaño de
-   letra efectivo, así que los 44 px se cumplen también cuando el ajuste al
-   ancho achica la fuente en un teléfono angosto. A lo ancho el piso de 8 px
-   por lado sostiene los 24 px de WCAG 2.5.8 incluso en un acorde de una letra
-   («E» mide ~1ch): antes quedaban ~20 px y el pulgar erraba. */
+   letra del preset, que es el que se ve. El piso de 8 px por lado sostiene los
+   24 px de WCAG 2.5.8 incluso en un acorde de una letra («E» mide ~1ch): antes
+   quedaban ~20 px y el pulgar erraba. */
 .acorde-tocable::after {
   content: '';
   position: absolute;

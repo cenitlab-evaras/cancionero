@@ -2,7 +2,13 @@
 
 import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { agregarCanto, cambiarTono, moverCanto, quitarCanto } from '../../acciones'
+import {
+  agregarCanto,
+  cambiarTono,
+  guardarContextoDeMisa,
+  moverCanto,
+  quitarCanto,
+} from '../../acciones'
 import { cambiarTonoDeMisa, tonalidadDeLaFila } from '@/lib/motores/tono-en-la-misa'
 import type { CantoDeMisa } from '@/lib/datos/misas'
 
@@ -10,10 +16,14 @@ import { recomendar, type Candidato } from '@/lib/motores/recomendacion'
 import { describirAntiguedad } from '@/lib/motores/historial'
 import type { CantoDisponible } from '@/lib/datos/misas'
 import TituloSeccion from '@/app/componentes/titulo-seccion'
-import { BotonIcono } from '@/app/componentes/boton-icono'
+import { BotonIcono, clasesBotonIcono } from '@/app/componentes/boton-icono'
 import { IconoAgregar, IconoBajar, IconoQuitar, IconoSubir } from '@/app/componentes/iconos'
 
 type Disponible = CantoDisponible
+
+/** Mismo campo que el diálogo del contexto: la app tiene una sola forma. */
+const CAMPO =
+  'h-11 w-full rounded-lg border border-borde-fuerte bg-superficie px-3 text-base text-texto transition-colors placeholder:text-texto-tenue hover:border-texto-tenue focus:border-acento disabled:opacity-60'
 
 /**
  * Armar la misa: agregar un canto por momento, moverlo y quitarlo.
@@ -27,6 +37,8 @@ export default function Armador({
   disponibles,
   hoy,
   momentos,
+  celebracion,
+  lugar,
 }: {
   misaId: string
   asignados: CantoDeMisa[]
@@ -35,10 +47,18 @@ export default function Armador({
   hoy: string
   /** El catálogo de momentos, en orden litúrgico: es el mapa del armado. */
   momentos: { nombre: string; orden: number }[]
+  /** Texto libre de la misa; el otro camino es el lápiz del contexto. */
+  celebracion: string | null
+  lugar: string | null
 }) {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [pendiente, empezar] = useTransition()
+  // Los dos textos se editan acá y en el contexto con la MISMA acción, que
+  // escribe las dos columnas: por eso se manda siempre el par completo y no
+  // se puede guardar una sola sin borrar la otra.
+  const [valorCelebracion, setValorCelebracion] = useState(celebracion ?? '')
+  const [valorLugar, setValorLugar] = useState(lugar ?? '')
 
   function correr(accion: () => Promise<{ ok: boolean; error?: string }>) {
     setError(null)
@@ -47,6 +67,18 @@ export default function Armador({
       if (!r.ok) setError(r.error ?? 'No pudimos guardar el cambio.')
       router.refresh()
     })
+  }
+
+  function guardarContexto(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    correr(() =>
+      guardarContextoDeMisa({
+        misaId,
+        // Vacío es válido: la acción lo guarda como «sin indicar».
+        celebracion: valorCelebracion.trim(),
+        lugar: valorLugar.trim(),
+      })
+    )
   }
 
   /** H27 · `null` quita el tono fijado: cada uno vuelve a ver el suyo. */
@@ -146,6 +178,48 @@ export default function Armador({
           {error}
         </p>
       )}
+
+      {/* La spec pide la celebración y el lugar como texto libre al armar la
+          misa; el lápiz del contexto sigue siendo el atajo. Guarda con
+          `guardarContextoDeMisa`: un solo zod, una sola RLS. */}
+      <form onSubmit={guardarContexto} className="mt-6 border-b border-borde pb-4">
+        <TituloSeccion>Celebración y lugar</TituloSeccion>
+        <p className="mt-1 text-sm text-texto-tenue">Opcional. Se ve en la misa.</p>
+
+        <label className="mt-3 flex flex-col gap-1.5">
+          <span className="text-sm text-texto-tenue">Celebración</span>
+          <input
+            value={valorCelebracion}
+            onChange={(e) => setValorCelebracion(e.target.value)}
+            maxLength={200}
+            placeholder="Domingo 33 del Tiempo Ordinario"
+            disabled={pendiente}
+            className={CAMPO}
+          />
+        </label>
+
+        <label className="mt-3 flex flex-col gap-1.5">
+          <span className="text-sm text-texto-tenue">Lugar</span>
+          <input
+            value={valorLugar}
+            onChange={(e) => setValorLugar(e.target.value)}
+            maxLength={200}
+            placeholder="Capilla del colegio"
+            disabled={pendiente}
+            className={CAMPO}
+          />
+        </label>
+
+        <div className="mt-4 flex justify-end">
+          <button
+            type="submit"
+            disabled={pendiente}
+            className={clasesBotonIcono('borde', 'px-4')}
+          >
+            Guardar contexto
+          </button>
+        </div>
+      </form>
 
       <TituloSeccion
         className="mt-6"

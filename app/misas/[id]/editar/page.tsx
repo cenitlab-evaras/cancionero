@@ -100,6 +100,8 @@ export default async function EditarMisaPage({
           disponibles={disponibles}
           hoy={hoyISO()}
           momentos={momentos.map((m) => ({ nombre: m.nombre, orden: m.orden }))}
+          celebracion={misa.celebracion}
+          lugar={misa.lugar}
         />
       </main>
     </>

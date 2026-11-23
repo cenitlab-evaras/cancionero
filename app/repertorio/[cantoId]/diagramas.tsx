@@ -14,6 +14,7 @@ import {
 import { useRouter } from 'next/navigation'
 import { BotonIcono } from '@/app/componentes/boton-icono'
 import { IconoCerrar } from '@/app/componentes/iconos'
+import { ANCHO_CARACTER } from '@/lib/motores/cifrado-ancho'
 import { corregirAcorde } from './acciones'
 
 /**
@@ -92,9 +93,8 @@ export function useDiagramas() {
  * Envuelve el cifrado y escucha los toques por DELEGACIÓN.
  *
  * Un componente cliente por acorde sería caro sin necesidad: *Himno Misión
- * País* tiene 91 corchetes. Con un solo escuchador, `cifrado.tsx` sigue siendo
- * Server Component y los acordes siguen siendo `<button>` de verdad, así que el
- * teclado funciona sin una línea extra.
+ * País* tiene 91 corchetes. Con un solo escuchador, los acordes siguen siendo
+ * `<button>` de verdad, así que el teclado funciona sin una línea extra.
  */
 /**
  * La zona del cifrado: abre los diagramas al TOCAR un acorde y, para el
@@ -175,7 +175,8 @@ export function ZonaAcordes({
         )
         if (max < min) return
         const raiz = btn.closest<HTMLElement>('.cifrado')
-        const charW = (Number.parseFloat(getComputedStyle(raiz ?? btn).fontSize) || 16) * 0.615
+        const charW =
+          (Number.parseFloat(getComputedStyle(raiz ?? btn).fontSize) || 16) * ANCHO_CARACTER
         gesto.current = {
           btn,
           linea,

@@ -159,6 +159,11 @@ export default function ContextoMisa({
       }
       setEditando(false)
       router.refresh()
+    } catch {
+      // Una red caída o una sesión vencida rechazan la promesa: se dice acá y
+      // el diálogo queda abierto para reintentar, en vez de dejar una promesa
+      // sin manejar.
+      setError('No pudimos guardar. Intenta de nuevo.')
     } finally {
       setGuardando(false)
     }

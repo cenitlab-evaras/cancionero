@@ -74,6 +74,41 @@ export async function sugerenciasDeMisa(misaId: string): Promise<Sugerencia[]> {
 }
 
 /**
+ * Cuántas propuestas tiene cada misa, contadas al leer.
+ *
+ * Es la versión de varias misas para el resumen del calendario: necesita saber
+ * si un día tiene propuestas y cuántas hay en el mes, no quién las dejó. Una
+ * sola consulta —y solo la columna que une— en vez de una por misa. Cada id
+ * pedido tiene su cuenta, cero si nadie propuso nada.
+ */
+export async function contarSugerenciasDeVariasMis(
+  ids: string[]
+): Promise<Map<string, number>> {
+  const porMisa = new Map<string, number>()
+  for (const id of ids) porMisa.set(id, 0)
+
+  if (ids.length === 0) return porMisa
+
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('sugerencia')
+    .select('misa_id')
+    .in('misa_id', ids)
+
+  if (error) throw error
+
+  for (const fila of data ?? []) {
+    const id = fila.misa_id as string | null
+    // Una fila de una misa que no se pidió no entra, aunque el `in` ya la acota.
+    if (!id) continue
+    const cuenta = porMisa.get(id)
+    if (cuenta !== undefined) porMisa.set(id, cuenta + 1)
+  }
+
+  return porMisa
+}
+
+/**
  * Las propuestas de quien pregunta, para saber qué ya propuso.
  *
  * Sin esto el control no puede distinguir «todavía no la propusiste» de «ya la

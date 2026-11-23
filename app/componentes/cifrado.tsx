@@ -13,8 +13,10 @@ import type { CuerdaDelCoro } from '@/lib/motores/cuerdas'
 /**
  * Pinta el cifrado con los acordes sobre la letra (H2, RF-17).
  *
- * No decide nada: solo dibuja lo que devolvió el motor. La posición de cada
- * acorde ya viene calculada y probada en `renderizar-cifrado.test.ts`.
+ * La posición de cada acorde ya viene calculada y probada en
+ * `renderizar-cifrado.test.ts`. Lo que SÍ decide acá es el reparto en líneas:
+ * mide el contenedor y le pide a `columnasPara` cuántas columnas entran, para
+ * que la letra se parta sin encogerse del tamaño elegido.
  *
  * Dos cosas sostienen la alineación:
  *   1. Tipografía monoespaciada. En una proporcional esto no funcionaría.

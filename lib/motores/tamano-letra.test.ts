@@ -25,7 +25,11 @@ describe('tamaño de letra', () => {
 
   test('valida lo que llega de afuera: solo los tres píxeles de los presets', () => {
     expect(esTamanoValido(18)).toBe(true)
+    expect(esTamanoValido(22)).toBe(true)
+    expect(esTamanoValido(28)).toBe(true)
     expect(esTamanoValido(20)).toBe(false)
+    // Lo que llega de la base o de un formulario puede ser texto.
+    expect(esTamanoValido('18')).toBe(false)
   })
 
   test('normaliza un píxel viejo al preset más cercano', () => {

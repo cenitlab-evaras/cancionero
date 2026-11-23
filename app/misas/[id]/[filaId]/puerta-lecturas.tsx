@@ -22,6 +22,7 @@ export default function PuertaLecturas({
   partes,
   titulo,
   tamanoLetra,
+  apariencia = 'borde',
 }: {
   /** Solo las partes presentes, en el orden litúrgico en que se leen. */
   partes: LecturaGuardada[]
@@ -29,6 +30,11 @@ export default function PuertaLecturas({
   titulo: string
   /** El tamaño de letra de la persona, en px. */
   tamanoLetra: number
+  /**
+   * En la barra de la ejecución va `plano`, como sus vecinos: solo el libro,
+   * sin borde ni texto visible. El nombre accesible («Lecturas») no cambia.
+   */
+  apariencia?: 'borde' | 'plano'
 }) {
   const [abierto, setAbierto] = useState(false)
 
@@ -38,8 +44,8 @@ export default function PuertaLecturas({
     <>
       <BotonIcono
         etiqueta="Lecturas"
-        texto="Lecturas"
-        apariencia="borde"
+        texto={apariencia === 'borde' ? 'Lecturas' : undefined}
+        apariencia={apariencia}
         onClick={() => setAbierto(true)}
       >
         <IconoRepertorio tamano={18} />

@@ -3,8 +3,15 @@ import { redirect } from 'next/navigation'
 import { obtenerSesion } from '@/lib/sesion'
 import { puede } from '@/lib/permisos'
 import { misasDelCoro, obtenerMisa, type MisaDeLista } from '@/lib/datos/misas'
-import { lecturasDeMisa, type LecturaGuardada } from '@/lib/datos/lecturas'
-import { sugerenciasDeMisa } from '@/lib/datos/sugerencias'
+import {
+  lecturasDeMisa,
+  lecturasDeVariasMis,
+  type LecturaGuardada,
+} from '@/lib/datos/lecturas'
+import {
+  contarSugerenciasDeVariasMis,
+  sugerenciasDeMisa,
+} from '@/lib/datos/sugerencias'
 import { hoyISO } from '@/lib/datos/historial'
 import { diasConMisa, marcasDeDia } from '@/lib/motores/calendario'
 import { fechaLarga } from '@/lib/motores/fecha'
@@ -65,12 +72,6 @@ function diaPorDefecto(dias: Set<string>, hoy: string, anio: number, mes: number
 
   const distancia = (iso: string) => Math.abs(diasEntre(iso, hoy))
   return [...dias].sort((a, b) => distancia(a) - distancia(b) || a.localeCompare(b))[0] ?? primero
-}
-
-type DetalleDeMisa = {
-  completa: Awaited<ReturnType<typeof obtenerMisa>>
-  lecturas: LecturaGuardada[]
-  propuestas: Sugerencia[]
 }
 
 export default async function MisasPage({
@@ -134,24 +135,19 @@ export default async function MisasPage({
     porDia.set(misa.fecha, lista)
   }
 
-  // Por cada misa del mes: la misa completa (celebración), sus lecturas y sus
-  // propuestas. Son pocas por mes y van en paralelo; el detalle del día reusa
-  // lo que ya se trajo para el resumen, sin una segunda vuelta de consultas.
-  const entradas = await Promise.all(
-    misasDelMes.map(async (misa): Promise<[string, DetalleDeMisa]> => {
-      const [completa, lecturas, propuestas] = await Promise.all([
-        obtenerMisa(misa.id),
-        // Las lecturas son un feature aditivo: si fallan, la pantalla sigue y
-        // el día dice que no hay lecturas (mismo criterio que La misa).
-        lecturasDeMisa(misa.id).catch((): LecturaGuardada[] => []),
-        verPropuestas
-          ? sugerenciasDeMisa(misa.id).catch((): Sugerencia[] => [])
-          : Promise.resolve<Sugerencia[]>([]),
-      ])
-      return [misa.id, { completa, lecturas, propuestas }]
-    })
-  )
-  const detalles = new Map(entradas)
+  // El resumen del mes solo necesita SABER si cada día tiene lecturas y
+  // propuestas, no el detalle de cada misa: una consulta por cosa para todo el
+  // mes, en paralelo, en vez de abrir cada misa con sus cantos. El detalle
+  // completo se carga únicamente del día elegido, más abajo.
+  const idsDelMes = misasDelMes.map((m) => m.id)
+  const [lecturasPorMisa, sugerenciasPorMisa] = await Promise.all([
+    // Las lecturas son un feature aditivo: si fallan, la pantalla sigue y el
+    // día simplemente no muestra el libro (mismo criterio que La misa).
+    lecturasDeVariasMis(idsDelMes).catch(() => new Map<string, LecturaGuardada[]>()),
+    verPropuestas
+      ? contarSugerenciasDeVariasMis(idsDelMes).catch(() => new Map<string, number>())
+      : Promise.resolve(new Map<string, number>()),
+  ])
 
   const marcas: Record<string, { libro: boolean; punto: boolean }> = {}
   const celebraciones: Record<string, string> = {}
@@ -163,9 +159,8 @@ export default async function MisasPage({
     let propuestasDelDia = 0
 
     for (const misa of lista) {
-      const detalle = detalles.get(misa.id)
-      const cantidadLecturas = detalle?.lecturas.length ?? 0
-      const cantidadPropuestas = detalle?.propuestas.length ?? 0
+      const cantidadLecturas = lecturasPorMisa.get(misa.id)?.length ?? 0
+      const cantidadPropuestas = sugerenciasPorMisa.get(misa.id) ?? 0
 
       lecturasDelDia += cantidadLecturas
       propuestasDelDia += cantidadPropuestas
@@ -174,8 +169,10 @@ export default async function MisasPage({
     }
 
     marcas[fecha] = marcasDeDia(lecturasDelDia, propuestasDelDia)
+    // La celebración ya viene en la lista del mes: nombrar el día no obliga a
+    // abrir cada misa.
     celebraciones[fecha] = lista
-      .map((misa) => detalles.get(misa.id)?.completa?.celebracion ?? misa.nombre)
+      .map((misa) => misa.celebracion ?? misa.nombre)
       .join(' · ')
   }
 
@@ -187,10 +184,27 @@ export default async function MisasPage({
 
   const misasDelDia = porDia.get(seleccionado) ?? []
   const misaDelDia = misasDelDia[0]
-  const detalle = misaDelDia ? detalles.get(misaDelDia.id) : undefined
-  const celebracion = detalle?.completa?.celebracion ?? misaDelDia?.nombre ?? null
-  const lecturas = detalle?.lecturas ?? []
-  const propuestas = rankear(detalle?.propuestas ?? [])
+
+  // Solo la misa del día elegido: sus cantos, sus lecturas y sus propuestas.
+  // `obtenerMisa` va con catch —antes una falla tumbaba la pantalla entera— y
+  // la celebración de respaldo ya está en la lista, así que el día se sigue
+  // mostrando. Lecturas y propuestas se degradan con el criterio de siempre.
+  let completa: Awaited<ReturnType<typeof obtenerMisa>> = null
+  let lecturas: LecturaGuardada[] = []
+  let propuestasDelDia: Sugerencia[] = []
+  if (misaDelDia) {
+    ;[completa, lecturas, propuestasDelDia] = await Promise.all([
+      obtenerMisa(misaDelDia.id).catch(() => null),
+      lecturasDeMisa(misaDelDia.id).catch((): LecturaGuardada[] => []),
+      verPropuestas
+        ? sugerenciasDeMisa(misaDelDia.id).catch((): Sugerencia[] => [])
+        : Promise.resolve<Sugerencia[]>([]),
+    ])
+  }
+
+  const celebracion =
+    completa?.celebracion ?? misaDelDia?.celebracion ?? misaDelDia?.nombre ?? null
+  const propuestas = rankear(propuestasDelDia)
 
   return (
     <>

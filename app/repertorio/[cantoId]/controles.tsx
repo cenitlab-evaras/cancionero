@@ -255,7 +255,9 @@ export function BotonAcordes({ mostrarAcordes }: { mostrarAcordes: boolean }) {
 
   return (
     <BotonIcono
-      etiqueta={optimista ? 'Ocultar los acordes' : 'Mostrar los acordes'}
+      // El nombre dice el ESTADO, no la acción, igual que `SoloLetra`: con
+      // `aria-pressed`, el lector anuncia «Ver acordes, activado/desactivado».
+      etiqueta="Ver acordes"
       apariencia={optimista ? 'activo' : 'plano'}
       aria-pressed={optimista}
       onClick={alternar}

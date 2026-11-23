@@ -18,6 +18,10 @@ export type MisaDeLista = {
   id: string
   nombre: string
   fecha: string | null
+  /** Texto libre: la celebración litúrgica, para nombrar el día sin abrirlo. */
+  celebracion: string | null
+  /** Texto libre: dónde es la misa. */
+  lugar: string | null
   cantidadCantos: number
   /** H15 · cuántos se anotaron. Se cuenta al leer, no se guarda. */
   anotados: number
@@ -91,7 +95,7 @@ export async function misasDelCoro(coroId: string): Promise<MisaDeLista[]> {
     // se elimina en `20260903000300`, pero nombrar la compuesta es correcto
     // antes y después de esa migración, y deja de depender de que haya una sola.
     .select(
-      'id, nombre, fecha, misa_cantos(id), misa_participante!participante_misa_del_mismo_coro(perfil_id, perfiles(nombre, email))'
+      'id, nombre, fecha, celebracion, lugar, misa_cantos(id), misa_participante!participante_misa_del_mismo_coro(perfil_id, perfiles(nombre, email))'
     )
     .eq('coro_id', coroId)
     // Archivadas = fuera de la app, como respaldo en la base (2026-11-20).
@@ -116,6 +120,9 @@ export async function misasDelCoro(coroId: string): Promise<MisaDeLista[]> {
     id: c.id,
     nombre: c.nombre,
     fecha: c.fecha,
+    // Las dos son opcionales en la base: una misa vieja no las tiene.
+    celebracion: c.celebracion ?? null,
+    lugar: c.lugar ?? null,
     // La cantidad se CUENTA al leer; no se guarda una columna con el total
     // (innegociable: cero derivados persistidos).
     cantidadCantos: (c.misa_cantos as { id: string }[] | null)?.length ?? 0,

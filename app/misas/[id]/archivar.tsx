@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { archivarMisa } from '../acciones'
 import TituloSeccion from '@/app/componentes/titulo-seccion'
@@ -24,6 +24,15 @@ export default function ArchivarMisa({ misaId }: { misaId: string }) {
   const [confirmando, setConfirmando] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pendiente, empezar] = useTransition()
+  const refConfirmacion = useRef<HTMLDivElement>(null)
+
+  // La confirmación no es un modal: reemplaza al botón en el flujo. Al abrirse,
+  // el foco tiene que irse con ella —si se queda en el botón que desaparece,
+  // «Cancelar» o «Archivar» quedan a mitad del documento para el teclado—.
+  useEffect(() => {
+    if (!confirmando) return
+    refConfirmacion.current?.querySelector<HTMLElement>('h3')?.focus()
+  }, [confirmando])
 
   function archivar() {
     setError(null)
@@ -58,11 +67,16 @@ export default function ArchivarMisa({ misaId }: { misaId: string }) {
         </>
       ) : (
         <div
+          ref={refConfirmacion}
           role="alertdialog"
           aria-labelledby="confirmar-archivar-misa"
           className="mt-3 rounded-lg border border-borde-fuerte bg-superficie p-3"
         >
-          <h3 id="confirmar-archivar-misa" className="text-base font-semibold">
+          <h3
+            id="confirmar-archivar-misa"
+            tabIndex={-1}
+            className="text-base font-semibold"
+          >
             ¿Archivar esta misa?
           </h3>
           <p className="mt-1 max-w-prose text-sm text-texto-tenue">
@@ -83,7 +97,12 @@ export default function ArchivarMisa({ misaId }: { misaId: string }) {
             </button>
             <button
               type="button"
-              onClick={() => setConfirmando(false)}
+              onClick={() => {
+                // Un error de un intento anterior no debe quedar colgado al
+                // volver al botón inicial.
+                setError(null)
+                setConfirmando(false)
+              }}
               disabled={pendiente}
               className={clasesBotonIcono('plano', 'px-4')}
             >

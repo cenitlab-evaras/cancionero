@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { fechaLarga } from '@/lib/motores/fecha'
 import { IconoRepertorio, IconoSeguir, IconoVolver } from '@/app/componentes/iconos'
 
@@ -72,21 +73,21 @@ export default function Calendario({
   return (
     <div className="mt-5">
       <div className="flex items-center justify-between gap-3">
-        <a
+        <Link
           href={`/misas?mes=${mesDe(anio, mes, -1)}`}
           aria-label="Mes anterior"
           className="tactil inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-texto-tenue transition-colors hover:bg-superficie hover:text-texto"
         >
           <IconoVolver tamano={20} />
-        </a>
+        </Link>
         <h2 className="titulo-libro text-lg leading-tight">{titulo}</h2>
-        <a
+        <Link
           href={`/misas?mes=${mesDe(anio, mes, 1)}`}
           aria-label="Mes siguiente"
           className="tactil inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-texto-tenue transition-colors hover:bg-superficie hover:text-texto"
         >
           <IconoSeguir tamano={20} />
-        </a>
+        </Link>
       </div>
 
       <p className="mt-1 text-sm text-texto-tenue">{resumen}</p>
@@ -128,7 +129,7 @@ export default function Calendario({
           ].filter(Boolean)
 
           return (
-            <a
+            <Link
               key={clave}
               href={`/misas?mes=${prefijo}&dia=${clave}`}
               aria-label={`${fechaLarga(clave)}, ${detalles.join(', ')}`}
@@ -148,7 +149,7 @@ export default function Calendario({
                   )}
                 </span>
               )}
-            </a>
+            </Link>
           )
         })}
       </div>

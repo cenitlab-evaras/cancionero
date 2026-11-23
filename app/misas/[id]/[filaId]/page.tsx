@@ -52,9 +52,8 @@ export const metadata = { title: 'Misa · Cantoral' }
  *     y quien canta sin instrumento volvía a ver los acordes en la misa.
  *   · El tamaño de letra es el de la persona, así que no se pierde de un canto
  *     al siguiente.
- *   · «Siguiente» va abajo, al alcance del pulgar, y DICE cuál viene (la
- *     crítica 2026-11-17: había vuelto a chevrones sin texto arriba; ahora la
- *     fila de abajo es la principal y los chevrones quedan como atajo).
+ *   · La barra fija del pie es anterior · Aa · auto-scroll · siguiente: cuatro
+ *     controles de 44 px al alcance del pulgar, sin scroll horizontal a 360.
  *   · Sin el halo: en la lectura y en la ejecución lo único cálido es el acorde.
  */
 export default async function EjecucionPage({
@@ -155,15 +154,15 @@ export default async function EjecucionPage({
             </div>
             <BotonAcordes mostrarAcordes={mostrarAcordes} />
             {/* La puerta de lecturas se reutiliza tal cual (abre el MISMO
-                `Lector` de la misa). En la barra va solo su libro: el texto se
-                oculta a la vista pero sigue siendo el nombre accesible. */}
-            <div className="shrink-0 [&>button]:px-0 [&>button>span]:sr-only">
-              <PuertaLecturas
-                partes={lecturas}
-                titulo={tituloLecturas}
-                tamanoLetra={tamanoLetra}
-              />
-            </div>
+                `Lector` de la misa). En la barra va solo su libro, plano como
+                los otros tres íconos; el nombre accesible sigue siendo
+                «Lecturas». */}
+            <PuertaLecturas
+              apariencia="plano"
+              partes={lecturas}
+              titulo={tituloLecturas}
+              tamanoLetra={tamanoLetra}
+            />
             <HojaPartes
               misaId={misa.id}
               actualId={fila.id}
