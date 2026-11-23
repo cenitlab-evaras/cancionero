@@ -274,3 +274,68 @@ export const IconoDiapason = (p: Props) => (
     <path d="M12 13.5V21" />
   </Trazo>
 )
+
+// -----------------------------------------------------------------------------
+// H31 · El contexto de la misa (rediseño de lectura, 2026-11-23)
+// -----------------------------------------------------------------------------
+
+/** El coro que canta: un grupo, no una sola persona. */
+export const IconoCoro = (p: Props) => (
+  <Trazo {...p}>
+    <circle cx="9" cy="8" r="3" />
+    <path d="M3.5 20a5.5 5.5 0 0 1 11 0" />
+    <circle cx="17" cy="9" r="2.5" />
+    <path d="M14 20a4.5 4.5 0 0 1 6.5-4" />
+  </Trazo>
+)
+
+/**
+ * La complejidad de la misa: una, dos o tres barras encendidas.
+ *
+ * El nivel no es un dato que se guarde: se calcula al leer. La barra que no
+ * llega al nivel queda dibujada con el trazo de siempre, sin relleno, para que
+ * se vea que la escala es de tres.
+ */
+export const IconoComplejidad = ({
+  nivel,
+  ...p
+}: Props & { nivel: 'baja' | 'media' | 'alta' }) => {
+  const cuantas = nivel === 'alta' ? 3 : nivel === 'media' ? 2 : 1
+  return (
+    <Trazo {...p}>
+      <rect x="4" y="14" width="3.5" height="6" rx="1" fill={cuantas >= 1 ? 'currentColor' : 'none'} />
+      <rect x="10.25" y="10" width="3.5" height="10" rx="1" fill={cuantas >= 2 ? 'currentColor' : 'none'} />
+      <rect x="16.5" y="6" width="3.5" height="14" rx="1" fill={cuantas >= 3 ? 'currentColor' : 'none'} />
+    </Trazo>
+  )
+}
+
+/** La celebración litúrgica: una estrella, sin cruces ni símbolos. */
+export const IconoCelebracion = (p: Props) => (
+  <Trazo {...p}>
+    <path d="m12 3 2.7 5.5 6 .9-4.4 4.3 1 6-5.3-2.8-5.3 2.8 1-6L3.3 9.4l6-.9Z" />
+  </Trazo>
+)
+
+/** El lugar: un pin de mapa. */
+export const IconoLugar = (p: Props) => (
+  <Trazo {...p}>
+    <path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11Z" />
+    <circle cx="12" cy="10" r="2.5" />
+  </Trazo>
+)
+
+/** La lista de los cantos de la misa: renglones con viñeta. */
+export const IconoLista = (p: Props) => (
+  <Trazo {...p}>
+    <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+  </Trazo>
+)
+
+/** La ayuda: un signo de pregunta en su círculo. */
+export const IconoAyuda = (p: Props) => (
+  <Trazo {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M9.5 9a2.5 2.5 0 1 1 4.2 1.8c-.9.7-1.7 1.1-1.7 2.2M12 17h.01" />
+  </Trazo>
+)

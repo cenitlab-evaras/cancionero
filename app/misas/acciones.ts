@@ -457,5 +457,7 @@ export async function guardarContextoDeMisa(raw: unknown): Promise<Resultado> {
 
   revalidatePath('/misas')
   revalidatePath(`/misas/${datos.data.misaId}`)
+  // Hoy también muestra la celebración y el lugar en sus íconos.
+  revalidatePath('/')
   return { ok: true }
 }
