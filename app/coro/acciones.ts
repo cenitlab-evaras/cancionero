@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { obtenerSesion } from '@/lib/sesion'
 import { puede, type Capacidad } from '@/lib/permisos'
-import { puedeCambiarRol, puedeVincularse } from '@/lib/motores/gobierno'
+import { puedeCambiarRol } from '@/lib/motores/gobierno'
 
 /**
  * Gobierno del coro y de la instalación (H7).
@@ -17,65 +17,30 @@ import { puedeCambiarRol, puedeVincularse } from '@/lib/motores/gobierno'
 
 export type Resultado = { ok: true } | { ok: false; error: string }
 
-type Contexto = { ok: false; error: string } | { ok: true; coroId: string }
+type Contexto =
+  | { ok: false; error: string }
+  | { ok: true; coroId: string; esAdmin: boolean }
 
 async function exigir(capacidad: Capacidad, mensaje: string): Promise<Contexto> {
   const sesion = await obtenerSesion()
   if (!sesion) return { ok: false, error: 'Tu sesión expiró. Vuelve a entrar.' }
   if (!puede(sesion.sujeto, capacidad)) return { ok: false, error: mensaje }
   if (!sesion.coroActivo) return { ok: false, error: 'No tienes un coro activo.' }
-  return { ok: true, coroId: sesion.coroActivo.id }
+  return {
+    ok: true,
+    coroId: sesion.coroActivo.id,
+    esAdmin: sesion.sujeto.rol === 'admin',
+  }
 }
 
 // --- El director gobierna su coro ---------------------------------------------
 
-const Vincular = z.object({
-  perfilId: z.string().uuid(),
-  rolLocal: z.enum(['director', 'miembro']),
-})
-
-export async function agregarMiembro(raw: unknown): Promise<Resultado> {
-  const datos = Vincular.safeParse(raw)
-  if (!datos.success) return { ok: false, error: 'Revisa los datos.' }
-
-  const ctx = await exigir(
-    'administrar_miembros',
-    'No tienes permiso para administrar los miembros de este coro.'
-  )
-  if (!ctx.ok) return ctx
-
-  const supabase = await createClient()
-
-  // El orden de §8.4: aprobado primero, vinculado después. La RLS lo exige
-  // igual; esto convierte su rechazo mudo en el motivo exacto.
-  const { data: perfil } = await supabase
-    .from('perfiles')
-    .select('aprobado, rol')
-    .eq('id', datos.data.perfilId)
-    .maybeSingle()
-
-  if (!perfil) return { ok: false, error: 'Ese perfil no existe o no lo alcanzas.' }
-
-  const veredicto = puedeVincularse({ aprobado: perfil.aprobado, rol: perfil.rol })
-  if (!veredicto.ok) return { ok: false, error: veredicto.motivo }
-
-  const { error } = await supabase.from('coro_acceso').insert({
-    perfil_id: datos.data.perfilId,
-    coro_id: ctx.coroId,
-    rol_local: datos.data.rolLocal,
-  })
-
-  if (error) {
-    const yaEstaba = error.code === '23505'
-    return {
-      ok: false,
-      error: yaEstaba ? 'Esa persona ya está en el coro.' : 'No pudimos agregarla al coro.',
-    }
-  }
-
-  revalidatePath('/coro/miembros')
-  return { ok: true }
-}
+/**
+ * Un miembro entra SOLO por invitación (2026-11-25): la selección de perfiles
+ * existentes se retiró y la RLS de `coro_acceso` ya no tiene política de insert.
+ * Por eso acá no hay «agregar»: está `invitarMiembro` en
+ * `app/invitaciones/acciones.ts`.
+ */
 
 const CambiarRol = z.object({
   accesoId: z.string().uuid(),
@@ -91,6 +56,13 @@ export async function cambiarRolLocal(raw: unknown): Promise<Resultado> {
     'No tienes permiso para administrar los miembros de este coro.'
   )
   if (!ctx.ok) return ctx
+
+  // Promover o degradar directores es del admin: un director no se crea a otro
+  // director ni se quita solo. La RLS de `coro_acceso` lo impide; esto devuelve
+  // el motivo antes de que el update afecte cero filas.
+  if (!ctx.esAdmin) {
+    return { ok: false, error: 'Solo el administrador cambia roles locales' }
+  }
 
   const supabase = await createClient()
 
@@ -120,6 +92,62 @@ export async function cambiarRolLocal(raw: unknown): Promise<Resultado> {
     .eq('id', datos.data.accesoId)
 
   if (error) return { ok: false, error: 'No pudimos cambiar el rol.' }
+
+  revalidatePath('/coro/miembros')
+  return { ok: true }
+}
+
+const Quitar = z.object({ accesoId: z.string().uuid() })
+
+/**
+ * Saca a alguien del coro activo.
+ *
+ * El director quita MIEMBROS; las filas de director solo las quita el admin (la
+ * RLS de `coro_acceso` ya lo exige, acá se convierte en un mensaje). La fila se
+ * lee primero con la sesión del usuario: si la RLS no la deja ver, no se borra
+ * a ciegas.
+ */
+export async function quitarMiembro(raw: unknown): Promise<Resultado> {
+  const datos = Quitar.safeParse(raw)
+  if (!datos.success) return { ok: false, error: 'Revisa los datos.' }
+
+  const ctx = await exigir(
+    'administrar_miembros',
+    'No tienes permiso para administrar los miembros de este coro.'
+  )
+  if (!ctx.ok) return ctx
+
+  const supabase = await createClient()
+
+  const { data: fila, error: lectura } = await supabase
+    .from('coro_acceso')
+    .select('id, coro_id, rol_local')
+    .eq('id', datos.data.accesoId)
+    .maybeSingle()
+
+  if (lectura) return { ok: false, error: 'No pudimos leer ese vínculo con el coro.' }
+  if (!fila) return { ok: false, error: 'Esa persona no está en el coro o ya no puedes verla.' }
+
+  // El admin quita cualquiera; un director, solo miembros de SU coro activo.
+  if (!ctx.esAdmin) {
+    if (fila.coro_id !== ctx.coroId) {
+      return { ok: false, error: 'Esa persona no está en tu coro activo.' }
+    }
+    if (fila.rol_local !== 'miembro') {
+      return { ok: false, error: 'Solo el administrador puede quitar a un director del coro.' }
+    }
+  }
+
+  const { data: borradas, error } = await supabase
+    .from('coro_acceso')
+    .delete()
+    .eq('id', datos.data.accesoId)
+    .select('id')
+
+  if (error) return { ok: false, error: 'No pudimos quitar a esa persona del coro.' }
+  if (!borradas || borradas.length === 0) {
+    return { ok: false, error: 'Esa persona ya no está en el coro.' }
+  }
 
   revalidatePath('/coro/miembros')
   return { ok: true }

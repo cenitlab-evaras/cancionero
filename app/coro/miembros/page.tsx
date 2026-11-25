@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { obtenerSesion } from '@/lib/sesion'
 import { puede } from '@/lib/permisos'
 import { perfilesConVinculo } from '@/lib/datos/gobierno'
+import { invitacionesPendientes } from '@/lib/datos/invitaciones'
 import { resumenDeMiembros } from '@/lib/motores/gobierno'
 import Cabecera from '@/app/componentes/cabecera'
 import ListaMiembros from './lista'
@@ -40,7 +41,7 @@ export default async function MiembrosPage() {
             No tienes permiso para administrar los miembros
           </h1>
           <p className="mt-2 max-w-prose text-sm text-texto-tenue">
-            Admitir gente al coro y cambiar su rol es trabajo del director.
+            Invitar gente al coro y quitarla es trabajo del director.
           </p>
           <Link
             href="/repertorio"
@@ -53,13 +54,18 @@ export default async function MiembrosPage() {
     )
   }
 
-  const perfiles = await perfilesConVinculo(sesion.coroActivo.id)
-  const resumen = resumenDeMiembros(perfiles)
   // H14: la RLS ya filtra —solo el director del coro las lee—, pero la
   // pantalla no ofrece lo que la matriz no concede (§8.3).
-  const fichas = puede(sesion.sujeto, 'ver_ficha_del_coro')
-    ? await fichasDelCoro(sesion.coroActivo.id)
-    : []
+  // 2026-11-25: las invitaciones de miembro del coro son del director; la RLS
+  // deja ver solo las de su coro que además son de miembro.
+  const [perfiles, fichas, invitaciones] = await Promise.all([
+    perfilesConVinculo(sesion.coroActivo.id),
+    puede(sesion.sujeto, 'ver_ficha_del_coro')
+      ? fichasDelCoro(sesion.coroActivo.id)
+      : Promise.resolve([]),
+    invitacionesPendientes(sesion.coroActivo.id),
+  ])
+  const resumen = resumenDeMiembros(perfiles)
 
   return (
     <>
@@ -72,10 +78,9 @@ export default async function MiembrosPage() {
 
         <ListaMiembros
           enElCoro={resumen.enElCoro}
-          disponibles={resumen.disponibles}
-          directores={resumen.directores}
           yoId={sesion.usuarioId}
           fichas={fichas}
+          invitaciones={invitaciones}
         />
       </main>
     </>

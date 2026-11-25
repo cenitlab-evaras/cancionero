@@ -2,35 +2,65 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { agregarMiembro, cambiarRolLocal } from '../acciones'
+import { quitarMiembro } from '../acciones'
+import { reenviarInvitacion, revocarInvitacion } from '@/app/invitaciones/acciones'
 import type { PerfilConVinculo } from '@/lib/datos/gobierno'
+import type { InvitacionPendiente } from '@/lib/datos/invitaciones'
 import type { FichaDeMiembro } from '@/lib/datos/ficha'
 import { etiquetaDisponibilidad, etiquetaTesitura } from '@/lib/motores/ficha'
+import { fechaEnZona } from '@/lib/motores/fecha'
 import TituloSeccion from '@/app/componentes/titulo-seccion'
 import { clasesBotonIcono } from '@/app/componentes/boton-icono'
+import Invitar from './invitar'
+
+const MESES = [
+  'enero',
+  'febrero',
+  'marzo',
+  'abril',
+  'mayo',
+  'junio',
+  'julio',
+  'agosto',
+  'septiembre',
+  'octubre',
+  'noviembre',
+  'diciembre',
+]
 
 /**
- * Admitir gente al coro y cambiarle el rol.
+ * «2 de diciembre de 2026»: el día del coro, no el del servidor.
  *
- * No decide nada: las reglas viven en el motor y en la RLS. Acá solo se llama
- * la acción y se muestra el motivo cuando dice que no.
+ * `fechaEnZona` fija la zona (`America/Santiago`) y devuelve `YYYY-MM-DD`; así
+ * el HTML del servidor y el del cliente dicen lo mismo y no hay desajuste de
+ * hidratación a las 21:00, cuando en UTC ya es otro día.
+ */
+function fechaDeVencimiento(iso: string): string {
+  const [anio, mes, dia] = fechaEnZona(new Date(iso)).split('-')
+  return `${Number(dia)} de ${MESES[Number(mes) - 1]} de ${anio}`
+}
+
+/**
+ * Invitar miembros, ver quién está en el coro y quitar a un miembro.
+ *
+ * No decide nada: las reglas viven en la RLS y en las actions. Acá solo se
+ * llama la acción y se muestra el motivo cuando dice que no. Los roles locales
+ * ya no se cambian desde esta pantalla: eso es del administrador.
  */
 export default function ListaMiembros({
   enElCoro,
-  disponibles,
-  directores,
   yoId,
   fichas = [],
+  invitaciones,
 }: {
   enElCoro: PerfilConVinculo[]
-  disponibles: PerfilConVinculo[]
-  directores: number
   yoId: string
   /* H14 · las fichas van EN la fila de cada quien, no en una lista aparte:
      tenerlas en su propia sección listaba dos veces a la misma gente en la
      misma pantalla. Llega vacío para quien no puede verlas (la matriz decide,
      la RLS hace cumplir). */
   fichas?: FichaDeMiembro[]
+  invitaciones: InvitacionPendiente[]
 }) {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
@@ -65,6 +95,8 @@ export default function ListaMiembros({
 
   return (
     <div className={pendiente ? 'opacity-60 transition-opacity' : 'transition-opacity'}>
+      <Invitar />
+
       {error && (
         <p role="status" className="mt-4 text-sm text-peligro">
           {error}
@@ -72,7 +104,7 @@ export default function ListaMiembros({
       )}
 
       <TituloSeccion
-        className="mt-6"
+        className="mt-10"
         detalle={String(enElCoro.length)}
         detalleHablado={enElCoro.length === 1 ? '1 persona' : `${enElCoro.length} personas`}
       >
@@ -102,58 +134,72 @@ export default function ListaMiembros({
               )}
             </span>
 
-            <select
-              value={p.rolLocal ?? 'miembro'}
-              onChange={(e) =>
-                correr(() =>
-                  cambiarRolLocal({
-                    accesoId: p.accesoId!,
-                    rolLocal: e.target.value as 'director' | 'miembro',
-                  })
-                )
-              }
-              disabled={pendiente}
-              aria-label={`Rol de ${nombreDe(p)} en el coro`}
-              className="tactil shrink-0 rounded-lg border border-borde-fuerte bg-superficie px-3 text-sm"
-            >
-              <option value="miembro">Miembro</option>
-              <option value="director">Director</option>
-            </select>
+            {/* Un director quita MIEMBROS; las filas de director solo las quita
+                el admin. A nadie se le ofrece quitarse a sí mismo. */}
+            {p.rolLocal === 'miembro' && p.id !== yoId && p.accesoId && (
+              <button
+                type="button"
+                onClick={() => correr(() => quitarMiembro({ accesoId: p.accesoId! }))}
+                disabled={pendiente}
+                aria-label={`Quitar a ${nombreDe(p)} del coro`}
+                className={clasesBotonIcono('borde', 'px-4 text-sm !text-peligro')}
+              >
+                Quitar
+              </button>
+            )}
           </li>
         ))}
       </ul>
 
-      {directores <= 1 && (
-        // Avisar ANTES, no cuando la acción ya falló: el director tiene que
-        // poder anticipar por qué el selector le va a decir que no.
-        <p className="mt-2 text-sm text-texto-tenue">
-          Hay un solo director. Para cambiarle el rol, primero nombra a otro.
-        </p>
-      )}
+      <TituloSeccion
+        className="mt-10"
+        detalle={String(invitaciones.length)}
+        detalleHablado={
+          invitaciones.length === 1
+            ? '1 invitación pendiente'
+            : `${invitaciones.length} invitaciones pendientes`
+        }
+      >
+        Invitaciones pendientes
+      </TituloSeccion>
 
-      <TituloSeccion className="mt-10">Agregar al coro</TituloSeccion>
-
-      {disponibles.length === 0 ? (
+      {invitaciones.length === 0 ? (
         <p className="mt-2 max-w-prose text-sm text-texto-tenue">
-          No hay cuentas aprobadas fuera del coro. Una cuenta nueva primero la tiene que aprobar un
-          administrador; recién después aparece acá.
+          No hay invitaciones pendientes.
         </p>
       ) : (
         <ul className="mt-2 divide-y divide-borde border-t border-borde">
-          {disponibles.map((p) => (
-            <li key={p.id} className="flex min-h-14 items-center gap-3 py-2">
+          {invitaciones.map((inv) => (
+            <li
+              key={inv.id}
+              className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:gap-3"
+            >
               <span className="min-w-0 flex-1">
-                <span className="block truncate">{nombreDe(p)}</span>
-                <span className="block truncate text-sm text-texto-tenue">{p.email}</span>
+                <span className="block truncate">{inv.email}</span>
+                <span className="block truncate text-sm text-texto-tenue">
+                  vence el {fechaDeVencimiento(inv.expiraEn)}
+                </span>
               </span>
-              <button
-                type="button"
-                onClick={() => correr(() => agregarMiembro({ perfilId: p.id, rolLocal: 'miembro' }))}
-                disabled={pendiente}
-                className={clasesBotonIcono('borde', 'px-4 text-sm')}
-              >
-                Agregar
-              </button>
+              <span className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => correr(() => reenviarInvitacion(inv.id))}
+                  disabled={pendiente}
+                  aria-label={`Reenviar la invitación a ${inv.email}`}
+                  className={clasesBotonIcono('borde', 'px-4 text-sm')}
+                >
+                  Reenviar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => correr(() => revocarInvitacion(inv.id))}
+                  disabled={pendiente}
+                  aria-label={`Revocar la invitación a ${inv.email}`}
+                  className={clasesBotonIcono('borde', 'px-4 text-sm !text-peligro')}
+                >
+                  Revocar
+                </button>
+              </span>
             </li>
           ))}
         </ul>
