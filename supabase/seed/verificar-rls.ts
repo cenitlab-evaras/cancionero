@@ -499,7 +499,12 @@ async function main() {
   await admin
     .from('invitacion')
     .delete()
-    .in('email', [emailInvitado, 'invitado-miembro@cantoral.local', 'director@cantoral.local'])
+    .in('email', [
+      emailInvitado,
+      'invitado-miembro@cantoral.local',
+      'director@cantoral.local',
+      'director-prueba@cantoral.local',
+    ])
 
   // 1 · El admin invita a un director.
   const { data: invitacionDirector, error: errInvitaDirector } = await admin
@@ -554,6 +559,34 @@ async function main() {
     errInvitaMiembro?.message ?? '1 invitación'
   )
 
+  // 3b · El director ve las de miembro, pero no puede convertirlas en una de
+  // director: eso sería nombrar un director sin el admin.
+  const { data: veSuInvitacion } = await director
+    .from('invitacion')
+    .select('id, rol_local')
+    .eq('id', invitacionMiembro?.id ?? '')
+  comprobar(
+    'director@ ve las invitaciones de miembro de su coro',
+    veSuInvitacion?.[0]?.rol_local === 'miembro',
+    `${veSuInvitacion?.length ?? 0} filas`
+  )
+
+  const { data: promovida, error: errPromueveInvitacion } = await director
+    .from('invitacion')
+    .update({ rol_local: 'director' })
+    .eq('id', invitacionMiembro?.id ?? '')
+    .select('rol_local')
+  const { data: trasPromocion } = await admin
+    .from('invitacion')
+    .select('rol_local')
+    .eq('id', invitacionMiembro?.id ?? '')
+    .single()
+  comprobar(
+    'director@ NO puede convertir su invitación de miembro en una de director',
+    (promovida?.length ?? 0) === 0 && trasPromocion?.rol_local === 'miembro',
+    errPromueveInvitacion?.message ?? `${promovida?.length ?? 0} filas afectadas`
+  )
+
   const { data: coroAjeno } = await ajeno.from('coro_acceso').select('coro_id').limit(1).single()
   const { error: errInvitaOtroCoro } = await director.from('invitacion').insert({
     email: 'invitado-otro@cantoral.local',
@@ -582,6 +615,96 @@ async function main() {
     'musico@ no puede invitar a nadie',
     !!errInvitaMusico,
     errInvitaMusico ? 'la RLS rechazó el insert' : 'SE INVITÓ: la política está mal'
+  )
+
+  // 4b · Las invitaciones de director son del ADMIN: el director no las ve, no
+  // las edita y no las borra. Se usa una desechable para no tocar la que
+  // después acepta el invitado.
+  const { data: invitacionSoloAdmin, error: errInvitaSoloAdmin } = await admin
+    .from('invitacion')
+    .insert({
+      email: 'director-prueba@cantoral.local',
+      coro_id: coroId,
+      rol_local: 'director',
+      token_hash: hashDeToken(tokenNuevo()),
+      creada_por: idAdmin,
+      expira_en: expira,
+    })
+    .select('id')
+    .single()
+  comprobar(
+    'admin@ invita a un director (invitación de prueba)',
+    !!invitacionSoloAdmin && !errInvitaSoloAdmin,
+    errInvitaSoloAdmin?.message ?? '1 invitación'
+  )
+
+  const { data: veInvitacionDirector } = await director
+    .from('invitacion')
+    .select('id')
+    .eq('id', invitacionSoloAdmin?.id ?? '')
+  comprobar(
+    'director@ NO ve las invitaciones de director de su coro',
+    (veInvitacionDirector?.length ?? 0) === 0,
+    `${veInvitacionDirector?.length ?? 0} filas`
+  )
+
+  const { data: editaInvitacionDirector, error: errEditaInvitacionDirector } = await director
+    .from('invitacion')
+    .update({ email: 'secuestrada@cantoral.local' })
+    .eq('id', invitacionSoloAdmin?.id ?? '')
+    .select('id')
+  const { data: invitacionIntacta } = await admin
+    .from('invitacion')
+    .select('email')
+    .eq('id', invitacionSoloAdmin?.id ?? '')
+    .single()
+  comprobar(
+    'director@ NO puede editar una invitación de director',
+    (editaInvitacionDirector?.length ?? 0) === 0 &&
+      invitacionIntacta?.email === 'director-prueba@cantoral.local',
+    errEditaInvitacionDirector?.message ?? `${editaInvitacionDirector?.length ?? 0} filas afectadas`
+  )
+
+  const { data: borraInvitacionDirector, error: errBorraInvitacionDirector } = await director
+    .from('invitacion')
+    .delete()
+    .eq('id', invitacionSoloAdmin?.id ?? '')
+    .select('id')
+  const { data: sigueInvitacionDirector } = await admin
+    .from('invitacion')
+    .select('id')
+    .eq('id', invitacionSoloAdmin?.id ?? '')
+  comprobar(
+    'director@ NO puede borrar una invitación de director',
+    (borraInvitacionDirector?.length ?? 0) === 0 &&
+      (sigueInvitacionDirector?.length ?? 0) === 1,
+    errBorraInvitacionDirector?.message ?? `${borraInvitacionDirector?.length ?? 0} filas afectadas`
+  )
+
+  const { data: adminEditaInvitacion } = await admin
+    .from('invitacion')
+    .update({ expira_en: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() })
+    .eq('id', invitacionSoloAdmin?.id ?? '')
+    .select('id')
+  comprobar(
+    'admin@ sí puede actualizar una invitación de director',
+    (adminEditaInvitacion?.length ?? 0) === 1,
+    `${adminEditaInvitacion?.length ?? 0} filas afectadas`
+  )
+
+  const { data: adminBorraInvitacion } = await admin
+    .from('invitacion')
+    .delete()
+    .eq('id', invitacionSoloAdmin?.id ?? '')
+    .select('id')
+  const { data: yaNoEsta } = await admin
+    .from('invitacion')
+    .select('id')
+    .eq('id', invitacionSoloAdmin?.id ?? '')
+  comprobar(
+    'admin@ sí puede borrar una invitación de director',
+    (adminBorraInvitacion?.length ?? 0) === 1 && (yaNoEsta?.length ?? 0) === 0,
+    `${adminBorraInvitacion?.length ?? 0} filas borradas`
   )
 
   // 5 · El invitado no lee la tabla: la invitación se consulta por RPC.

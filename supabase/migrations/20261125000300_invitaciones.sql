@@ -33,18 +33,23 @@ create index invitacion_coro_idx on public.invitacion (coro_id, created_at desc)
 -- RLS activa en la misma migración que crea la tabla (regla del producto).
 alter table public.invitacion enable row level security;
 
--- El admin ve todas las invitaciones; un director ve las de su coro para poder
--- listarlas, reenviarlas o revocarlas. El INVITADO no lee la tabla: su correo y
--- el token son de la RPC, no de una consulta directa — así no puede enumerar
--- quién más fue invitado ni qué hashes existen.
+-- El admin ve todas las invitaciones; un director ve SOLO las de miembro de su
+-- coro, para poder listarlas, reenviarlas o revocarlas. Las invitaciones de
+-- director son del admin: si el director pudiera verlas, podría reescribir su
+-- email o su token y nombrar directores por la puerta de atrás. El INVITADO no
+-- lee la tabla: su correo y el token son de la RPC, no de una consulta directa
+-- — así no puede enumerar quién más fue invitado ni qué hashes existen.
 create policy invitacion_select on public.invitacion
   for select using (
     public.es_admin()
-    or exists (
-      select 1 from public.coro_acceso a
-       where a.coro_id = public.invitacion.coro_id
-         and a.perfil_id = auth.uid()
-         and a.rol_local = 'director'
+    or (
+      exists (
+        select 1 from public.coro_acceso a
+         where a.coro_id = public.invitacion.coro_id
+           and a.perfil_id = auth.uid()
+           and a.rol_local = 'director'
+      )
+      and public.invitacion.rol_local = 'miembro'
     )
   );
 
@@ -71,38 +76,50 @@ create policy invitacion_insert on public.invitacion
     )
   );
 
--- Reenviar o expirar una invitación: el admin o el director del coro. El
--- `with check` repite el predicado para que nadie pueda mover la invitación a
--- un coro que no gobierna.
+-- Reenviar o expirar una invitación: el admin cualquiera; el director solo las
+-- de MIEMBRO de su coro. El `using` mira la fila actual y el `with check` la
+-- nueva: así un director no puede convertir su invitación de miembro en una de
+-- director (sería nombrar un director sin el admin) ni tocar las del admin.
 create policy invitacion_update on public.invitacion
   for update using (
     public.es_admin()
-    or exists (
-      select 1 from public.coro_acceso a
-       where a.coro_id = public.invitacion.coro_id
-         and a.perfil_id = auth.uid()
-         and a.rol_local = 'director'
+    or (
+      exists (
+        select 1 from public.coro_acceso a
+         where a.coro_id = public.invitacion.coro_id
+           and a.perfil_id = auth.uid()
+           and a.rol_local = 'director'
+      )
+      and public.invitacion.rol_local = 'miembro'
     )
   )
   with check (
     public.es_admin()
-    or exists (
-      select 1 from public.coro_acceso a
-       where a.coro_id = public.invitacion.coro_id
-         and a.perfil_id = auth.uid()
-         and a.rol_local = 'director'
+    or (
+      exists (
+        select 1 from public.coro_acceso a
+         where a.coro_id = public.invitacion.coro_id
+           and a.perfil_id = auth.uid()
+           and a.rol_local = 'director'
+      )
+      and public.invitacion.rol_local = 'miembro'
     )
   );
 
--- Revocar una invitación pendiente: mismo alcance que reenviarla.
+-- Revocar una invitación pendiente: el admin cualquiera; el director solo las
+-- de miembro de su coro. Así no puede tumbar en silencio el alta de un
+-- director que decidió el admin.
 create policy invitacion_delete on public.invitacion
   for delete using (
     public.es_admin()
-    or exists (
-      select 1 from public.coro_acceso a
-       where a.coro_id = public.invitacion.coro_id
-         and a.perfil_id = auth.uid()
-         and a.rol_local = 'director'
+    or (
+      exists (
+        select 1 from public.coro_acceso a
+         where a.coro_id = public.invitacion.coro_id
+           and a.perfil_id = auth.uid()
+           and a.rol_local = 'director'
+      )
+      and public.invitacion.rol_local = 'miembro'
     )
   );
 
