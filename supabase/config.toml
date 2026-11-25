@@ -160,11 +160,21 @@ site_url = "http://127.0.0.1:3000"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-# El link de invitación vuelve a `/auth/confirm`, que canjea el código por sesión.
+# El link de invitación vuelve a `/auth/confirm`, que canjea el token por sesión.
+# Auth compara también la query: el `?inv=<token>` necesita su propia entrada
+# con comodín o el destino se descarta y la invitación se pierde.
 additional_redirect_urls = [
   "https://127.0.0.1:3000",
   "http://127.0.0.1:3000/auth/confirm",
   "http://localhost:3000/auth/confirm",
+  "http://127.0.0.1:3000/auth/confirm?inv=*",
+  "http://localhost:3000/auth/confirm?inv=*",
+  # Verificación de Task 8: el server local corre en :3002 (el 3000 lo ocupa
+  # Docker en este equipo), así que el link de invitación vuelve a este puerto.
+  "http://127.0.0.1:3002/auth/confirm",
+  "http://localhost:3002/auth/confirm",
+  "http://127.0.0.1:3002/auth/confirm?inv=*",
+  "http://localhost:3002/auth/confirm?inv=*",
 ]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
