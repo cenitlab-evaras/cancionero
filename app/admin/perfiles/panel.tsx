@@ -86,8 +86,10 @@ export default function PanelAdmin({
         </p>
       )}
 
-      {/* Invitar directores es trabajo del admin: acá solo se invita ese rol.
-          Los miembros los invita el director desde «Miembros». */}
+      {/* Invitar directores es trabajo del admin: el formulario solo ofrece ese
+          rol. La lista, en cambio, muestra todas las pendientes que la RLS deja
+          ver (también las de miembro que crea un director), por eso cada fila
+          dice su rol. */}
       <TituloSeccion
         className="mt-6"
         detalle={String(invitaciones.length)}
@@ -97,7 +99,7 @@ export default function PanelAdmin({
             : `${invitaciones.length} invitaciones pendientes`
         }
       >
-        Invitaciones a directores
+        Invitaciones pendientes
       </TituloSeccion>
 
       {coros.length === 0 ? (
@@ -153,7 +155,7 @@ export default function PanelAdmin({
 
       {invitaciones.length === 0 ? (
         <p className="mt-3 max-w-prose text-sm text-texto-tenue">
-          No hay invitaciones de director pendientes.
+          No hay invitaciones pendientes.
         </p>
       ) : (
         <ul className="mt-3 divide-y divide-borde border-t border-borde">
@@ -163,7 +165,12 @@ export default function PanelAdmin({
               className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:gap-3"
             >
               <span className="min-w-0 flex-1">
-                <span className="block truncate">{inv.email}</span>
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="truncate">{inv.email}</span>
+                  <span className="shrink-0 rounded border border-borde-fuerte px-1.5 text-sm text-texto-tenue">
+                    {inv.rolLocal === 'director' ? 'Director' : 'Miembro'}
+                  </span>
+                </span>
                 <span className="block truncate text-sm text-texto-tenue">
                   {nombreDelCoro.get(inv.coroId) ?? 'Coro no disponible'} · vence el{' '}
                   {fechaDeVencimiento(inv.expiraEn)}
