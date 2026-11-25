@@ -161,6 +161,47 @@ describe('gobierno', () => {
   })
 })
 
+describe('invitaciones — el gobierno de coros (2026-11-25)', () => {
+  const externo: Sujeto = { rol: 'externo', aprobado: true, rolLocal: null }
+
+  test('solo el admin invita directores', () => {
+    expect(puede(admin, 'invitar_director')).toBe(true)
+    expect(puede(director, 'invitar_director')).toBe(false)
+    expect(puede(miembro, 'invitar_director')).toBe(false)
+    expect(puede(externo, 'invitar_director')).toBe(false)
+  })
+
+  test('invitar miembros exige dirigir el coro, incluso para el admin', () => {
+    // Un admin SUELTO no invita miembros: la invitación es del coro, no del rol
+    // global. Si además dirige el coro activo, la capacidad le llega por el
+    // vínculo, igual que editar el repertorio.
+    expect(puede(admin, 'invitar_miembro')).toBe(false)
+    const adminDirector: Sujeto = { rol: 'admin', aprobado: true, rolLocal: 'director' }
+    expect(puede(adminDirector, 'invitar_miembro')).toBe(true)
+    expect(puede(director, 'invitar_miembro')).toBe(true)
+    expect(puede(miembro, 'invitar_miembro')).toBe(false)
+    expect(puede(externo, 'invitar_miembro')).toBe(false)
+  })
+
+  test('un director revocado (sin aprobar) no invita a nadie', () => {
+    // El portón `aprobado` cierra todo ANTES de mirar el vínculo: si le revocan
+    // la aprobación, el director deja de poder invitar a su propio coro.
+    expect(puede(pendiente, 'invitar_miembro')).toBe(false)
+    expect(puede(pendiente, 'invitar_director')).toBe(false)
+    expect(puede(pendiente, 'aceptar_invitacion')).toBe(false)
+  })
+
+  test('aceptar la invitación es de cualquiera que ya haya entrado', () => {
+    // La invitación puede ser de director o de miembro, y el invitado todavía no
+    // tiene vínculo con el coro: la capacidad no puede exigirlo.
+    expect(puede(admin, 'aceptar_invitacion')).toBe(true)
+    expect(puede(director, 'aceptar_invitacion')).toBe(true)
+    expect(puede(miembro, 'aceptar_invitacion')).toBe(true)
+    expect(puede(sinVinculo, 'aceptar_invitacion')).toBe(true)
+    expect(puede(externo, 'aceptar_invitacion')).toBe(true)
+  })
+})
+
 describe('rutaInicial — una sola fuente de enrutamiento', () => {
   test('el no aprobado va al portón', () => {
     expect(rutaInicial(pendiente)).toBe('/esperando-aprobacion')

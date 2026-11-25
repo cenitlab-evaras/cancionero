@@ -78,6 +78,10 @@ export const CAPACIDADES = [
   'publicar_partitura',
   'exportar_audio',
   'ver_trabajos',
+  // 2026-11-25 · el gobierno por invitación.
+  'invitar_director',
+  'invitar_miembro',
+  'aceptar_invitacion',
 ] as const
 export type Capacidad = (typeof CAPACIDADES)[number]
 
@@ -137,6 +141,12 @@ const MATRIZ: Record<Rol, Record<Capacidad, Celda>> = {
     publicar_partitura: true,
     exportar_audio: true,
     ver_trabajos: true,
+    // 2026-11-25 · El admin invita DIRECTORES por email. Invitar MIEMBROS es
+    // del coro: un admin suelto no, uno que además dirige el coro activo sí,
+    // por el vínculo y no por el rol global. Aceptar es de cualquiera.
+    invitar_director: true,
+    invitar_miembro: 'solo_director',
+    aceptar_invitacion: true,
   },
   usuario: {
     ver_coro: 'solo_vinculado',
@@ -193,6 +203,12 @@ const MATRIZ: Record<Rol, Record<Capacidad, Celda>> = {
     publicar_partitura: 'solo_director',
     exportar_audio: 'solo_director',
     ver_trabajos: 'solo_director',
+    // 2026-11-25 · Un director nunca invita a otro director: eso es del admin.
+    // Invitar miembros es exactamente lo que ya hace administrar_miembros, y
+    // aceptar una invitación no exige vínculo: es la puerta de entrada a él.
+    invitar_director: false,
+    invitar_miembro: 'solo_director',
+    aceptar_invitacion: true,
   },
   externo: {
     ver_coro: false,
@@ -226,6 +242,11 @@ const MATRIZ: Record<Rol, Record<Capacidad, Celda>> = {
     publicar_partitura: false,
     exportar_audio: false,
     ver_trabajos: false,
+    // 2026-11-25 · Un externo no invita a nadie, pero sí puede aceptar: es la
+    // única capacidad que lo saca de la puerta sin aflojar ninguna otra celda.
+    invitar_director: false,
+    invitar_miembro: false,
+    aceptar_invitacion: true,
   },
 }
 
