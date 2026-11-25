@@ -45,9 +45,11 @@ create policy invitacion_select on public.invitacion
     or (
       exists (
         select 1 from public.coro_acceso a
+        join public.perfiles p on p.id = a.perfil_id
          where a.coro_id = public.invitacion.coro_id
            and a.perfil_id = auth.uid()
            and a.rol_local = 'director'
+           and p.aprobado
       )
       and public.invitacion.rol_local = 'miembro'
     )
@@ -68,29 +70,36 @@ create policy invitacion_insert on public.invitacion
         rol_local = 'miembro'
         and exists (
           select 1 from public.coro_acceso a
+          join public.perfiles p on p.id = a.perfil_id
            where a.coro_id = public.invitacion.coro_id
              and a.perfil_id = auth.uid()
              and a.rol_local = 'director'
+             and p.aprobado
         )
       )
     )
   );
 
--- Reenviar o expirar una invitación: el admin cualquiera; el director solo las
--- de MIEMBRO de su coro. El `using` mira la fila actual y el `with check` la
--- nueva: así un director no puede convertir su invitación de miembro en una de
--- director (sería nombrar un director sin el admin) ni tocar las del admin.
+-- Reenviar o expirar una invitación PENDIENTE: el admin cualquiera; el director
+-- solo las de MIEMBRO de su coro. El `using` mira la fila actual y el
+-- `with check` la nueva: así un director no puede convertir su invitación de
+-- miembro en una de director (sería nombrar un director sin el admin), no toca
+-- las del admin y no reescribe una aceptada — aceptada es historia, no una
+-- invitación que se pueda reenviar.
 create policy invitacion_update on public.invitacion
   for update using (
     public.es_admin()
     or (
       exists (
         select 1 from public.coro_acceso a
+        join public.perfiles p on p.id = a.perfil_id
          where a.coro_id = public.invitacion.coro_id
            and a.perfil_id = auth.uid()
            and a.rol_local = 'director'
+           and p.aprobado
       )
       and public.invitacion.rol_local = 'miembro'
+      and public.invitacion.aceptada_en is null
     )
   )
   with check (
@@ -98,28 +107,34 @@ create policy invitacion_update on public.invitacion
     or (
       exists (
         select 1 from public.coro_acceso a
+        join public.perfiles p on p.id = a.perfil_id
          where a.coro_id = public.invitacion.coro_id
            and a.perfil_id = auth.uid()
            and a.rol_local = 'director'
+           and p.aprobado
       )
       and public.invitacion.rol_local = 'miembro'
+      and public.invitacion.aceptada_en is null
     )
   );
 
--- Revocar una invitación pendiente: el admin cualquiera; el director solo las
+-- Revocar una invitación PENDIENTE: el admin cualquiera; el director solo las
 -- de miembro de su coro. Así no puede tumbar en silencio el alta de un
--- director que decidió el admin.
+-- director que decidió el admin ni borrar una aceptada (historia).
 create policy invitacion_delete on public.invitacion
   for delete using (
     public.es_admin()
     or (
       exists (
         select 1 from public.coro_acceso a
+        join public.perfiles p on p.id = a.perfil_id
          where a.coro_id = public.invitacion.coro_id
            and a.perfil_id = auth.uid()
            and a.rol_local = 'director'
+           and p.aprobado
       )
       and public.invitacion.rol_local = 'miembro'
+      and public.invitacion.aceptada_en is null
     )
   );
 
@@ -190,11 +205,13 @@ end;
 $$;
 
 -- Sin `public` ni `anon`: nadie sin sesión puede probar hashes ni aceptar. Las
--- dos funciones solo se ejecutan con una sesión autenticada.
+-- dos funciones solo se ejecutan con una sesión autenticada; `service_role`
+-- queda igual que el resto de las funciones del repo, para pruebas y
+-- herramientas del servidor.
 revoke all on function public.aceptar_invitacion(text) from public, anon;
 revoke all on function public.invitacion_publica(text) from public, anon;
-grant execute on function public.aceptar_invitacion(text) to authenticated;
-grant execute on function public.invitacion_publica(text) to authenticated;
+grant execute on function public.aceptar_invitacion(text) to authenticated, service_role;
+grant execute on function public.invitacion_publica(text) to authenticated, service_role;
 grant select, insert, update, delete on public.invitacion to authenticated;
 
 -- -----------------------------------------------------------------------------
@@ -211,7 +228,9 @@ drop policy if exists coro_acceso_write on public.coro_acceso;
 -- Update: el `using` mira la fila ACTUAL, así que un director no puede tocar
 -- una fila de director ni para degradarla — solo el admin. El `with check`
 -- impide lo simétrico: un director no puede convertir a un miembro en director
--- (`rol_local = 'miembro' or public.es_admin()`).
+-- (`rol_local = 'miembro' or public.es_admin()`) ni repuntar la fila a un
+-- perfil sin aprobar o externo. Ese último guard es el de H7, que se conserva:
+-- quitar la política FOR ALL no puede llevarse puesta la regla del alta.
 create policy coro_acceso_update on public.coro_acceso
   for update using (
     public.es_admin()
@@ -220,6 +239,13 @@ create policy coro_acceso_update on public.coro_acceso
   with check (
     public.es_director_de(coro_id)
     and (rol_local = 'miembro' or public.es_admin())
+    and exists (
+      select 1
+        from public.perfiles p
+       where p.id = perfil_id
+         and p.aprobado
+         and p.rol <> 'externo'
+    )
   );
 
 -- Delete: el director quita miembros; las filas de director solo las borra el

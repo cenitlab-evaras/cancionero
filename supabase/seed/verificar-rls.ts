@@ -491,8 +491,6 @@ async function main() {
   const idAdmin = (await admin.auth.getUser()).data.user!.id
   const expira = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
   const emailInvitado = 'pendiente@cantoral.local'
-  const tokenDirector = tokenNuevo()
-  const hashDirector = hashDeToken(tokenDirector)
 
   // Si una corrida anterior se cortó antes de limpiar, se borran las pendientes
   // de prueba para no chocar con el índice único de invitación pendiente.
@@ -504,16 +502,58 @@ async function main() {
       'invitado-miembro@cantoral.local',
       'director@cantoral.local',
       'director-prueba@cantoral.local',
+      'sin-aprobar@cantoral.local',
     ])
 
-  // 1 · El admin invita a un director.
-  const { data: invitacionDirector, error: errInvitaDirector } = await admin
+  // 0 · Una invitación VENCIDA no sirve ni para mirar ni para aceptar. Se crea
+  // con `expira_en` en el pasado y se borra enseguida para liberar el índice
+  // único de pendientes del mismo email/coro.
+  const hashVencido = hashDeToken(tokenNuevo())
+  const { data: invitacionVencida, error: errInvitaVencida } = await director
     .from('invitacion')
     .insert({
       email: emailInvitado,
       coro_id: coroId,
+      rol_local: 'miembro',
+      token_hash: hashVencido,
+      creada_por: idDirector,
+      expira_en: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+    })
+    .select('id')
+    .single()
+  comprobar(
+    'director@ crea una invitación de miembro vencida',
+    !!invitacionVencida && !errInvitaVencida,
+    errInvitaVencida?.message ?? '1 invitación'
+  )
+
+  const { error: errAceptaVencida } = await pendiente.rpc('aceptar_invitacion', {
+    p_hash: hashVencido,
+  })
+  const { data: publicaVencida } = await pendiente.rpc('invitacion_publica', {
+    p_hash: hashVencido,
+  })
+  comprobar(
+    'una invitación vencida no se puede aceptar',
+    !!errAceptaVencida,
+    errAceptaVencida?.message ?? 'SE ACEPTÓ: falta mirar expira_en'
+  )
+  comprobar(
+    'invitacion_publica de una invitación vencida devuelve CERO filas',
+    (publicaVencida?.length ?? 0) === 0,
+    `${publicaVencida?.length ?? 0} filas`
+  )
+  await admin.from('invitacion').delete().eq('id', invitacionVencida?.id ?? '')
+
+  // 1 · El admin invita a un director. La invitación es desechable: sirve para
+  // probar quién puede verla, editarla y borrarla, no para aceptarla.
+  const { data: invitacionSoloAdmin, error: errInvitaSoloAdmin } = await admin
+    .from('invitacion')
+    .insert({
+      email: 'director-prueba@cantoral.local',
+      coro_id: coroId,
       rol_local: 'director',
-      token_hash: hashDirector,
+      token_hash: hashDeToken(tokenNuevo()),
       creada_por: idAdmin,
       expira_en: expira,
     })
@@ -521,8 +561,8 @@ async function main() {
     .single()
   comprobar(
     'admin@ invita a un director',
-    !!invitacionDirector && !errInvitaDirector,
-    errInvitaDirector?.message ?? '1 invitación'
+    !!invitacionSoloAdmin && !errInvitaSoloAdmin,
+    errInvitaSoloAdmin?.message ?? '1 invitación'
   )
 
   // 2 · Un director NO invita a otro director: eso es del admin.
@@ -540,14 +580,17 @@ async function main() {
     errDirectorInvitaDirector ? 'la RLS rechazó el insert' : 'SE INVITÓ: la política está mal'
   )
 
-  // 3 · Un director invita a un miembro en SU coro, y no en otro.
+  // 3 · Un director invita a un miembro en SU coro, y no en otro. Esta es la
+  // invitación que después acepta `pendiente@`: el caso positivo del alta.
+  const tokenMiembro = tokenNuevo()
+  const hashMiembro = hashDeToken(tokenMiembro)
   const { data: invitacionMiembro, error: errInvitaMiembro } = await director
     .from('invitacion')
     .insert({
-      email: 'invitado-miembro@cantoral.local',
+      email: emailInvitado,
       coro_id: coroId,
       rol_local: 'miembro',
-      token_hash: hashDeToken(tokenNuevo()),
+      token_hash: hashMiembro,
       creada_por: idDirector,
       expira_en: expira,
     })
@@ -618,26 +661,7 @@ async function main() {
   )
 
   // 4b · Las invitaciones de director son del ADMIN: el director no las ve, no
-  // las edita y no las borra. Se usa una desechable para no tocar la que
-  // después acepta el invitado.
-  const { data: invitacionSoloAdmin, error: errInvitaSoloAdmin } = await admin
-    .from('invitacion')
-    .insert({
-      email: 'director-prueba@cantoral.local',
-      coro_id: coroId,
-      rol_local: 'director',
-      token_hash: hashDeToken(tokenNuevo()),
-      creada_por: idAdmin,
-      expira_en: expira,
-    })
-    .select('id')
-    .single()
-  comprobar(
-    'admin@ invita a un director (invitación de prueba)',
-    !!invitacionSoloAdmin && !errInvitaSoloAdmin,
-    errInvitaSoloAdmin?.message ?? '1 invitación'
-  )
-
+  // las edita y no las borra. La invitación de prueba se creó arriba.
   const { data: veInvitacionDirector } = await director
     .from('invitacion')
     .select('id')
@@ -716,18 +740,18 @@ async function main() {
   )
 
   // 6 · La vista pública: con el email correcto muestra el coro; con otro, nada.
-  const { data: publicaPropia } = await pendiente.rpc('invitacion_publica', { p_hash: hashDirector })
+  const { data: publicaPropia } = await pendiente.rpc('invitacion_publica', { p_hash: hashMiembro })
   const { data: nombreCoro } = await admin.from('coros').select('nombre').eq('id', coroId).single()
   comprobar(
     'invitacion_publica(hash) le muestra el coro al email correcto',
     publicaPropia?.[0]?.coro_nombre === nombreCoro?.nombre &&
-      publicaPropia?.[0]?.rol_local === 'director',
+      publicaPropia?.[0]?.rol_local === 'miembro',
     publicaPropia?.[0]
       ? `${publicaPropia[0].coro_nombre} · ${publicaPropia[0].rol_local}`
       : '0 filas'
   )
 
-  const { data: publicaAjena } = await ajeno.rpc('invitacion_publica', { p_hash: hashDirector })
+  const { data: publicaAjena } = await ajeno.rpc('invitacion_publica', { p_hash: hashMiembro })
   comprobar(
     'invitacion_publica(hash) con otro email devuelve CERO filas',
     (publicaAjena?.length ?? 0) === 0,
@@ -735,21 +759,22 @@ async function main() {
   )
 
   // Aceptar con el email equivocado tampoco abre la puerta.
-  const { error: errAceptaAjena } = await ajeno.rpc('aceptar_invitacion', { p_hash: hashDirector })
+  const { error: errAceptaAjena } = await ajeno.rpc('aceptar_invitacion', { p_hash: hashMiembro })
   comprobar(
     'ajeno@ no puede aceptar una invitación que no es de su email',
     !!errAceptaAjena,
     errAceptaAjena?.message ?? 'SE ACEPTÓ: la función no mira el email'
   )
 
-  // 7 · Aceptar: crea el vínculo, marca la invitación y abre el portón.
+  // 7 · Aceptar como MIEMBRO: crea el vínculo con el rol de la invitación,
+  // marca la invitación y abre el portón del perfil.
   const { data: coroAceptado, error: errAceptar } = await pendiente.rpc('aceptar_invitacion', {
-    p_hash: hashDirector,
+    p_hash: hashMiembro,
   })
   const { data: invitacionAceptada } = await admin
     .from('invitacion')
     .select('aceptada_en')
-    .eq('id', invitacionDirector?.id ?? '')
+    .eq('id', invitacionMiembro?.id ?? '')
     .single()
   const { data: accesoAceptado } = await admin
     .from('coro_acceso')
@@ -764,8 +789,8 @@ async function main() {
     .single()
 
   comprobar(
-    'aceptar_invitacion(hash) devuelve el coro y crea el coro_acceso como director',
-    !errAceptar && coroAceptado === coroId && accesoAceptado?.rol_local === 'director',
+    'aceptar_invitacion(hash) devuelve el coro y crea el coro_acceso como miembro',
+    !errAceptar && coroAceptado === coroId && accesoAceptado?.rol_local === 'miembro',
     errAceptar?.message ??
       `coro ${coroAceptado === coroId ? 'correcto' : 'distinto'} · rol ${accesoAceptado?.rol_local ?? '—'}`
   )
@@ -776,11 +801,35 @@ async function main() {
   )
 
   // El mismo token no se usa dos veces.
-  const { error: errRepetida } = await pendiente.rpc('aceptar_invitacion', { p_hash: hashDirector })
+  const { error: errRepetida } = await pendiente.rpc('aceptar_invitacion', { p_hash: hashMiembro })
   comprobar(
     'el mismo token no se puede aceptar dos veces',
     !!errRepetida,
     errRepetida?.message ?? 'SE ACEPTÓ DE NUEVO: falta el control de uso único'
+  )
+
+  // Una invitación aceptada es HISTORIA: el director solo reenvía o revoca
+  // pendientes. Este es el guard de `aceptada_en is null` de las políticas.
+  const { data: editaAceptada } = await director
+    .from('invitacion')
+    .update({ expira_en: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() })
+    .eq('id', invitacionMiembro?.id ?? '')
+    .select('id')
+  const { data: borraAceptada } = await director
+    .from('invitacion')
+    .delete()
+    .eq('id', invitacionMiembro?.id ?? '')
+    .select('id')
+  const { data: sigueAceptada } = await admin
+    .from('invitacion')
+    .select('id')
+    .eq('id', invitacionMiembro?.id ?? '')
+  comprobar(
+    'director@ NO puede editar ni borrar una invitación ya aceptada',
+    (editaAceptada?.length ?? 0) === 0 &&
+      (borraAceptada?.length ?? 0) === 0 &&
+      (sigueAceptada?.length ?? 0) === 1,
+    `${editaAceptada?.length ?? 0} editadas · ${borraAceptada?.length ?? 0} borradas`
   )
 
   // El recién llegado ve el repertorio en su siguiente entrada.
@@ -791,6 +840,43 @@ async function main() {
     'el recién admitido ve el mismo repertorio que el director',
     (veRepertorio?.length ?? 0) === (veDirector?.length ?? -1),
     `${veRepertorio?.length ?? 0} cantos`
+  )
+
+  // 8 · El admin asciende al que ya es miembro: invitación de DIRECTOR al mismo
+  // email. El upsert de la aceptación cambia el rol local a director.
+  const tokenAscenso = tokenNuevo()
+  const hashAscenso = hashDeToken(tokenAscenso)
+  const { data: invitacionAscenso, error: errInvitaAscenso } = await admin
+    .from('invitacion')
+    .insert({
+      email: emailInvitado,
+      coro_id: coroId,
+      rol_local: 'director',
+      token_hash: hashAscenso,
+      creada_por: idAdmin,
+      expira_en: expira,
+    })
+    .select('id')
+    .single()
+  comprobar(
+    'admin@ invita como director a quien ya es miembro',
+    !!invitacionAscenso && !errInvitaAscenso,
+    errInvitaAscenso?.message ?? '1 invitación'
+  )
+
+  const { data: coroAscendido, error: errAscenso } = await pendiente.rpc('aceptar_invitacion', {
+    p_hash: hashAscenso,
+  })
+  const { data: accesoAscendido } = await admin
+    .from('coro_acceso')
+    .select('rol_local')
+    .eq('perfil_id', idPendiente)
+    .eq('coro_id', coroId)
+    .maybeSingle()
+  comprobar(
+    'aceptar una invitación de director asciende al miembro a director',
+    !errAscenso && coroAscendido === coroId && accesoAscendido?.rol_local === 'director',
+    errAscenso?.message ?? `rol ${accesoAscendido?.rol_local ?? '—'}`
   )
 
   // El upsert de la aceptación NO degrada a un director: si ya dirigía el coro
@@ -834,7 +920,26 @@ async function main() {
     await admin.from('invitacion').delete().eq('id', invitacionNoDegrada.id)
   }
 
-  // 8 · Las filas de director: solo el admin las toca. El `using` del update y
+  // 9 · La aprobación se puede revocar: un director sin aprobar deja de
+  // gobernar las invitaciones. Se comprueba el join a `perfiles.aprobado` que
+  // ahora llevan todos los predicados de director.
+  await admin.from('perfiles').update({ aprobado: false }).eq('id', idDirector)
+  const { error: errInvitaRevocado } = await director.from('invitacion').insert({
+    email: 'sin-aprobar@cantoral.local',
+    coro_id: coroId,
+    rol_local: 'miembro',
+    token_hash: hashDeToken(tokenNuevo()),
+    creada_por: idDirector,
+    expira_en: expira,
+  })
+  await admin.from('perfiles').update({ aprobado: true }).eq('id', idDirector)
+  comprobar(
+    'un director con la aprobación revocada no puede invitar',
+    !!errInvitaRevocado,
+    errInvitaRevocado ? 'la RLS rechazó el insert' : 'SE INVITÓ: falta mirar perfiles.aprobado'
+  )
+
+  // 10 · Las filas de director: solo el admin las toca. El `using` del update y
   // del delete mira la fila ACTUAL, así que un director no puede degradar ni
   // borrar a otro director; el `with check` le impide lo simétrico, convertir
   // un miembro en director.
@@ -916,10 +1021,12 @@ async function main() {
     `${borrada?.length ?? 0} filas borradas`
   )
 
-  const idsInvitaciones = [invitacionDirector?.id, invitacionMiembro?.id].filter(Boolean)
-  if (idsInvitaciones.length > 0) {
-    await admin.from('invitacion').delete().in('id', idsInvitaciones)
-  }
+  // Se deja como estaba: se borran TODAS las invitaciones de prueba, incluidas
+  // las aceptadas (el admin puede), y el perfil vuelve a estar sin aprobar.
+  await admin
+    .from('invitacion')
+    .delete()
+    .in('email', [emailInvitado, 'director@cantoral.local', 'director-prueba@cantoral.local'])
   await admin.from('perfiles').update({ aprobado: false }).eq('id', idPendiente)
 
   // --- H8 · Editar el repertorio ---------------------------------------------
