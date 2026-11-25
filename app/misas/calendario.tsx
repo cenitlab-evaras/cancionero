@@ -29,8 +29,8 @@ const MESES = [
   'diciembre',
 ] as const
 
-/** Cabecera de la semana: domingo primero, como el calendario del teléfono. */
-const LETRAS = ['D', 'L', 'M', 'X', 'J', 'V', 'S'] as const
+/** Cabecera de la semana: lunes primero, como el calendario del teléfono. */
+const LETRAS = ['L', 'M', 'X', 'J', 'V', 'S', 'D'] as const
 
 type Marcas = { libro: boolean; punto: boolean }
 
@@ -66,7 +66,9 @@ export default function Calendario({
   celebraciones: Record<string, string>
 }) {
   const titulo = tituloDe(anio, mes)
-  const primerDia = new Date(Date.UTC(anio, mes, 1)).getUTCDay()
+  // `getUTCDay()` cuenta desde el domingo (0); la grilla parte el lunes, así
+  // que el domingo pasa a ser la última columna (6).
+  const primerDia = (new Date(Date.UTC(anio, mes, 1)).getUTCDay() + 6) % 7
   const ultimoDia = new Date(Date.UTC(anio, mes + 1, 0)).getUTCDate()
   const prefijo = mesDe(anio, mes, 0)
 

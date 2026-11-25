@@ -61,3 +61,17 @@ export function cuantoFalta(iso: string, hoy: string): string | null {
   if (dias === 1) return 'Mañana'
   return `En ${dias} días`
 }
+
+/**
+ * El día `iso` corrido `dias` (negativo para atrás), como `YYYY-MM-DD`.
+ *
+ * Se mueve en UTC, igual que `fechaLarga`: la fecha no tiene hora, y sumar un
+ * día sobre una fecha local a medianoche puede caer en el día equivocado por
+ * el horario de verano. Vacío entra, vacío sale: no se inventa un día.
+ */
+export function moverDia(iso: string, dias: number): string {
+  if (!iso) return ''
+  const dia = comoDiaUTC(iso)
+  dia.setUTCDate(dia.getUTCDate() + dias)
+  return dia.toISOString().slice(0, 10)
+}

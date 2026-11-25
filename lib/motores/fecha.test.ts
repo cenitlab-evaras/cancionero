@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { ZONA_DEL_CORO, cuantoFalta, fechaEnZona, fechaLarga } from './fecha'
+import { ZONA_DEL_CORO, cuantoFalta, fechaEnZona, fechaLarga, moverDia } from './fecha'
 
 /**
  * Qué día es "hoy" para el coro — el pendiente que §17.1-octies dejó declarado
@@ -84,5 +84,25 @@ describe('cuantoFalta', () => {
 
   test('lo que ya pasó no «falta»: devuelve null', () => {
     expect(cuantoFalta('2026-10-11', '2026-10-18')).toBeNull()
+  })
+})
+
+describe('moverDia', () => {
+  test('va y vuelve un día sin perderse en los bordes del mes', () => {
+    expect(moverDia('2026-11-01', -1)).toBe('2026-10-31')
+    expect(moverDia('2026-10-31', 1)).toBe('2026-11-01')
+    expect(moverDia('2026-12-31', 1)).toBe('2027-01-01')
+    expect(moverDia('2026-01-01', -1)).toBe('2025-12-31')
+  })
+
+  test('cruza el cambio de hora chileno sin correr el día', () => {
+    // Chile pasa a horario de verano en la madrugada del primer domingo de
+    // septiembre; sumar sobre una fecha local podía devolver el mismo día.
+    expect(moverDia('2026-09-05', 1)).toBe('2026-09-06')
+    expect(moverDia('2026-09-06', 1)).toBe('2026-09-07')
+  })
+
+  test('sin fecha no inventa una', () => {
+    expect(moverDia('', 1)).toBe('')
   })
 })

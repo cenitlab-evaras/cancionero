@@ -132,6 +132,11 @@ export default async function MisaPage({
     'Tu coro'
 
   const miInscripcion = inscritos.find((i) => i.perfilId === sesion.usuarioId) ?? null
+  // Quién va a cantar y tocar se ve al inscribirse (el dueño, 2026-11-25): el
+  // control «A cantar / A tocar» queda para todos, pero el resumen, los nombres
+  // y «Faltan» son la consecuencia de anotarse, no algo que se mira antes de
+  // decidir. El director ve la lista siempre.
+  const verQuienesVan = puedeEditar || miInscripcion !== null
   const resumen = resumirCoro(inscritos, fichas)
   // `fichasDelCoro` lista a todo el coro, así que quien no la puede leer
   // tampoco puede saber quién falta: la lista queda vacía y no se dibuja.
@@ -313,7 +318,15 @@ export default async function MisaPage({
 
             <Inscripcion misaId={misa.id} mia={miInscripcion} editable={abierta} />
 
-            {resumen.total === 0 ? (
+            {!verQuienesVan ? (
+              // Sin anotarse no se revela la lista, pero se dice por qué: un
+              // bloque que no está sin explicación parece una falla (§14).
+              abierta && (
+                <p className="mt-5 max-w-prose text-sm text-texto-tenue">
+                  Anótate para ver quiénes van.
+                </p>
+              )
+            ) : resumen.total === 0 ? (
               // Un estado vacío explica POR QUÉ está vacío (§14).
               <p className="mt-5 max-w-prose text-sm text-texto-tenue">
                 {abierta
@@ -354,7 +367,7 @@ export default async function MisaPage({
                 no habló: en cuanto alguien se anota sale de acá, y su
                 predicción deja de mostrarse. Es la tensión de §18-11, cerrada:
                 manda la inscripción. */}
-            {faltan.length > 0 && (
+            {verQuienesVan && faltan.length > 0 && (
               <div className="mt-6">
                 <TituloSeccion
                   detalle={String(faltan.length)}

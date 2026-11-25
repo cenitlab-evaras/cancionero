@@ -6,7 +6,8 @@ import type { LecturaGuardada, ParteParaGuardar } from '@/lib/datos/lecturas'
 import { PARTES, NOMBRE_DE_PARTE, repartirLecturas, type TipoDeLectura } from '@/lib/motores/lecturas'
 import { guardarLecturas, importarLecturas } from './acciones'
 import { BotonIcono, clasesBotonIcono } from '@/app/componentes/boton-icono'
-import { IconoCerrar } from '@/app/componentes/iconos'
+import { IconoCalendario, IconoCerrar, IconoSeguir, IconoVolver } from '@/app/componentes/iconos'
+import { fechaEnZona, moverDia } from '@/lib/motores/fecha'
 
 // Todo campo lleva el borde de control (3:1 contra el fondo, WCAG 1.4.11) y
 // letra de 16 px: con menos, Safari de iPhone agranda la página al enfocarlo.
@@ -241,18 +242,47 @@ export default function Editor({
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm text-texto-tenue">Fecha del día a traer</span>
-            <input
-              type="date"
-              value={dia}
-              onChange={(e) => setDia(e.target.value)}
-              className={CAMPO}
-            />
+          {/* El campo de fecha con sus iconos (2026-11-25): el calendario dice
+              que es un día, y las flechas mueven uno sin abrir el selector.
+              Sin fecha todavía, las flechas parten del día de hoy: un campo
+              vacío que no responde parecía roto. */}
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="fecha-lecturas" className="text-sm text-texto-tenue">
+              Fecha del día a traer
+            </label>
+            <div className="flex items-center gap-1.5">
+              <BotonIcono
+                apariencia="borde"
+                etiqueta="Día anterior"
+                onClick={() => setDia((d) => moverDia(d || fechaEnZona(new Date()), -1))}
+              >
+                <IconoVolver tamano={18} />
+              </BotonIcono>
+              <div className="relative min-w-0 flex-1">
+                <IconoCalendario
+                  tamano={18}
+                  className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-texto-tenue"
+                />
+                <input
+                  id="fecha-lecturas"
+                  type="date"
+                  value={dia}
+                  onChange={(e) => setDia(e.target.value)}
+                  className={`${CAMPO} pl-10`}
+                />
+              </div>
+              <BotonIcono
+                apariencia="borde"
+                etiqueta="Día siguiente"
+                onClick={() => setDia((d) => moverDia(d || fechaEnZona(new Date()), 1))}
+              >
+                <IconoSeguir tamano={18} />
+              </BotonIcono>
+            </div>
             <span className="text-sm text-texto-tenue">
               Por defecto la de la misa. Cámbiala para traer otro día.
             </span>
-          </label>
+          </div>
 
           <button
             type="button"
