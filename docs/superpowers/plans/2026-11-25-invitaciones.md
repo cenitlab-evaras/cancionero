@@ -4,9 +4,9 @@
 
 **Goal:** Que el admin invite directores por email, cada director invite miembros de su coro, y que nadie entre a un coro sin una invitación aceptada.
 
-**Architecture:** Tabla `invitacion` con token hasheado y RLS; dos RPC `security definer` para consultar y aceptar sin exponer la tabla; Supabase Auth manda el link por SMTP y `/auth/confirm` intercambia el código. Se cierran las puertas viejas (`agregarMiembro`, inserts directos a `coro_acceso`, roles locales por el director).
+**Architecture:** Tabla `invitacion` con token hasheado y RLS; dos RPC `security definer` para consultar y aceptar sin exponer la tabla; Supabase Auth manda el link por SMTP y `/auth/confirm` canjea la sesión del link en el navegador. Se cierran las puertas viejas (`agregarMiembro`, inserts directos a `coro_acceso`, roles locales por el director).
 
-**Tech Stack:** Next.js 16 (App Router, Server Components, Route Handler), React 19, Supabase Auth + RLS, Tailwind 4, zod, vitest.
+**Tech Stack:** Next.js 16 (App Router, Server Components, una página cliente de canje), React 19, Supabase Auth + RLS, Tailwind 4, zod, vitest.
 
 **Spec:** `docs/superpowers/specs/2026-11-25-invitaciones-design.md`
 
@@ -371,23 +371,26 @@ git commit -m "feat: datos y acciones de invitación"
 ### Task 4: `/auth/confirm` y la pantalla de aceptación
 
 **Files:**
-- Create: `app/auth/confirm/route.ts`
+- Create: `app/auth/confirm/page.tsx`
 - Create: `app/invitacion/page.tsx`
 - Create: `app/invitacion/formulario.tsx`
 - Modify: `supabase/config.toml`
 
 **Interfaces:**
-- `GET /auth/confirm?code=...&inv=...` deja la sesión y redirige a `/invitacion?inv=...`.
-- `/invitacion?inv=<token>` muestra coro y rol, permite crear contraseña si la cuenta es nueva y aceptar.
+- `GET /auth/confirm?inv=...` con la sesión en el fragmento `#access_token=...&refresh_token=...` canjea la sesión y navega a `/invitacion?inv=...`.
+- `GET /auth/confirm?code=...&inv=...` y `?token_hash=...&type=...&inv=...` quedan como respaldos del mismo canje.
+- `/invitacion?inv=<token>` muestra coro y rol, permite crear contraseña si `user.invited_at` tiene valor y aceptar.
 
-- [ ] **Step 1: Route handler**
+- [ ] **Step 1: Página cliente de confirmación**
 
-`app/auth/confirm/route.ts`:
-- Lee `code` e `inv`.
-- Crea un `NextResponse.redirect` a `/invitacion?inv=${inv}`.
-- `createServerClient` con `getAll`/`setAll` que escriben las cookies en **response**.
-- Si hay `code`, `await supabase.auth.exchangeCodeForSession(code)`.
-- Si no hay `code` o falla, redirige a `/entrar`.
+`app/auth/confirm/page.tsx` (`'use client'`):
+- El fragmento no viaja al servidor, así que el canje ocurre en el navegador.
+- Antes de `createClient()`, leer de `window.location`: `inv` de la query y `access_token`/`refresh_token` de `url.hash`.
+- Si hay `access_token` y `refresh_token`: `await supabase.auth.setSession({ access_token, refresh_token })`; eso deja la sesión en cookies.
+- Respaldos: si no hay fragmento, `?code=` → `exchangeCodeForSession(code)`; `?token_hash=...&type=...` → `verifyOtp({ token_hash, type })`.
+- Si el canje sale bien: `window.location.replace('/invitacion?inv=' + encodeURIComponent(inv))` (conserva `inv`); si no hay `inv`, `/invitacion`.
+- Si falla o no hay credenciales: `/entrar`, para reabrir el link del correo.
+- Mostrar «Verificando el link…» y, ante un fallo inesperado, el aviso y un botón «Entrar».
 
 - [ ] **Step 2: Pantalla**
 
@@ -395,7 +398,7 @@ git commit -m "feat: datos y acciones de invitación"
 - `searchParams` → `inv`.
 - `obtenerSesion()`; sin sesión: explica que abra el link del correo.
 - `datosDeInvitacion(inv)`; si `null`: «La invitación no es válida o venció».
-- `supabase.auth.getUser()` para `nuevo = !!user?.invited_at`.
+- `supabase.auth.getUser()` para `nuevo = !!user?.invited_at` (no se usa `?nuevo=1`).
 - Muestra `coroNombre` y el rol («Entrarás como director/miembro»).
 - `<FormularioInvitacion inv={inv} nuevo={nuevo} />`.
 
@@ -408,18 +411,18 @@ git commit -m "feat: datos y acciones de invitación"
 
 En `supabase/config.toml`:
 - `[auth] enable_signup = false`.
-- `additional_redirect_urls` incluye `http://127.0.0.1:3000/auth/confirm` y `http://localhost:3000/auth/confirm`.
+- `additional_redirect_urls` incluye `http://127.0.0.1:3000/auth/confirm?inv=*` y `http://localhost:3000/auth/confirm?inv=*` (además de las variantes sin query); en la verificación con el server en `:3002`, lo mismo para ese puerto. El comodín es obligatorio: Auth compara también la query del `redirectTo` y, sin `?inv=*`, descarta el destino.
 - `site_url` sigue siendo el de la app local.
 
 - [ ] **Step 4: Verificar**
 
-Run: `npm run build && npx eslint app/auth/confirm/route.ts app/invitacion`
+Run: `npm run build && npx eslint app/auth/confirm/page.tsx app/invitacion`
 Expected: sin errores.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add app/auth/confirm/route.ts app/invitacion supabase/config.toml
+git add app/auth/confirm/page.tsx app/invitacion supabase/config.toml
 git commit -m "feat: link de invitación y pantalla de aceptación"
 ```
 
@@ -526,7 +529,7 @@ git commit -m "feat: el director invita miembros y no crea directores"
 
 Agregar una sección «Invitaciones por email»:
 - Supabase self-hosted (Dokploy): `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_ADMIN_EMAIL`, `SMTP_SENDER_NAME`.
-- `SITE_URL` y `ADDITIONAL_REDIRECT_URLS` deben incluir el dominio de la app y `/auth/confirm`.
+- `SITE_URL` y `ADDITIONAL_REDIRECT_URLS` deben incluir el dominio de la app y la entrada de `/auth/confirm` **con comodín**, `https://cantoral.cenitlab.cl/auth/confirm?inv=*` (más la variante sin query): Auth compara también la query y, sin `?inv=*`, descarta el destino.
 - Registro público desactivado.
 - Local: Inbucket en `http://127.0.0.1:56324`.
 - Sin SMTP no salen invitaciones; la app devuelve error y la fila queda pendiente para reenviar.

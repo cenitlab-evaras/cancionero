@@ -71,8 +71,9 @@ Piezas que hay que leer juntas:
   no se afloja una política para que una pantalla funcione.
 - `proxy.ts` — el antiguo middleware (Next 16 lo renombró). Solo refresca el token; no autoriza.
 - `lib/supabase/` — `server.ts` (default, async: siempre `await createClient()`), `client.ts`
-  (navegador, casi no se usa), `admin.ts` (salta la RLS: **solo** semilla e importadores, nunca en
-  una ruta de usuario).
+  (navegador, casi no se usa), `admin.ts` (salta la RLS: semilla e importadores. Única excepción
+  aprobada: la action de invitar, **solo en el servidor**, después de validar capacidad y coro,
+  nunca en el cliente; ver `docs/superpowers/specs/2026-11-25-invitaciones-design.md` §6).
 - `supabase/migrations/` — esquema `public`. Roles: global en `perfiles.rol`
   (`admin`/`usuario`/`externo`), local en `coro_acceso.rol_local` (`director`/`miembro`). Las
   tablas con alcance de coro llevan `coro_id` denormalizado (con foránea compuesta cuando hace

@@ -233,27 +233,45 @@ director convierta un miembro en director.
 
 ### 7. El link, la contraseña y la aceptación
 
-1. Supabase verifica el link y redirige a `/auth/confirm?code=...&inv=...`.
-2. `app/auth/confirm/route.ts` intercambia el código (`exchangeCodeForSession`),
-   deja la sesión en cookies y redirige a `/invitacion?inv=...&nuevo=1` si el
-   tipo era invitación.
+1. Supabase Auth verifica el link y devuelve la sesión en el **fragmento** de la
+   URL (`#access_token=…&refresh_token=…`), con la invitación en `?inv=…`.
+   Verificado en local con GoTrue (2026-11-25): no llega un `?code=`.
+2. `app/auth/confirm/page.tsx` es una **página cliente** porque el fragmento no
+   viaja al servidor. Antes de crear el cliente lee `access_token` y
+   `refresh_token` del fragmento; con `supabase.auth.setSession` deja la sesión
+   en cookies; conserva `inv` y navega a `/invitacion?inv=…`.
+   - Respaldos, por si cambia el flujo o se personaliza la plantilla del correo:
+     `?code=` con `exchangeCodeForSession` y `?token_hash=…&type=…` con
+     `verifyOtp`. Las tres puertas dejan la sesión en cookies.
+   - Si no hay sesión que crear (link vencido o inválido), redirige a `/entrar`
+     para que la persona reabra el link del correo.
 3. `/invitacion` (Server Component + isla cliente):
    - Sin sesión: explica que el link venció o que entre desde el correo.
    - Con sesión: la action hashea el token y `invitacion_publica(hash)` muestra el
      coro y el rol.
-   - Si es cuenta nueva: un formulario para crear la contraseña
+   - **Cuenta nueva:** se deriva de `user.invited_at` (la cuenta la creó
+     `inviteUserByEmail`), no de un parámetro de la URL como `?nuevo=1`. Si
+     `invited_at` tiene valor, un formulario para crear la contraseña
      (`supabase.auth.updateUser({ password })`), mínimo 8 caracteres.
    - Botón **«Unirme al coro»** → action que hashea el token y llama a
      `aceptar_invitacion(hash)`.
    - Al aceptar, redirige a `/`; `rutaInicial` lleva al coro.
    - Si la invitación venció o el email no coincide: mensaje claro y salida.
 
+**Allowlist de Supabase:** Auth compara también la query del `redirectTo`, así
+que la entrada de `/auth/confirm` necesita su comodín: en producción
+`https://cantoral.cenitlab.cl/auth/confirm?inv=*` (además de la variante sin
+query). En local, `http://localhost:<puerto>/auth/confirm?inv=*`. Sin el
+`?inv=*`, el destino se descarta y la invitación se pierde.
+
 ### 8. Email: configuración (prerrequisito de operación)
 
 - **Supabase self-hosted** (Dokploy): configurar SMTP en el servicio de Auth
   (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_ADMIN_EMAIL`,
   `SMTP_SENDER_NAME`), `SITE_URL` y `ADDITIONAL_REDIRECT_URLS` con el dominio de
-  la app y `/auth/confirm`.
+  la app. La allowlist necesita la entrada exacta de `/auth/confirm` **y** la
+  variante con comodín, `https://cantoral.cenitlab.cl/auth/confirm?inv=*`,
+  porque Auth compara también la query.
 - **Proveedor recomendado:** Resend por SMTP con el dominio de la app; SPF y DKIM
   en el DNS. Sin eso, los correos no salen o caen en spam.
 - **Local:** el stack de Supabase captura los correos (Inbucket); se prueba el

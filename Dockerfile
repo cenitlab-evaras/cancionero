@@ -18,7 +18,10 @@
 #   client.ts); si sólo estuvieran en runtime, el navegador intentaría hablar
 #   con "undefined". Por eso el build de acá abajo se planta si faltan.
 #
-#   SUPABASE_SECRET_KEY no va en esta imagen: sólo la usa el script de semilla.
+#   SUPABASE_SECRET_KEY no va horneada en esta imagen (no es ARG de build): se
+#   pasa en runtime. La usan el script de semilla y la action de invitar
+#   (auth.admin.inviteUserByEmail, solo servidor, tras validar capacidad y
+#   coro; nunca en el cliente). Ver docs/superpowers/specs/2026-11-25-invitaciones-design.md §6.
 #
 # ── Build manual (fuera de Dokploy) ─────────────────────────────────────────
 #   docker build \
