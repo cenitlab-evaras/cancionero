@@ -74,7 +74,7 @@ al contenedor `auth`) y se aplican al reiniciar ese servicio.
 | Variable | Valor de producción | Para qué |
 | --- | --- | --- |
 | `SITE_URL` | `https://cantoral.cenitlab.cl` | base de los links de los correos y del allow-list |
-| `ADDITIONAL_REDIRECT_URLS` | `https://cantoral.cenitlab.cl/auth/confirm` | destinos exactos permitidos; sin esta entrada el link de invitación es rechazado |
+| `ADDITIONAL_REDIRECT_URLS` | `https://cantoral.cenitlab.cl/auth/confirm?inv=*` | destinos permitidos; el `?inv=*` es obligatorio o Auth descarta el link y manda a `SITE_URL` sin la invitación |
 | `SMTP_HOST` | `smtp.resend.com` | servidor de salida |
 | `SMTP_PORT` | `587` | STARTTLS (Resend también acepta 465 con TLS directo) |
 | `SMTP_USER` | `resend` | usuario SMTP de Resend |
@@ -83,8 +83,13 @@ al contenedor `auth`) y se aplican al reiniciar ese servicio.
 | `SMTP_SENDER_NAME` | `Cantoral` | nombre visible del remitente |
 | `DISABLE_SIGNUP` | `true` | cierra el registro público: la única puerta es la invitación |
 
-`ADDITIONAL_REDIRECT_URLS` es una lista separada por comas de URLs **exactas** (sin
-comodines); agregá una entrada por cada entorno. Si tu plantilla de Dokploy expone
+`ADDITIONAL_REDIRECT_URLS` es una lista separada por comas. El link de
+invitación vuelve a `/auth/confirm?inv=<token>`; Auth compara también la query,
+así que la entrada tiene que ser `…/auth/confirm?inv=*` (el `*` es un comodín que
+Auth sí soporta). Sin el comodín el destino se considera no permitido: Auth lo
+descarta y manda a `SITE_URL` a secas, donde la invitación se pierde. Agregá una
+entrada por cada entorno y, si querés aceptar también links sin token, una
+entrada extra sin query. Si tu plantilla de Dokploy expone
 los nombres internos de GoTrue en vez de los de arriba, el equivalente es
 `GOTRUE_SITE_URL`, `GOTRUE_URI_ALLOW_LIST`, `GOTRUE_SMTP_HOST`,
 `GOTRUE_SMTP_PORT`, `GOTRUE_SMTP_USER`, `GOTRUE_SMTP_PASS`,
@@ -111,12 +116,13 @@ El stack local (`supabase start`) captura los correos en vez de mandarlos:
 **Inbucket en <http://127.0.0.1:56324>**. No hace falta SMTP ni proveedor.
 
 La configuración local ya está en `supabase/config.toml`: `[auth] enable_signup =
-false`, `site_url = "http://127.0.0.1:3000"` y
-`additional_redirect_urls` con `http://127.0.0.1:3000/auth/confirm` y
-`http://localhost:3000/auth/confirm`.
+false`, `site_url = "http://127.0.0.1:3000"` y `additional_redirect_urls` con
+`http://127.0.0.1:3000/auth/confirm`, `http://localhost:3000/auth/confirm`, sus
+equivalentes en `:3002` y `http://localhost:3002/auth/confirm?inv=*`.
 
-1. En `.env.local`, `SITE_URL=http://localhost:3000` (debe estar en la lista de
-   redirects; `supabase/config.toml` ya lo tiene).
+1. En `.env.development.local` (el entorno local de Next; **no** en `.env.local`,
+   que apunta a producción), `SITE_URL=http://localhost:3000` (debe estar en la
+   lista de redirects; `supabase/config.toml` ya lo tiene).
 2. `npm run dev`, entrar como `admin@cantoral.local` e invitar un director desde
    `/admin/perfiles`.
 3. Abrir <http://127.0.0.1:56324>, abrir el correo y copiar el link.
@@ -124,10 +130,10 @@ false`, `site_url = "http://127.0.0.1:3000"` y
 5. Entrar como ese director, invitar un miembro desde `/coro/miembros` y repetir.
 
 Si el server corre en otro puerto (p. ej. `:3002`), `SITE_URL` debe decirlo y esa
-URL exacta con `/auth/confirm` debe estar en `additional_redirect_urls`; después
-`supabase stop && supabase start` para que Auth relea `config.toml`. Si no
-coinciden, Auth ignora el destino no permitido y te deja en el `site_url` sin
-sesión: el link no llega a `/auth/confirm`.
+URL exacta con `/auth/confirm` **y** `/auth/confirm?inv=*` debe estar en
+`additional_redirect_urls`; después `supabase stop && supabase start` para que
+Auth relea `config.toml`. Si no coinciden, Auth ignora el destino no permitido y
+te deja en el `site_url` sin sesión: el link no llega a `/auth/confirm`.
 
 ### Cuando el correo no sale
 
