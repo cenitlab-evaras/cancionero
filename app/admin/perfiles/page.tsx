@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { obtenerSesion } from '@/lib/sesion'
 import { puede } from '@/lib/permisos'
 import { corosDeLaInstalacion, perfilesConVinculo } from '@/lib/datos/gobierno'
+import { invitacionesPendientes } from '@/lib/datos/invitaciones'
 import Cabecera from '@/app/componentes/cabecera'
 import PanelAdmin from './panel'
 
@@ -43,10 +44,13 @@ export default async function AdminPerfilesPage() {
   }
 
   // El coro activo solo se usa para saber el vínculo; al admin le interesan
-  // todos los perfiles, pertenezcan donde pertenezcan.
-  const [perfiles, coros] = await Promise.all([
+  // todos los perfiles, pertenezcan donde pertenezcan. Las invitaciones van con
+  // `null` a propósito: el admin ve todas las pendientes, no las de su coro
+  // activo (la RLS recorta igual).
+  const [perfiles, coros, invitaciones] = await Promise.all([
     perfilesConVinculo(sesion.coroActivo?.id ?? '00000000-0000-0000-0000-000000000000'),
     corosDeLaInstalacion(),
+    invitacionesPendientes(null),
   ])
 
   return (
@@ -60,7 +64,12 @@ export default async function AdminPerfilesPage() {
           Quién entra, con qué rol y a qué coro pertenece.
         </p>
 
-        <PanelAdmin perfiles={perfiles} coros={coros} yoId={sesion.usuarioId} />
+        <PanelAdmin
+          perfiles={perfiles}
+          coros={coros}
+          invitaciones={invitaciones}
+          yoId={sesion.usuarioId}
+        />
       </main>
     </>
   )
