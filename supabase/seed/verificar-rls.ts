@@ -9,6 +9,7 @@
  *   npm run verificar:rls
  */
 import { createClient } from '@supabase/supabase-js'
+import { createHash, randomBytes } from 'node:crypto'
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const PUBLISHABLE = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
@@ -33,6 +34,17 @@ async function sesion(email: string) {
   const { error } = await c.auth.signInWithPassword({ email, password: PASSWORD })
   if (error) throw new Error(`No se pudo entrar como ${email}: ${error.message}`)
   return c
+}
+
+// El link lleva un token de 32 bytes en claro; la base guarda solo su SHA-256.
+// El verificador arma el hash igual que la server action: así prueba la RPC con
+// el mismo valor que va a recibir en producción.
+function tokenNuevo() {
+  return randomBytes(32).toString('hex')
+}
+
+function hashDeToken(token: string) {
+  return createHash('sha256').update(token).digest('hex')
 }
 
 async function main() {
@@ -447,18 +459,19 @@ async function main() {
     errCoro ? 'la RLS rechazó el insert' : 'SE ESCRIBIÓ: la política está mal'
   )
 
-  // EL ORDEN DE §8.4: primero aprobar, después vincular. El director NO puede
-  // saltárselo, ni siquiera por acción directa.
-  const { error: errAntesDeAprobar } = await director
+  // LA PUERTA VIEJA ESTÁ CERRADA: desde las invitaciones ya no existe política
+  // de INSERT en `coro_acceso`. El director no vincula perfiles existentes, ni
+  // antes ni después de aprobarlos; el único alta es la RPC de la invitación.
+  const { error: errVinculoDirecto } = await director
     .from('coro_acceso')
     .insert({ perfil_id: idPendiente, coro_id: coroId, rol_local: 'miembro' })
   comprobar(
-    'director@ NO puede vincular a un perfil sin aprobar (§8.4, el orden del alta)',
-    !!errAntesDeAprobar,
-    errAntesDeAprobar ? 'la RLS rechazó el insert' : 'SE VINCULÓ: la política está mal'
+    'director@ NO puede vincular a nadie directo en coro_acceso (el alta es por invitación)',
+    !!errVinculoDirecto,
+    errVinculoDirecto ? 'la RLS rechazó el insert' : 'SE VINCULÓ: falta cerrar el insert'
   )
 
-  // El admin aprueba…
+  // La aprobación manual sigue existiendo como legado (§10 del diseño).
   await admin.from('perfiles').update({ aprobado: true }).eq('id', idPendiente)
   const { data: yaAprobado } = await admin
     .from('perfiles')
@@ -467,15 +480,184 @@ async function main() {
     .single()
   comprobar('admin@ sí puede aprobar un perfil', yaAprobado?.aprobado === true, 'aprobado')
 
-  // …y recién ahí el director puede vincularlo.
-  const { data: vinculado, error: errVincular } = await director
-    .from('coro_acceso')
-    .insert({ perfil_id: idPendiente, coro_id: coroId, rol_local: 'miembro' })
+  // Se vuelve a cerrar el portón a propósito: lo que sigue comprueba que quien
+  // lo abre ahora es `aceptar_invitacion`, no un update del admin.
+  await admin.from('perfiles').update({ aprobado: false }).eq('id', idPendiente)
+
+  // --- Invitaciones (2026-11-25) ---------------------------------------------
+  // El flujo completo en la base: quién crea cada invitación, que el invitado
+  // no lea la tabla, que la vista pública no filtre correos ajenos y que la
+  // aceptación sea la única puerta que escribe `coro_acceso`.
+  const idAdmin = (await admin.auth.getUser()).data.user!.id
+  const expira = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+  const emailInvitado = 'pendiente@cantoral.local'
+  const tokenDirector = tokenNuevo()
+  const hashDirector = hashDeToken(tokenDirector)
+
+  // Si una corrida anterior se cortó antes de limpiar, se borran las pendientes
+  // de prueba para no chocar con el índice único de invitación pendiente.
+  await admin
+    .from('invitacion')
+    .delete()
+    .in('email', [emailInvitado, 'invitado-miembro@cantoral.local', 'director@cantoral.local'])
+
+  // 1 · El admin invita a un director.
+  const { data: invitacionDirector, error: errInvitaDirector } = await admin
+    .from('invitacion')
+    .insert({
+      email: emailInvitado,
+      coro_id: coroId,
+      rol_local: 'director',
+      token_hash: hashDirector,
+      creada_por: idAdmin,
+      expira_en: expira,
+    })
     .select('id')
+    .single()
   comprobar(
-    'director@ sí puede vincular al perfil YA aprobado',
-    (vinculado?.length ?? 0) === 1,
-    errVincular ? `error: ${errVincular.message}` : '1 fila'
+    'admin@ invita a un director',
+    !!invitacionDirector && !errInvitaDirector,
+    errInvitaDirector?.message ?? '1 invitación'
+  )
+
+  // 2 · Un director NO invita a otro director: eso es del admin.
+  const { error: errDirectorInvitaDirector } = await director.from('invitacion').insert({
+    email: 'otro-director@cantoral.local',
+    coro_id: coroId,
+    rol_local: 'director',
+    token_hash: hashDeToken(tokenNuevo()),
+    creada_por: idDirector,
+    expira_en: expira,
+  })
+  comprobar(
+    'director@ NO puede invitar a un director',
+    !!errDirectorInvitaDirector,
+    errDirectorInvitaDirector ? 'la RLS rechazó el insert' : 'SE INVITÓ: la política está mal'
+  )
+
+  // 3 · Un director invita a un miembro en SU coro, y no en otro.
+  const { data: invitacionMiembro, error: errInvitaMiembro } = await director
+    .from('invitacion')
+    .insert({
+      email: 'invitado-miembro@cantoral.local',
+      coro_id: coroId,
+      rol_local: 'miembro',
+      token_hash: hashDeToken(tokenNuevo()),
+      creada_por: idDirector,
+      expira_en: expira,
+    })
+    .select('id')
+    .single()
+  comprobar(
+    'director@ invita a un miembro en su coro',
+    !!invitacionMiembro && !errInvitaMiembro,
+    errInvitaMiembro?.message ?? '1 invitación'
+  )
+
+  const { data: coroAjeno } = await ajeno.from('coro_acceso').select('coro_id').limit(1).single()
+  const { error: errInvitaOtroCoro } = await director.from('invitacion').insert({
+    email: 'invitado-otro@cantoral.local',
+    coro_id: coroAjeno!.coro_id,
+    rol_local: 'miembro',
+    token_hash: hashDeToken(tokenNuevo()),
+    creada_por: idDirector,
+    expira_en: expira,
+  })
+  comprobar(
+    'director@ NO invita a un miembro en otro coro',
+    !!errInvitaOtroCoro,
+    errInvitaOtroCoro ? 'la RLS rechazó el insert' : 'SE INVITÓ: la política está mal'
+  )
+
+  // 4 · Un miembro no invita a nadie.
+  const { error: errInvitaMusico } = await musico.from('invitacion').insert({
+    email: 'otro-miembro@cantoral.local',
+    coro_id: coroId,
+    rol_local: 'miembro',
+    token_hash: hashDeToken(tokenNuevo()),
+    creada_por: idMusico,
+    expira_en: expira,
+  })
+  comprobar(
+    'musico@ no puede invitar a nadie',
+    !!errInvitaMusico,
+    errInvitaMusico ? 'la RLS rechazó el insert' : 'SE INVITÓ: la política está mal'
+  )
+
+  // 5 · El invitado no lee la tabla: la invitación se consulta por RPC.
+  const { data: invitacionesPendiente } = await pendiente.from('invitacion').select('id')
+  comprobar(
+    'pendiente@ (el invitado) NO lee la tabla de invitaciones',
+    (invitacionesPendiente?.length ?? 0) === 0,
+    `${invitacionesPendiente?.length ?? 0} filas`
+  )
+
+  // 6 · La vista pública: con el email correcto muestra el coro; con otro, nada.
+  const { data: publicaPropia } = await pendiente.rpc('invitacion_publica', { p_hash: hashDirector })
+  const { data: nombreCoro } = await admin.from('coros').select('nombre').eq('id', coroId).single()
+  comprobar(
+    'invitacion_publica(hash) le muestra el coro al email correcto',
+    publicaPropia?.[0]?.coro_nombre === nombreCoro?.nombre &&
+      publicaPropia?.[0]?.rol_local === 'director',
+    publicaPropia?.[0]
+      ? `${publicaPropia[0].coro_nombre} · ${publicaPropia[0].rol_local}`
+      : '0 filas'
+  )
+
+  const { data: publicaAjena } = await ajeno.rpc('invitacion_publica', { p_hash: hashDirector })
+  comprobar(
+    'invitacion_publica(hash) con otro email devuelve CERO filas',
+    (publicaAjena?.length ?? 0) === 0,
+    `${publicaAjena?.length ?? 0} filas`
+  )
+
+  // Aceptar con el email equivocado tampoco abre la puerta.
+  const { error: errAceptaAjena } = await ajeno.rpc('aceptar_invitacion', { p_hash: hashDirector })
+  comprobar(
+    'ajeno@ no puede aceptar una invitación que no es de su email',
+    !!errAceptaAjena,
+    errAceptaAjena?.message ?? 'SE ACEPTÓ: la función no mira el email'
+  )
+
+  // 7 · Aceptar: crea el vínculo, marca la invitación y abre el portón.
+  const { data: coroAceptado, error: errAceptar } = await pendiente.rpc('aceptar_invitacion', {
+    p_hash: hashDirector,
+  })
+  const { data: invitacionAceptada } = await admin
+    .from('invitacion')
+    .select('aceptada_en')
+    .eq('id', invitacionDirector?.id ?? '')
+    .single()
+  const { data: accesoAceptado } = await admin
+    .from('coro_acceso')
+    .select('rol_local')
+    .eq('perfil_id', idPendiente)
+    .eq('coro_id', coroId)
+    .maybeSingle()
+  const { data: perfilAceptado } = await admin
+    .from('perfiles')
+    .select('aprobado')
+    .eq('id', idPendiente)
+    .single()
+
+  comprobar(
+    'aceptar_invitacion(hash) devuelve el coro y crea el coro_acceso como director',
+    !errAceptar && coroAceptado === coroId && accesoAceptado?.rol_local === 'director',
+    errAceptar?.message ??
+      `coro ${coroAceptado === coroId ? 'correcto' : 'distinto'} · rol ${accesoAceptado?.rol_local ?? '—'}`
+  )
+  comprobar(
+    'aceptar_invitacion marca aceptada_en y aprueba el perfil',
+    !!invitacionAceptada?.aceptada_en && perfilAceptado?.aprobado === true,
+    `aceptada_en ${invitacionAceptada?.aceptada_en ? 'sí' : 'NO'} · aprobado ${perfilAceptado?.aprobado ?? '—'}`
+  )
+
+  // El mismo token no se usa dos veces.
+  const { error: errRepetida } = await pendiente.rpc('aceptar_invitacion', { p_hash: hashDirector })
+  comprobar(
+    'el mismo token no se puede aceptar dos veces',
+    !!errRepetida,
+    errRepetida?.message ?? 'SE ACEPTÓ DE NUEVO: falta el control de uso único'
   )
 
   // El recién llegado ve el repertorio en su siguiente entrada.
@@ -488,8 +670,133 @@ async function main() {
     `${veRepertorio?.length ?? 0} cantos`
   )
 
-  // Se deja como estaba: la semilla vuelve a tener a pendiente@ sin aprobar.
-  await director.from('coro_acceso').delete().eq('perfil_id', idPendiente)
+  // El upsert de la aceptación NO degrada a un director: si ya dirigía el coro
+  // y acepta una invitación de miembro, conserva el rol. Se invita a sí mismo
+  // —es el único director sembrado— y se comprueba que sigue dirigiendo.
+  const tokenNoDegrada = tokenNuevo()
+  const { data: invitacionNoDegrada, error: errInvitacionNoDegrada } = await director
+    .from('invitacion')
+    .insert({
+      email: 'director@cantoral.local',
+      coro_id: coroId,
+      rol_local: 'miembro',
+      token_hash: hashDeToken(tokenNoDegrada),
+      creada_por: idDirector,
+      expira_en: expira,
+    })
+    .select('id')
+    .single()
+
+  if (!invitacionNoDegrada) {
+    comprobar(
+      'aceptar una invitación de miembro NO degrada a un director',
+      false,
+      `NO SE PUDO PROBAR: ${errInvitacionNoDegrada?.message ?? 'no se creó la invitación'}`
+    )
+  } else {
+    const { error: errAceptaNoDegrada } = await director.rpc('aceptar_invitacion', {
+      p_hash: hashDeToken(tokenNoDegrada),
+    })
+    const { data: sigueDirector } = await admin
+      .from('coro_acceso')
+      .select('rol_local')
+      .eq('perfil_id', idDirector)
+      .eq('coro_id', coroId)
+      .single()
+    comprobar(
+      'aceptar una invitación de miembro NO degrada a un director',
+      !errAceptaNoDegrada && sigueDirector?.rol_local === 'director',
+      errAceptaNoDegrada?.message ?? `rol ${sigueDirector?.rol_local ?? '—'}`
+    )
+    await admin.from('invitacion').delete().eq('id', invitacionNoDegrada.id)
+  }
+
+  // 8 · Las filas de director: solo el admin las toca. El `using` del update y
+  // del delete mira la fila ACTUAL, así que un director no puede degradar ni
+  // borrar a otro director; el `with check` le impide lo simétrico, convertir
+  // un miembro en director.
+  const { data: degradadoPorDirector } = await director
+    .from('coro_acceso')
+    .update({ rol_local: 'miembro' })
+    .eq('perfil_id', idPendiente)
+    .eq('coro_id', coroId)
+    .select('rol_local')
+  comprobar(
+    'director@ NO puede degradar una fila de director',
+    (degradadoPorDirector?.length ?? 0) === 0,
+    `${degradadoPorDirector?.length ?? 0} filas afectadas`
+  )
+
+  await director
+    .from('coro_acceso')
+    .delete()
+    .eq('perfil_id', idPendiente)
+    .eq('coro_id', coroId)
+  const { data: directorSigue } = await admin
+    .from('coro_acceso')
+    .select('rol_local')
+    .eq('perfil_id', idPendiente)
+    .eq('coro_id', coroId)
+    .single()
+  comprobar(
+    'director@ NO puede borrar una fila de director',
+    directorSigue?.rol_local === 'director',
+    directorSigue?.rol_local === 'director' ? 'la fila sigue ahí' : 'SE BORRÓ: la política está mal'
+  )
+
+  const { data: ascendidoPorDirector, error: errAscensoDirector } = await director
+    .from('coro_acceso')
+    .update({ rol_local: 'director' })
+    .eq('perfil_id', idMusico)
+    .eq('coro_id', coroId)
+    .select('rol_local')
+  const { data: rolMusicoTrasIntento } = await admin
+    .from('coro_acceso')
+    .select('rol_local')
+    .eq('perfil_id', idMusico)
+    .eq('coro_id', coroId)
+    .single()
+  comprobar(
+    'director@ NO puede convertir a un miembro en director (el with check lo frena)',
+    (ascendidoPorDirector?.length ?? 0) === 0 && rolMusicoTrasIntento?.rol_local === 'miembro',
+    errAscensoDirector?.message ?? `${ascendidoPorDirector?.length ?? 0} filas afectadas`
+  )
+
+  const { data: adminTocaDirector } = await admin
+    .from('coro_acceso')
+    .update({ rol_local: 'miembro' })
+    .eq('perfil_id', idPendiente)
+    .eq('coro_id', coroId)
+    .select('rol_local')
+  const { data: adminRestaura } = await admin
+    .from('coro_acceso')
+    .update({ rol_local: 'director' })
+    .eq('perfil_id', idPendiente)
+    .eq('coro_id', coroId)
+    .select('rol_local')
+  comprobar(
+    'admin@ sí puede actualizar una fila de director',
+    adminTocaDirector?.[0]?.rol_local === 'miembro' && adminRestaura?.[0]?.rol_local === 'director',
+    `miembro → ${adminRestaura?.[0]?.rol_local ?? '—'}`
+  )
+
+  // Se deja como estaba: sin vínculo, sin invitaciones y el portón cerrado.
+  const { data: borrada } = await admin
+    .from('coro_acceso')
+    .delete()
+    .eq('perfil_id', idPendiente)
+    .eq('coro_id', coroId)
+    .select('id')
+  comprobar(
+    'admin@ sí puede borrar una fila de director',
+    (borrada?.length ?? 0) === 1,
+    `${borrada?.length ?? 0} filas borradas`
+  )
+
+  const idsInvitaciones = [invitacionDirector?.id, invitacionMiembro?.id].filter(Boolean)
+  if (idsInvitaciones.length > 0) {
+    await admin.from('invitacion').delete().in('id', idsInvitaciones)
+  }
   await admin.from('perfiles').update({ aprobado: false }).eq('id', idPendiente)
 
   // --- H8 · Editar el repertorio ---------------------------------------------
