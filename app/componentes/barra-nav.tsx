@@ -29,7 +29,7 @@ export default function BarraNav({ sesion }: { sesion: SesionCantoral }) {
     icono: <IconoMas />,
     // «Más» queda activo en todo lo que se alcanza desde ahí: si no, en
     // /historial ninguna pestaña dice dónde estás (lo marcó la crítica).
-    tambien: ['/historial', '/sugerencias', '/coro', '/mi-perfil', '/admin', '/coros'],
+    tambien: ['/historial', '/sugerencias', '/coro', '/mi-perfil', '/admin', '/coros', '/herramientas'],
   })
 
   return <DestinosNav destinos={destinos} />

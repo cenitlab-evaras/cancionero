@@ -347,3 +347,37 @@ export const IconoAyuda = (p: Props) => (
     <path d="M9.5 9a2.5 2.5 0 1 1 4.2 1.8c-.9.7-1.7 1.1-1.7 2.2M12 17h.01" />
   </Trazo>
 )
+
+/** «Quién canta cada estrofa»: una persona y la franja de la estrofa. */
+export const IconoQuienCanta = (p: Props) => (
+  <Trazo {...p}>
+    <circle cx="8.5" cy="8" r="2.5" />
+    <path d="M4 19c0-2.8 2-4.6 4.5-4.6S13 16.2 13 19" />
+    <path d="M16.5 6.5v11M20 9.5v5" />
+  </Trazo>
+)
+
+/** «Resaltar mi cuerda»: un marcador de texto. */
+export const IconoResaltarCuerda = (p: Props) => (
+  <Trazo {...p}>
+    <path d="M5 19.5 9 18l8.5-8.5a2.1 2.1 0 0 0-3-3L6 15l-1 4.5Z" />
+    <path d="m13.5 6.5 3 3" />
+  </Trazo>
+)
+
+/** «Dar el tono»: el diapasón. */
+export const IconoDarTono = (p: Props) => (
+  <Trazo {...p}>
+    <path d="M8 4v6a4 4 0 0 0 8 0V4" />
+    <path d="M12 14v6M9 20h6" />
+  </Trazo>
+)
+
+/** «Acordes en Do-Re-Mi»: dos notas. */
+export const IconoAcordesLatinos = (p: Props) => (
+  <Trazo {...p}>
+    <circle cx="7" cy="17.5" r="2.5" />
+    <circle cx="17" cy="15.5" r="2.5" />
+    <path d="M9.5 17.5V7l10-2v10.5" />
+  </Trazo>
+)
