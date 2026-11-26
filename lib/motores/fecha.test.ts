@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { ZONA_DEL_CORO, cuantoFalta, fechaEnZona, fechaLarga, moverDia } from './fecha'
+import { ZONA_DEL_CORO, cuantoFalta, fechaEnZona, fechaLarga, moverDia, partesDeFecha } from './fecha'
 
 /**
  * Qué día es "hoy" para el coro — el pendiente que §17.1-octies dejó declarado
@@ -84,6 +84,16 @@ describe('cuantoFalta', () => {
 
   test('lo que ya pasó no «falta»: devuelve null', () => {
     expect(cuantoFalta('2026-10-11', '2026-10-18')).toBeNull()
+  })
+})
+
+describe('partesDeFecha', () => {
+  test('día, mes corto y día de la semana corto, sin puntos', () => {
+    expect(partesDeFecha('2026-11-28')).toEqual({ dia: '28', mes: 'nov', semana: 'sáb' })
+  })
+
+  test('no se corre de día por la zona del proceso', () => {
+    expect(partesDeFecha('2026-01-01')).toEqual({ dia: '1', mes: 'ene', semana: 'jue' })
   })
 })
 

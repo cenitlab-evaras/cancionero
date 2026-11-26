@@ -63,6 +63,30 @@ export function cuantoFalta(iso: string, hoy: string): string | null {
 }
 
 /**
+ * El día, el mes corto y el día de la semana corto de una fecha: la ficha de
+ * fecha de la bandeja de Inicio (2026-11-25).
+ *
+ * Se arma en UTC, como `fechaLarga`: la fecha no tiene hora. El `es-CL` devuelve
+ * el punto abreviativo («sáb.», «nov.»); se quita para que la ficha quede
+ * limpia en dos o tres letras.
+ */
+export function partesDeFecha(iso: string): { dia: string; mes: string; semana: string } {
+  const partes = new Intl.DateTimeFormat('es-CL', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  }).formatToParts(comoDiaUTC(iso))
+  const de = (tipo: Intl.DateTimeFormatPartTypes) =>
+    partes.find((p) => p.type === tipo)?.value ?? ''
+  return {
+    dia: de('day'),
+    mes: de('month').replace('.', ''),
+    semana: de('weekday').replace('.', ''),
+  }
+}
+
+/**
  * El día `iso` corrido `dias` (negativo para atrás), como `YYYY-MM-DD`.
  *
  * Se mueve en UTC, igual que `fechaLarga`: la fecha no tiene hora, y sumar un
